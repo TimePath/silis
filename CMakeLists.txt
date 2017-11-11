@@ -19,14 +19,15 @@ set(SOURCE_FILES
         src/phases/print.c
         src/phases/eval.c
 
+        src/intrinsics/debug/puti.c
+        src/intrinsics/debug/puts.c
+
         src/intrinsics/_.h
         src/intrinsics/cond.c
         src/intrinsics/define.c
         src/intrinsics/do.c
         src/intrinsics/func.c
         src/intrinsics/plus.c
-        src/intrinsics/puti.c
-        src/intrinsics/puts.c
         )
 add_executable(silis ${SOURCE_FILES})
 target_link_libraries(silis m)

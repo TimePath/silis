@@ -1,6 +1,6 @@
-#include "_.h"
+#include "../_.h"
 
-#include "../lib/number.h"
+#include "../../lib/number.h"
 
 #include <assert.h>
 #include <alloca.h>
