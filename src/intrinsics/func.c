@@ -44,6 +44,7 @@ static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id
             out[i] = (type_id) {.value = type.u.integral.value};
             const node_t *node_id = &children[1];
             assert(node_id->type == NODE_ATOM);
+            (void) (node_id);
         } else if (n == 0) {
             out[i] = ctx->state.types.t_unit;
         } else {
