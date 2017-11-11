@@ -115,11 +115,15 @@ typedef struct {
 
 struct ctx_s;
 
-typedef struct value_s (*intrinsic_t)(struct ctx_s *, struct value_s *);
+typedef struct value_s (*intrinsic_t)(struct ctx_s *, const struct value_s *);
 
 typedef struct value_s {
     type_id type;
     union {
+        struct {
+            void *value;
+        } voidp;
+
         struct {
             size_t value;
         } integral;
@@ -133,8 +137,9 @@ typedef struct value_s {
         } intrinsic;
 
         struct {
-            void *value;
-        } voidp;
+            size_t value;
+            size_t arglist;
+        } func;
     } u;
 } value_t;
 

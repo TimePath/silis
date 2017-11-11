@@ -3,7 +3,7 @@
 #include <assert.h>
 #include <alloca.h>
 
-static void ctx_init_types(ctx_t *self) {
+void ctx_init(ctx_t *self) {
     self->state.types.t_unit = type_new(self, (type_t) {
             .type = TYPE_OPAQUE,
             .u.opaque.size = 0,
@@ -21,24 +21,18 @@ static void ctx_init_types(ctx_t *self) {
             .type = TYPE_OPAQUE,
             .u.opaque.size = sizeof(const char *),
     });
+    sym_t s = (sym_t) {
+            .name = STR("#types/string"),
+            .type = self->state.types.t_type,
+            .value.type = self->state.types.t_type,
+            .value.u.integral.value = self->state.types.t_string.value,
+    };
+    vec_push(&self->state.symbols, s);
+
     self->state.types.t_int = type_new(self, (type_t) {
             .type = TYPE_OPAQUE,
             .u.opaque.size = sizeof(int),
     });
-}
-
-void ctx_init_intrinsic(ctx_t *self, string_view_t name, type_id T, intrinsic_t func) {
-    sym_t s = (sym_t) {
-            .name = name,
-            .type = T,
-            .value.type = T,
-            .value.u.intrinsic.value = func,
-    };
-    vec_push(&self->state.symbols, s);
-}
-
-void ctx_init(ctx_t *self) {
-    ctx_init_types(self);
     vec_loop(intrinsics, i, 0) {
         intrinsics.data[i](self);
     }
@@ -152,3 +146,13 @@ const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident) {
 // Intrinsics
 
 vec_t(ctx_register_t) intrinsics = {0};
+
+void ctx_init_intrinsic(ctx_t *self, string_view_t name, type_id T, intrinsic_t func) {
+    sym_t s = (sym_t) {
+            .name = name,
+            .type = T,
+            .value.type = T,
+            .value.u.intrinsic.value = func,
+    };
+    vec_push(&self->state.symbols, s);
+}

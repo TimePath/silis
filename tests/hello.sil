@@ -1,9 +1,7 @@
 (#define GREETING "Hello, world")
 
-(#define main
-    (#func() (#do (
-        (#puts GREETING)
-    )))
-)
+(#define main (#func ((#types/string a) ()) (#do (
+    (#puts a)
+))))
 
-(main())
+(main GREETING)
