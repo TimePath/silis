@@ -6,7 +6,7 @@ void do_eval(ctx_t *ctx) {
     node_t *it = &ctx->flatten.out.data[ctx->flatten.out.size - 1];
     assert(it->type == NODE_LIST_END);
     while ((--it)->type != NODE_LIST_BEGIN);
-    eval_list_block(ctx,  it);
+    eval_list_block(ctx, it);
 }
 
 value_t eval_list_block(ctx_t *ctx, const node_t *it) {
@@ -18,12 +18,17 @@ value_t eval_list_block(ctx_t *ctx, const node_t *it) {
     return ret;
 }
 
-value_t eval_node(ctx_t *ctx, const node_t *it) {
-    if (it->type != NODE_REF && it->type != NODE_LIST_BEGIN) {
-        return val_from(ctx, it);
-    }
+static const node_t *deref(const ctx_t *ctx, const node_t *it) {
     if (it->type == NODE_REF) {
-        it = &ctx->flatten.out.data[it->u.ref.value];
+        return &ctx->flatten.out.data[it->u.ref.value];
+    }
+    return it;
+}
+
+value_t eval_node(ctx_t *ctx, const node_t *it) {
+    it = deref(ctx, it);
+    if (it->type != NODE_LIST_BEGIN) {
+        return val_from(ctx, it);
     }
     assert(it->type == NODE_LIST_BEGIN);
     const size_t n = it->u.list.size;
@@ -34,13 +39,9 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
     value_t ret = (value_t) {.type = ctx->state.types.t_unit};
     assert(n != 1 && "no parenthesized expressions yet");
     if (n) {
-        const node_t *func = &children[0];
-        assert(func->type == NODE_ATOM); // todo: allow computed function calls
-        const sym_t *maybe = sym_lookup(ctx, func->u.atom.value);
-        assert(maybe);
-        const sym_t sym = *maybe;
-        const vec_t(type_t) types = ctx->state.types.all;
-        const type_t *T = &types.data[sym.type.value];
+        const vec_t(type_t) *types = &ctx->state.types.all;
+        const value_t func = eval_node(ctx, deref(ctx, &children[0]));
+        const type_t *T = &types->data[func.type.value];
         assert(T->type == TYPE_FUNCTION);
 
         const size_t ofs = ctx->eval.stack.size;
@@ -48,14 +49,11 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
         // holds return value after this loop
         const type_t *link = T;
         for (; link->type == TYPE_FUNCTION; ++T_argc) {
-            const node_t *arg = &children[T_argc + 1];
+            const node_t *arg = deref(ctx, &children[T_argc + 1]);
             assert(T_argc < n - 1 && "argument underflow");
             const type_id t = link->u.func.in;
             const type_id expr_t = ctx->state.types.t_expr;
             if (t.value == expr_t.value) {
-                if (arg->type == NODE_REF) {
-                    arg = &ctx->flatten.out.data[arg->u.ref.value];
-                }
                 value_t v = (value_t) {
                         .type = expr_t,
                         .u.integral.value = arg - ctx->flatten.out.data,
@@ -66,14 +64,14 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
                 assert(v.type.value == t.value);
                 vec_push(&ctx->eval.stack, v);
             }
-            link = &types.data[link->u.func.out.value];
+            link = &types->data[link->u.func.out.value];
         }
         assert(T_argc == n - 1 && "argument overflow");
 
-        if (sym.type.value <= ctx->state.types.end_intrinsics) {
-            ret = sym.value.u.intrinsic.value(ctx, (ctx->eval.stack.data + ofs));
+        if (func.type.value <= ctx->state.types.end_intrinsics) {
+            ret = func.u.intrinsic.value(ctx, (ctx->eval.stack.data + ofs));
         } else {
-            const node_t *body = &ctx->flatten.out.data[sym.value.u.integral.value];
+            const node_t *body = &ctx->flatten.out.data[func.u.integral.value];
             ret = eval_node(ctx, body);
         }
         for (size_t i = 1; i < n; ++i) {

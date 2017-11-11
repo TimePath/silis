@@ -119,6 +119,11 @@ value_t val_from(const ctx_t *ctx, const node_t *n) {
         default:
             assert(false);
             return (value_t) {0};
+        case NODE_ATOM: {
+            const sym_t *maybe = sym_lookup(ctx, n->u.atom.value);
+            assert(maybe);
+            return maybe->value;
+        }
         case NODE_INTEGRAL:
             return (value_t) {
                     .type = ctx->state.types.t_int,

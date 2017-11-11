@@ -1,5 +1,9 @@
-(#defun main() (#do (
-    (#puts "Hello, world")
-)))
+(#define GREETING "Hello, world")
+
+(#define main
+    (#func() (#do (
+        (#puts GREETING)
+    )))
+)
 
 (main())

@@ -21,8 +21,9 @@ set(SOURCE_FILES
 
         src/intrinsics/_.h
         src/intrinsics/cond.c
-        src/intrinsics/defun.c
+        src/intrinsics/define.c
         src/intrinsics/do.c
+        src/intrinsics/func.c
         src/intrinsics/plus.c
         src/intrinsics/puti.c
         src/intrinsics/puts.c
