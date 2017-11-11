@@ -17,11 +17,9 @@ INTRINSIC(define, ((type_id[]) {
     const node_t *val = &ctx->flatten.out.data[arg_val->u.integral.value];
 
     const value_t v = eval_node(ctx, val);
-    sym_t sym = (sym_t) {
-            .name = name->text,
+    sym_def(ctx, name->text, (sym_t) {
             .type = v.type,
             .value = v,
-    };
-    vec_push(&ctx->state.symbols, sym);
+    });
     return (value_t) {.type = ctx->state.types.t_unit};
 }

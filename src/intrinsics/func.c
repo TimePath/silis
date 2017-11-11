@@ -75,12 +75,10 @@ static void func_args_load(ctx_t *ctx, const node_t *arglist, const value_t *arg
             assert(node_id->type == NODE_ATOM);
 
             const value_t *v = &argv[i];
-            sym_t sym = (sym_t) {
-                    .name = node_id->u.atom.value,
+            sym_def(ctx, node_id->u.atom.value, (sym_t) {
                     .type = v->type,
                     .value = *v,
-            };
-            vec_push(&ctx->state.symbols, sym);
+            });
         }
     }
 }

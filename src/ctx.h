@@ -229,6 +229,8 @@ value_t val_from(const ctx_t *ctx, const node_t *n);
 
 const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident);
 
+void sym_def(ctx_t *ctx, string_view_t ident, sym_t sym);
+
 // Intrinsics
 
 typedef void (*ctx_register_t)(ctx_t *ctx);

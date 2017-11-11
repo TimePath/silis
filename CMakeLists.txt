@@ -27,6 +27,8 @@ set(SOURCE_FILES
         src/intrinsics/define.c
         src/intrinsics/do.c
         src/intrinsics/func.c
+
+        src/intrinsics/minus.c
         src/intrinsics/plus.c
         )
 add_executable(silis ${SOURCE_FILES})

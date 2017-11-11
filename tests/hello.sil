@@ -1,7 +1,8 @@
-(#define GREETING "Hello, world")
+(#define GREETING "Hello, world\n")
 
-(#define main (#func ((#types/string a) ()) (#do (
-    (#puts a)
+(#define main (#func ((#types/int a) ()) (#do (
+    (#puts GREETING)
+    (#cond (#- a 1) (main (#- a 1)) ())
 ))))
 
-(main GREETING)
+(main 5)
