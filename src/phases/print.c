@@ -1,6 +1,7 @@
 #include "print.h"
 
 #include <stdio.h>
+#include <assert.h>
 
 static void print_indent(print_state_t *state) {
     if (state->needLine) {
@@ -33,11 +34,14 @@ print_state_t print(print_state_t state, const node_t *it) {
     } else {
         print_indent(&state);
         switch (it->type) {
+            default:
+                assert(false);
+                break;
             case NODE_REF:
                 printf("var_%lu", it->u.ref.value);
                 break;
-            default:
-                printf("`" STR_PRINTF "`", STR_PRINTF_PASS(it->text));
+            case NODE_ATOM:
+                printf("`" STR_PRINTF "`", STR_PRINTF_PASS(it->u.atom.value));
                 break;
             case NODE_INTEGRAL:
                 printf("%lu", it->u.integral.value);

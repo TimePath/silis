@@ -1,9 +1,15 @@
 #include "ctx.h"
+#include "phases/parse.h"
+#include "phases/parse.inc.h"
 
 #include <assert.h>
 #include <alloca.h>
+#include <malloc.h>
+
+static sym_trie_t *sym_trie_new();
 
 void ctx_init(ctx_t *self) {
+    self->state.symbols = sym_trie_new();
     self->state.types.t_unit = type_new(self, (type_t) {
             .type = TYPE_OPAQUE,
             .u.opaque.size = 0,
@@ -137,32 +143,70 @@ value_t val_from(const ctx_t *ctx, const node_t *n) {
 
 // Symbols
 
-const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident) {
-    vec_loop(ctx->state.symbols, i, 0) {
-        const sym_t *it = &ctx->state.symbols.data[i];
-        if (str_equals(it->name, ident)) {
-            return it;
-        }
+/// map of parser characters to 0 or char id
+static uint8_t sym_trie_chars[256];
+
+STATIC_INIT {
+    uint8_t n = 0;
+    for (size_t i = 0; i < 256; ++i) {
+        sym_trie_chars[i] = parse_chars[i] ? ++n : (uint8_t) 0;
     }
-    return NULL;
+}
+
+typedef struct {
+    sym_t value;
+    uint16_t children[PARSE_NPOT]; // consider alphabet reduction
+} sym_trie_node_t;
+
+instantiate_vec_t(sym_trie_node_t);
+
+struct sym_trie_s {
+    vec_t(sym_trie_node_t) trie;
+};
+
+static sym_trie_t *sym_trie_new() {
+    sym_trie_t *self = malloc(sizeof(sym_trie_t));
+    *self = (sym_trie_t) {0};
+    const sym_trie_node_t root = (sym_trie_node_t) {0};
+    vec_push(&self->trie, root);
+    return self;
+}
+
+sym_t *sym_trie_at(ctx_t *ctx, string_view_t ident) {
+    vec_t(sym_trie_node_t) *vec = &ctx->state.symbols->trie;
+    sym_trie_node_t *n = &vec->data[0];
+    str_loop(ident, it, 0) {
+        uint8_t i = sym_trie_chars[(int) *it];
+        assert(i);
+        i -= 1;
+        const uint16_t idx = n->children[i];
+        if (idx != 0) {
+            n = &vec->data[idx];
+            continue;
+        }
+        const size_t end_ = vec->size;
+        const int uint16_max = (uint16_t) -1;
+        assert(end_ < uint16_max);
+        const uint16_t end = (uint16_t) end_;
+        const sym_trie_node_t empty = (sym_trie_node_t) {0};
+        n->children[i] = end;
+        vec_push(vec, empty);
+        n = &vec->data[end];
+    }
+    return &n->value;
+}
+
+const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident) {
+    sym_t *ret = sym_trie_at((ctx_t *) ctx, ident);
+    if (!ret->value.type.value) {
+        return NULL;
+    }
+    return ret;
 }
 
 void sym_def(ctx_t *ctx, string_view_t ident, sym_t sym) {
-    sym_t *ret = NULL;
-    vec_loop(ctx->state.symbols, i, 0) {
-        sym_t *it = &ctx->state.symbols.data[i];
-        if (str_equals(it->name, ident)) {
-            ret = it;
-            break;
-        }
-    }
-    if (!ret) {
-        sym_t dummy = (sym_t) {0};
-        vec_push(&ctx->state.symbols, dummy);
-        ret = &ctx->state.symbols.data[ctx->state.symbols.size - 1];
-    }
+    sym_t *ret = sym_trie_at(ctx, ident);
     *ret = (sym_t) {
-            .name = ident,
             .type = sym.type,
             .value = sym.value,
     };

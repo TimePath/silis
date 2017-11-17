@@ -26,3 +26,5 @@ bool str_equals(string_view_t self, string_view_t other);
 
 #define STR_PRINTF "%.*s"
 #define STR_PRINTF_PASS(self) (int) str_size(self), (self).begin
+
+#define str_loop(self, it, ofs) for (const char *(it) = (self).begin + (ofs); (it) < (self).end; ++(it))

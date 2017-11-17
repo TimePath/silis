@@ -14,10 +14,11 @@ INTRINSIC(define, ((type_id[]) {
     assert(arg_val->type.value == ctx->state.types.t_expr.value);
 
     const node_t *name = &ctx->flatten.out.data[arg_name->u.integral.value];
+    assert(name->type == NODE_ATOM);
     const node_t *val = &ctx->flatten.out.data[arg_val->u.integral.value];
 
     const value_t v = eval_node(ctx, val);
-    sym_def(ctx, name->text, (sym_t) {
+    sym_def(ctx, name->u.atom.value, (sym_t) {
             .type = v.type,
             .value = v,
     });

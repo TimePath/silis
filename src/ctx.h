@@ -32,7 +32,6 @@ typedef enum {
 
 typedef struct {
     node_e type;
-    string_view_t text;
     union {
         /// NODE_LIST_BEGIN
         struct {
@@ -146,10 +145,11 @@ typedef struct value_s {
 // Symbols
 
 typedef struct {
-    string_view_t name;
     type_id type;
     value_t value;
 } sym_t;
+
+typedef struct sym_trie_s sym_trie_t;
 
 // State
 
@@ -183,8 +183,7 @@ typedef struct ctx_s {
             /// index of last intrinsic type
             size_t end_intrinsics;
         } types;
-        vec_t(sym_t) symbols;
-        vec_t(node_t) functions;
+        sym_trie_t *symbols;
     } state;
     struct {
         size_t list_parent_idx;
