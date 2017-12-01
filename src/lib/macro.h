@@ -3,9 +3,7 @@
 #define INLINE __attribute__((always_inline)) inline
 
 #define MACRO_BEGIN if (1) {
-#define MACRO_END } else macro_end_never()
-
-inline void macro_end_never(void) {}
+#define MACRO_END } else ((void) 0)
 
 #define STATIC_INIT __attribute__ ((constructor)) static void premain(void)
 
