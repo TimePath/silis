@@ -1,8 +1,15 @@
+(#extern puts (#types/func [#types/string #types/int]))
+
 (#define GREETING "Hello, world\n")
 
-(#define main (#func ((#types/int a) ()) (#do (
-    (#puts GREETING)
-    (#cond (#- a 1) (main (#- a 1)) ())
-))))
-
-(main 5)
+(#define main (#func [() (#types/int)] (#do [
+    (puts GREETING)
+    (#if true (#do [
+        (+ 2 2)
+    ]))
+    (#while (+ 1 1) (#do [
+        (puts "test")
+    ]))
+    (#while true (#do [true]))
+    0
+])))

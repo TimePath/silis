@@ -1,5 +1,4 @@
 #include "parse.h"
-#include "parse.inc.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -138,9 +137,11 @@ size_t parse_list(ctx_t *ctx, buffer_t prog) {
                 while (*++end != '\n');
                 break;
             case '(':
+            case '[': // sugar
                 end += parse_list(ctx, rest);
                 break;
             case ')':
+            case ']': // sugar
                 ret = count;
                 goto done;
             case '"':

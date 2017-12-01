@@ -1,53 +1,52 @@
 #include "print.h"
 
-#include <stdio.h>
 #include <assert.h>
 
-static void print_indent(print_state_t *state) {
+static void print_indent(FILE *f, print_state_t *state) {
     if (state->needLine) {
-        printf("\n");
+        fprintf(f, "\n");
         state->needLine = false;
     }
     if (state->needTab) {
-        for (size_t i = 0; i < state->depth; ++i) printf("  ");
+        fprintf(f, STR_PRINTF, STR_PRINTF_PASS(str_indent(2 * state->depth)));
         state->needTab = false;
     }
 }
 
-print_state_t print(print_state_t state, const node_t *it) {
+print_state_t print(FILE *f, print_state_t state, const node_t *it) {
     if (it->type == NODE_INVALID) {
         return state;
     }
     if (it->type == NODE_LIST_BEGIN) {
-        print_indent(&state);
+        print_indent(f, &state);
         ++state.depth;
-        printf("(");
-        printf(" ; children(first: %lu, last: %lu, size: %lu)", it->u.list.begin, it->u.list.end, it->u.list.size);
+        fprintf(f, "(");
+        fprintf(f, " ; children(first: %lu, last: %lu, size: %lu)", it->u.list.begin, it->u.list.end, it->u.list.size);
         state.needTab = true;
         state.needLine = true;
     } else if (it->type == NODE_LIST_END) {
         --state.depth;
-        print_indent(&state);
-        printf(")");
+        print_indent(f, &state);
+        fprintf(f, ")");
         state.needTab = true;
         state.needLine = true;
     } else {
-        print_indent(&state);
+        print_indent(f, &state);
         switch (it->type) {
             default:
                 assert(false);
                 break;
             case NODE_REF:
-                printf("var_%lu", it->u.ref.value);
+                fprintf(f, "var_%lu", it->u.ref.value.val);
                 break;
             case NODE_ATOM:
-                printf("`" STR_PRINTF "`", STR_PRINTF_PASS(it->u.atom.value));
+                fprintf(f, "`" STR_PRINTF "`", STR_PRINTF_PASS(it->u.atom.value));
                 break;
             case NODE_INTEGRAL:
-                printf("%lu", it->u.integral.value);
+                fprintf(f, "%lu", it->u.integral.value);
                 break;
             case NODE_STRING:
-                printf("\"" STR_PRINTF "\"", STR_PRINTF_PASS(it->u.string.value));
+                fprintf(f, "\"" STR_PRINTF "\"", STR_PRINTF_PASS(it->u.string.value));
                 break;
         }
         state.needTab = true;

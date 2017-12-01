@@ -21,3 +21,9 @@ void vec_pop(void *self) {
         vec->data = NULL;
     }
 }
+
+void vec_free(void *self) {
+    vec_t(void) *vec = (vec_t(void) *) self;
+    vec->size = 1;
+    vec_pop(vec);
+}

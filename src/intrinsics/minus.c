@@ -1,6 +1,6 @@
 #include "_.h"
 
-INTRINSIC_(-, minus, ((type_id[]) {
+INTRINSIC_("-", minus, ((type_id[]) {
         ctx->state.types.t_int, ctx->state.types.t_int,
         ctx->state.types.t_int
 })) {

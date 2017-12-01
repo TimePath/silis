@@ -14,7 +14,7 @@ typedef struct {
 
 #define STR(x) str_new(x)
 
-INLINE string_view_t str_new(const char *str) {
+static INLINE string_view_t str_new(const char *str) {
     return (string_view_t) {.begin = str, .end = str + strlen(str)};
 }
 
@@ -28,3 +28,5 @@ bool str_equals(string_view_t self, string_view_t other);
 #define STR_PRINTF_PASS(self) (int) str_size(self), (self).begin
 
 #define str_loop(self, it, ofs) for (const char *(it) = (self).begin + (ofs); (it) < (self).end; ++(it))
+
+string_view_t str_indent(size_t n);

@@ -23,4 +23,6 @@ MACRO_END
 
 void vec_pop(void *self);
 
+void vec_free(void *self);
+
 #define vec_loop(self, i, begin) for (size_t (i) = begin; (i) < (self).size; ++(i))

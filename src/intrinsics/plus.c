@@ -1,6 +1,6 @@
 #include "_.h"
 
-INTRINSIC_(+, plus, ((type_id[]) {
+INTRINSIC_("+", plus, ((type_id[]) {
         ctx->state.types.t_int, ctx->state.types.t_int,
         ctx->state.types.t_int
 })) {

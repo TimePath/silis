@@ -2,6 +2,7 @@
 
 #include "lib/string.h"
 #include "lib/buffer.h"
+#include "phases/parse.inc.h"
 
 #include <stdint.h>
 
@@ -30,6 +31,12 @@ typedef enum {
      */ NODE_STRING,
 } node_e;
 
+#define NODE_LIST_CHILDREN(ptr) (ptr + 1)
+
+typedef struct {
+    size_t val;
+} node_ref_t;
+
 typedef struct {
     node_e type;
     union {
@@ -46,7 +53,7 @@ typedef struct {
         } list_end;
         /// NODE_REF
         struct {
-            size_t value;
+            node_ref_t value;
         } ref;
         /// NODE_ATOM
         struct {
@@ -75,7 +82,7 @@ typedef enum {
      * The leaf types of the type system
      */ TYPE_OPAQUE,
     /**
-     * A function, represented as arg0 -> arg1 -> argN
+     * A function, represented as arg0 -> argN -> ret
      */ TYPE_FUNCTION,
     /**
      * Structs. TODO
@@ -136,8 +143,16 @@ typedef struct value_s {
         } intrinsic;
 
         struct {
-            size_t value;
-            size_t arglist;
+            node_ref_t value;
+        } expr;
+
+        struct {
+            type_id value;
+        } type;
+
+        struct {
+            node_ref_t value;
+            node_ref_t arglist;
         } func;
     } u;
 } value_t;
@@ -147,9 +162,41 @@ typedef struct value_s {
 typedef struct {
     type_id type;
     value_t value;
+    struct {
+        /// intrinsic, can't be compiled
+        bool intrinsic : 1;
+        /// native declaration (libc)
+        bool native : 1;
+        /// interpreter variable (function call)
+        bool eval : 1;
+    } flags;
 } sym_t;
 
-typedef struct sym_trie_s sym_trie_t;
+typedef struct {
+    sym_t value; // must be first
+    uint16_t children[PARSE_NP2]; // consider alphabet reduction
+} sym_trie_node_t;
+
+instantiate_vec_t(sym_trie_node_t);
+
+typedef struct {
+    string_view_t key;
+    uint16_t value;
+} sym_trie_entry_t;
+
+instantiate_vec_t(sym_trie_entry_t);
+
+typedef struct {
+    size_t parent;
+    vec_t(sym_trie_node_t) nodes;
+    vec_t(sym_trie_entry_t) list;
+} sym_trie_t;
+
+instantiate_vec_t(sym_trie_t);
+
+typedef struct symbols_s {
+    vec_t(sym_trie_t) scopes;
+} symbols_t;
 
 // State
 
@@ -183,7 +230,7 @@ typedef struct ctx_s {
             /// index of last intrinsic type
             size_t end_intrinsics;
         } types;
-        sym_trie_t *symbols;
+        symbols_t symbols;
     } state;
     struct {
         size_t list_parent_idx;
@@ -200,6 +247,12 @@ typedef struct ctx_s {
 } ctx_t;
 
 void ctx_init(ctx_t *self);
+
+const node_t *ctx_node(const ctx_t *ctx, node_ref_t ref);
+
+size_t node_id(const ctx_t *ctx, const node_t *it);
+
+const node_t *node_deref(const ctx_t *ctx, const node_t *it);
 
 // AST
 
@@ -218,13 +271,21 @@ type_id type_new(ctx_t *ctx, type_t it);
 
 type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n);
 
-size_t type_func_argc(const ctx_t *ctx, type_id id);
+type_id type_func_ret(const ctx_t *ctx, type_t T);
+
+size_t type_func_argc(const ctx_t *ctx, type_t T);
+
+type_t type_lookup(const ctx_t *ctx, type_id id);
 
 // Values
 
 value_t val_from(const ctx_t *ctx, const node_t *n);
 
 // Symbols
+
+void sym_push(ctx_t *ctx, size_t parent);
+
+void sym_pop(ctx_t *ctx);
 
 const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident);
 
