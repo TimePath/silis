@@ -1,7 +1,5 @@
+#include "../system.h"
 #include "parse.h"
-
-#include <stdlib.h>
-#include <assert.h>
 
 /*
 

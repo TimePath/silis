@@ -2,8 +2,6 @@
 
 #include "../ctx.h"
 
-#include <stdbool.h>
-
 typedef struct {
     size_t depth;
     bool needLine;

@@ -1,10 +1,10 @@
+#include "../system.h"
 #include "eval.h"
+
 #include "../intrinsics/func.h"
 
-#include <assert.h>
-
 void do_eval(ctx_t *ctx) {
-    const node_t *it = ctx_node(ctx, (node_ref_t) {ctx->flatten.out.size - 1});
+    const node_t *it = node_get(ctx, (node_id) {ctx->flatten.out.size - 1});
     assert(it->kind == NODE_LIST_END);
     while ((--it)->kind != NODE_LIST_BEGIN);
     eval_list_block(ctx, it);
@@ -13,7 +13,7 @@ void do_eval(ctx_t *ctx) {
 value_t eval_list_block(ctx_t *ctx, const node_t *it) {
     assert(it->kind == NODE_LIST_BEGIN);
     const size_t n = it->u.list.size;
-    const node_t *children = NODE_LIST_CHILDREN(it);
+    const node_t *children = node_list_children(it);
     value_t ret = (value_t) {.type = ctx->state.types.t_unit};
     for (size_t i = 0; i < n; ++i) {
         ret = eval_node(ctx, &children[i]);
@@ -24,33 +24,33 @@ value_t eval_list_block(ctx_t *ctx, const node_t *it) {
 value_t eval_node(ctx_t *ctx, const node_t *it) {
     it = node_deref(ctx, it);
     if (it->kind != NODE_LIST_BEGIN) {
-        return val_from(ctx, it);
+        return value_from(ctx, it);
     }
     const size_t n = it->u.list.size;
     if (!n) {
         return (value_t) {.type = ctx->state.types.t_unit};
     }
-    const node_t *children = NODE_LIST_CHILDREN(it);
+    const node_t *children = node_list_children(it);
     if (n == 1) {
         return eval_node(ctx, &children[0]);
     }
     const value_t func = eval_node(ctx, &children[0]);
-    const type_t T = type_lookup(ctx, func.type);
-    assert(T.kind == TYPE_FUNCTION);
+    const type_t *T = type_lookup(ctx, func.type);
+    assert(T->kind == TYPE_FUNCTION);
 
     const size_t ofs = ctx->eval.stack.size;
     const type_id expr_t = ctx->state.types.t_expr;
     size_t T_argc = 0;
     // holds return value after this loop
-    type_t link = T;
-    for (; link.kind == TYPE_FUNCTION; ++T_argc) {
+    const type_t *link = T;
+    for (; link->kind == TYPE_FUNCTION; ++T_argc) {
         assert((n - 1) > T_argc && "argument underflow");
         const node_t *arg = &children[T_argc + 1];
-        const type_id arg_t = link.u.func.in;
+        const type_id arg_t = link->u.func.in;
         if (arg_t.value == expr_t.value) {
             value_t v = (value_t) {
                     .type = expr_t,
-                    .u.integral.value = node_id(ctx, node_deref(ctx, arg)),
+                    .u.expr.value = node_ref(ctx, node_deref(ctx, arg)),
             };
             vec_push(&ctx->eval.stack, v);
         } else {
@@ -58,7 +58,7 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
             assert(v.type.value == arg_t.value);
             vec_push(&ctx->eval.stack, v);
         }
-        link = type_lookup(ctx, link.u.func.out);
+        link = type_lookup(ctx, link->u.func.out);
     }
     assert((n - 1) == T_argc && "argument overflow");
 

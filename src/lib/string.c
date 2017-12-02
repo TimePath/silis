@@ -1,4 +1,4 @@
-#include <assert.h>
+#include "../system.h"
 #include "string.h"
 
 bool str_equals(string_view_t self, string_view_t other) {

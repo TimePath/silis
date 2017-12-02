@@ -2,10 +2,6 @@
 
 #include "macro.h"
 
-#include <stddef.h>
-#include <stdbool.h>
-#include <string.h>
-
 typedef struct {
     const char *begin;
     /// one after the actual last character (the \0 of a null-terminated string)

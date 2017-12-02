@@ -1,6 +1,5 @@
+#include "../system.h"
 #include "print.h"
-
-#include <assert.h>
 
 static void print_indent(FILE *f, print_state_t *state) {
     if (state->needLine) {

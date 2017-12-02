@@ -1,8 +1,5 @@
+#include "../system.h"
 #include "vector.h"
-
-#include <stdlib.h>
-#include <memory.h>
-#include <stdint.h>
 
 instantiate_vec_t(void);
 

@@ -1,7 +1,7 @@
+#include "system.h"
 #include "ctx.h"
-#include "phases/parse.h"
 
-#include <assert.h>
+#include "phases/parse.h"
 
 void ctx_init(ctx_t *self) {
     sym_push(self, 0);
@@ -46,17 +46,19 @@ void ctx_init(ctx_t *self) {
     self->state.types.end_intrinsics = self->state.types.all.size - 1;
 }
 
-const node_t *ctx_node(const ctx_t *ctx, node_ref_t ref) {
+// Nodes
+
+const node_t *node_get(const ctx_t *ctx, node_id ref) {
     return &ctx->flatten.out.data[ref.val];
 }
 
-size_t node_id(const ctx_t *ctx, const node_t *it) {
-    return it - ctx->flatten.out.data;
+node_id node_ref(const ctx_t *ctx, const node_t *it) {
+    return (node_id) {it - ctx->flatten.out.data};
 }
 
 const node_t *node_deref(const ctx_t *ctx, const node_t *it) {
     if (it->kind == NODE_REF) {
-        const node_t *ret = ctx_node(ctx, it->u.ref.value);
+        const node_t *ret = node_get(ctx, it->u.ref.value);
         assert(ret->kind != NODE_REF && "no double refs");
         return ret;
     }
@@ -65,11 +67,11 @@ const node_t *node_deref(const ctx_t *ctx, const node_t *it) {
 
 // AST
 
-size_t ast_parse_push(ctx_t *self) {
-    vec_t(node_t) *out = &self->parse.out;
+size_t ast_parse_push(ctx_t *ctx) {
+    vec_t(node_t) *out = &ctx->parse.out;
     const size_t thisIdx = out->size;
-    const size_t parentIdx = self->parse.list_parent_idx;
-    self->parse.list_parent_idx = thisIdx;
+    const size_t parentIdx = ctx->parse.list_parent_idx;
+    ctx->parse.list_parent_idx = thisIdx;
     if (parentIdx) {
         node_t *parent = &out->data[parentIdx];
         parent->u.list.end = thisIdx;
@@ -82,10 +84,10 @@ size_t ast_parse_push(ctx_t *self) {
     return parentIdx;
 }
 
-void ast_push(ctx_t *self, node_t it) {
-    vec_t(node_t) *out = &self->parse.out;
+void ast_push(ctx_t *ctx, node_t it) {
+    vec_t(node_t) *out = &ctx->parse.out;
     const size_t thisIdx = out->size;
-    const size_t parentIdx = self->parse.list_parent_idx;
+    const size_t parentIdx = ctx->parse.list_parent_idx;
     node_t *parent = &out->data[parentIdx];
     if (!parent->u.list.begin) {
         parent->u.list.begin = thisIdx;
@@ -95,9 +97,9 @@ void ast_push(ctx_t *self, node_t it) {
     vec_push(out, it);
 }
 
-void ast_parse_pop(ctx_t *self, size_t tok) {
-    vec_t(node_t) *out = &self->parse.out;
-    self->parse.list_parent_idx = tok;
+void ast_parse_pop(ctx_t *ctx, size_t tok) {
+    vec_t(node_t) *out = &ctx->parse.out;
+    ctx->parse.list_parent_idx = tok;
     node_t it = (node_t) {
             .kind = NODE_LIST_END,
     };
@@ -125,29 +127,29 @@ type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n) {
     return ret;
 }
 
-type_id type_func_ret(const ctx_t *ctx, type_t T) {
+type_id type_func_ret(const ctx_t *ctx, const type_t *T) {
     type_id ret = {.value = 0};
-    for (type_t it = T; it.kind == TYPE_FUNCTION; it = type_lookup(ctx, it.u.func.out)) {
-        ret = it.u.func.out;
+    for (const type_t *it = T; it->kind == TYPE_FUNCTION; it = type_lookup(ctx, it->u.func.out)) {
+        ret = it->u.func.out;
     }
     return ret;
 }
 
-size_t type_func_argc(const ctx_t *ctx, type_t T) {
+size_t type_func_argc(const ctx_t *ctx, const type_t *T) {
     size_t argc = 0;
-    for (type_t it = T; it.kind == TYPE_FUNCTION; it = type_lookup(ctx, it.u.func.out)) {
+    for (const type_t *it = T; it->kind == TYPE_FUNCTION; it = type_lookup(ctx, it->u.func.out)) {
         ++argc;
     }
     return argc;
 }
 
-type_t type_lookup(const ctx_t *ctx, type_id id) {
-    return ctx->state.types.all.data[id.value];
+const type_t *type_lookup(const ctx_t *ctx, type_id id) {
+    return &ctx->state.types.all.data[id.value];
 }
 
 // Values
 
-value_t val_from(const ctx_t *ctx, const node_t *n) {
+value_t value_from(const ctx_t *ctx, const node_t *n) {
     switch (n->kind) {
         default:
             assert(false);

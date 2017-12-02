@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 2.8)
 project(silis)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pedantic -Wall -Wextra -Werror")
 
 set(SOURCE_FILES
+        src/system.h
+
         src/lib/macro.h
         src/lib/vector.c
         src/lib/buffer.c
@@ -13,7 +15,7 @@ set(SOURCE_FILES
         src/ctx.c
         src/main.c
 
-        src/phases/parse.c
+        src/phases/parse.c src/phases/parse.inc.h
         src/phases/flatten.c
         src/phases/print.c
         src/phases/eval.c

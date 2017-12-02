@@ -1,7 +1,7 @@
+#include "../../system.h"
+
 #include "../_.h"
 #include "../../phases/eval.h"
-
-#include <assert.h>
 
 static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[argc]);
 
@@ -11,13 +11,13 @@ INTRINSIC_("types/func", func, ((type_id[]) {
 })) {
     const value_t *arg_args = &argv[0];
 
-    const node_t *args = ctx_node(ctx, arg_args->u.expr.value);
+    const node_t *args = node_get(ctx, arg_args->u.expr.value);
     assert(args->kind == NODE_LIST_BEGIN);
     const size_t argc = args->u.list.size;
     assert(argc >= 2 && "has enough arguments");
 
     type_id Ts[argc];
-    func_args_types(ctx, NODE_LIST_CHILDREN(args), argc, Ts);
+    func_args_types(ctx, node_list_children(args), argc, Ts);
 
     return (value_t) {
             .type = ctx->state.types.t_type,

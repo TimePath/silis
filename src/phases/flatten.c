@@ -1,6 +1,5 @@
+#include "../system.h"
 #include "flatten.h"
-
-#include <assert.h>
 
 static size_t do_flatten_rec(ctx_t *ctx, vec_t(node_t) *stack, const node_t *begin);
 
@@ -43,7 +42,7 @@ static size_t do_flatten_rec(ctx_t *ctx, vec_t(node_t) *stack, const node_t *beg
     vec_t(node_t) *out = &ctx->flatten.out;
     const size_t argv_end = stack->size - 1;
     const size_t argc = argv_end - argv_begin + 1;
-    const node_ref_t refIdx = (node_ref_t) {out->size};
+    const node_id refIdx = (node_id) {out->size};
     // just parsed a full expression
     {
         const node_t open = (node_t) {

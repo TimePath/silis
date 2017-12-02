@@ -2,8 +2,6 @@
 
 #include "macro.h"
 
-#include <stddef.h>
-
 #define vec_t_(T) \
 struct { \
     size_t size; \

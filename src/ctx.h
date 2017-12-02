@@ -4,9 +4,11 @@
 #include "lib/buffer.h"
 #include "phases/parse.inc.h"
 
-#include <stdint.h>
+typedef struct ctx_s ctx_t;
 
-// AST
+void ctx_init(ctx_t *self);
+
+// Nodes
 
 typedef enum {
     NODE_INVALID,
@@ -33,7 +35,7 @@ typedef enum {
 
 typedef struct {
     size_t val;
-} node_ref_t;
+} node_id;
 
 typedef struct {
     node_e kind;
@@ -51,7 +53,7 @@ typedef struct {
         } list_end;
         /// NODE_REF
         struct {
-            node_ref_t value;
+            node_id value;
         } ref;
         /// NODE_ATOM
         struct {
@@ -68,7 +70,24 @@ typedef struct {
     } u;
 } node_t;
 
-#define NODE_LIST_CHILDREN(ptr) ((ptr) + 1)
+#define node_list_children(ptr) ((ptr) + 1)
+
+const node_t *node_get(const ctx_t *ctx, node_id ref);
+
+node_id node_ref(const ctx_t *ctx, const node_t *it);
+
+const node_t *node_deref(const ctx_t *ctx, const node_t *it);
+
+// AST
+
+/// begin a new list
+/// \param ctx
+/// \return token to current list
+size_t ast_parse_push(ctx_t *ctx);
+
+void ast_push(ctx_t *ctx, node_t it);
+
+void ast_parse_pop(ctx_t *ctx, size_t tok);
 
 // Types
 
@@ -117,13 +136,23 @@ typedef struct {
     } u;
 } type_t;
 
+type_id type_new(ctx_t *ctx, type_t it);
+
+type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n);
+
+type_id type_func_ret(const ctx_t *ctx, const type_t *T);
+
+size_t type_func_argc(const ctx_t *ctx, const type_t *T);
+
+const type_t *type_lookup(const ctx_t *ctx, type_id id);
+
 // Values
 
-struct ctx_s;
+typedef struct value_s value_t;
 
-typedef struct value_s (*intrinsic_t)(struct ctx_s *, const struct value_s *);
+typedef value_t (*intrinsic_t)(ctx_t *ctx, const value_t *value);
 
-typedef struct value_s {
+struct value_s {
     type_id type;
     union {
         struct {
@@ -143,7 +172,7 @@ typedef struct value_s {
         } intrinsic;
 
         struct {
-            node_ref_t value;
+            node_id value;
         } expr;
 
         struct {
@@ -151,11 +180,13 @@ typedef struct value_s {
         } type;
 
         struct {
-            node_ref_t value;
-            node_ref_t arglist;
+            node_id value;
+            node_id arglist;
         } func;
     } u;
-} value_t;
+};
+
+value_t value_from(const ctx_t *ctx, const node_t *n);
 
 // Symbols
 
@@ -198,6 +229,23 @@ typedef struct symbols_s {
     vec_t(sym_trie_t) scopes;
 } symbols_t;
 
+void sym_push(ctx_t *ctx, size_t parent);
+
+void sym_pop(ctx_t *ctx);
+
+const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident);
+
+void sym_def(ctx_t *ctx, string_view_t ident, sym_t sym);
+
+// Intrinsics
+
+typedef void (*ctx_register_t)(ctx_t *ctx);
+
+instantiate_vec_t(ctx_register_t);
+extern vec_t(ctx_register_t) intrinsics;
+
+void ctx_init_intrinsic(ctx_t *self, string_view_t name, type_id T, intrinsic_t func);
+
 // State
 
 instantiate_vec_t(type_t);
@@ -206,7 +254,7 @@ instantiate_vec_t(sym_t);
 instantiate_vec_t(size_t);
 instantiate_vec_t(node_t);
 
-typedef struct ctx_s {
+struct ctx_s {
     struct {
         struct {
             vec_t(type_t) all;
@@ -241,58 +289,4 @@ typedef struct ctx_s {
     struct {
         vec_t(value_t) stack;
     } eval;
-} ctx_t;
-
-void ctx_init(ctx_t *self);
-
-const node_t *ctx_node(const ctx_t *ctx, node_ref_t ref);
-
-size_t node_id(const ctx_t *ctx, const node_t *it);
-
-const node_t *node_deref(const ctx_t *ctx, const node_t *it);
-
-// AST
-
-/// begin a new list
-/// \param self
-/// \return token to current list
-size_t ast_parse_push(ctx_t *self);
-
-void ast_push(ctx_t *self, node_t it);
-
-void ast_parse_pop(ctx_t *self, size_t tok);
-
-// Types
-
-type_id type_new(ctx_t *ctx, type_t it);
-
-type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n);
-
-type_id type_func_ret(const ctx_t *ctx, type_t T);
-
-size_t type_func_argc(const ctx_t *ctx, type_t T);
-
-type_t type_lookup(const ctx_t *ctx, type_id id);
-
-// Values
-
-value_t val_from(const ctx_t *ctx, const node_t *n);
-
-// Symbols
-
-void sym_push(ctx_t *ctx, size_t parent);
-
-void sym_pop(ctx_t *ctx);
-
-const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident);
-
-void sym_def(ctx_t *ctx, string_view_t ident, sym_t sym);
-
-// Intrinsics
-
-typedef void (*ctx_register_t)(ctx_t *ctx);
-
-instantiate_vec_t(ctx_register_t);
-extern vec_t(ctx_register_t) intrinsics;
-
-void ctx_init_intrinsic(ctx_t *self, string_view_t name, type_id T, intrinsic_t func);
+};

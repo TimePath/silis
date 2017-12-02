@@ -1,3 +1,5 @@
+#include "../system.h"
+
 #include "_.h"
 
 #include "../phases/eval.h"
@@ -10,9 +12,9 @@ INTRINSIC(cond, ((type_id[]) {
     const value_t *arg_true = &argv[1];
     const value_t *arg_false = &argv[2];
 
-    const node_t *predicate = ctx_node(ctx, arg_predicate->u.expr.value);
-    const node_t *node_true = ctx_node(ctx, arg_true->u.expr.value);
-    const node_t *node_false = ctx_node(ctx, arg_false->u.expr.value);
+    const node_t *predicate = node_get(ctx, arg_predicate->u.expr.value);
+    const node_t *node_true = node_get(ctx, arg_true->u.expr.value);
+    const node_t *node_false = node_get(ctx, arg_false->u.expr.value);
     const value_t ret = eval_node(ctx, predicate);
     return eval_node(ctx, ret.u.integral.value != 0 ? node_true : node_false);
 }
