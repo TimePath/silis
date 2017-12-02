@@ -19,7 +19,7 @@ static void OUT(const compile_ctx_t *ctx, const char *format, ...) {
     va_end(args);
 }
 
-static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, string_view_t idents[]);
+static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, const string_view_t idents[]);
 
 static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_t ident);
 
@@ -60,8 +60,8 @@ void do_compile(const ctx_t *g_ctx) {
     buffer_t buf;
     FILE *out = buf_file(&buf);
 #endif
-    compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
-    compile_ctx_t *ctx = &ctx_;
+    const compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
+    const compile_ctx_t *ctx = &ctx_;
 
     const sym_t *entry = sym_lookup(ctx->ctx, STR("main"));
     assert(type_lookup(ctx->ctx, entry->value.type).type == TYPE_FUNCTION);
@@ -133,9 +133,9 @@ static string_view_t typename(const compile_ctx_t *ctx, type_id id) {
 
 static void print_function_ret(const compile_ctx_t *ctx, type_id id);
 
-static void print_function_args(const compile_ctx_t *ctx, type_id id, string_view_t idents[]);
+static void print_function_args(const compile_ctx_t *ctx, type_id id, const string_view_t idents[]);
 
-static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, string_view_t idents[]) {
+static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, const string_view_t idents[]) {
     print_function_ret(ctx, id);
     OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(ident));
     print_function_args(ctx, id, idents);
@@ -165,14 +165,14 @@ static void print_function_ret(const compile_ctx_t *ctx, type_id id) {
     OUT(ctx, STR_PRINTF " ", STR_PRINTF_PASS(typename(ctx, ret)));
 }
 
-static void print_function_args(const compile_ctx_t *ctx, type_id id, string_view_t idents[]) {
+static void print_function_args(const compile_ctx_t *ctx, type_id id, const string_view_t idents[]) {
     OUT(ctx, "(");
     const type_t T = type_lookup(ctx->ctx, id);
     type_t argp = T;
     size_t i = 0;
     while (true) {
         const type_id arg = argp.u.func.in;
-        string_view_t s = idents ? idents[i++] : STR("");
+        const string_view_t s = idents ? idents[i++] : STR("");
         print_declaration(ctx, arg, s);
         const type_t next = type_lookup(ctx->ctx, argp.u.func.out);
         if (next.type != TYPE_FUNCTION) {
