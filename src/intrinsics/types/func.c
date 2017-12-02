@@ -3,9 +3,9 @@
 #include "../_.h"
 #include "../../phases/eval.h"
 
-static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[argc]);
+static void types_func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id *out);
 
-INTRINSIC_("types/func", func, ((type_id[]) {
+INTRINSIC_("types/func", types_func, ((type_id[]) {
         ctx->state.types.t_expr,
         ctx->state.types.t_unit,
 })) {
@@ -17,7 +17,7 @@ INTRINSIC_("types/func", func, ((type_id[]) {
     assert(argc >= 2 && "has enough arguments");
 
     type_id Ts[argc];
-    func_args_types(ctx, node_list_children(args), argc, Ts);
+    types_func_args_types(ctx, node_list_children(args), argc, Ts);
 
     return (value_t) {
             .type = ctx->state.types.t_type,
@@ -25,7 +25,7 @@ INTRINSIC_("types/func", func, ((type_id[]) {
     };
 }
 
-static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[argc]) {
+static void types_func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id *out) {
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(ctx, &args[i]);
         const value_t type = eval_node(ctx, it);

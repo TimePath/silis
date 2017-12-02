@@ -9,7 +9,7 @@ bool str_equals(string_view_t self, string_view_t other) {
 
 static char spaces[8 * 4 + 1];
 
-STATIC_INIT {
+STATIC_INIT(spaces) {
     for (size_t i = 0; i < ARRAY_LEN(spaces) - 1; ++i) {
         spaces[i] = ' ';
     }

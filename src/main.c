@@ -36,7 +36,8 @@ int main(int argc, const char *argv[]) {
     buf[len] = 0;
     fclose(file);
 
-    ctx_t *ctx = &(ctx_t) {0};
+    ctx_t ctx_ = (ctx_t) {0};
+    ctx_t *ctx = &ctx_;
     ctx_init(ctx);
 
     if (args.print_parse) {

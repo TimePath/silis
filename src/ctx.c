@@ -177,7 +177,7 @@ value_t value_from(const ctx_t *ctx, const node_t *n) {
 /// map of parser characters to 0 or char id
 static uint8_t sym_trie_chars[256];
 
-STATIC_INIT {
+STATIC_INIT(sym_trie_chars) {
     uint8_t n = 0;
     for (size_t i = 0; i < 256; ++i) {
         sym_trie_chars[i] = parse_chars[i] ? ++n : (uint8_t) 0;

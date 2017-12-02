@@ -114,7 +114,7 @@ void do_compile(const ctx_t *g_ctx) {
 #endif
 }
 
-static string_view_t typename(const compile_ctx_t *ctx, type_id id) {
+static string_view_t type_name(const compile_ctx_t *ctx, type_id id) {
 #define CASE(T) if (id.value == ctx->ctx->state.types.T.value)
     CASE(t_unit) return STR("void");
     CASE(t_int) return STR("int");
@@ -146,7 +146,7 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_
         print_function_args(ctx, id, NULL);
         return;
     }
-    OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(typename(ctx, id)));
+    OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(type_name(ctx, id)));
     if (str_size(ident)) {
         OUT(ctx, " " STR_PRINTF, STR_PRINTF_PASS(ident));
     }
@@ -155,7 +155,7 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_
 static void print_function_ret(const compile_ctx_t *ctx, type_id id) {
     const type_t *T = type_lookup(ctx->ctx, id);
     const type_id ret = type_func_ret(ctx->ctx, T);
-    OUT(ctx, STR_PRINTF " ", STR_PRINTF_PASS(typename(ctx, ret)));
+    OUT(ctx, STR_PRINTF " ", STR_PRINTF_PASS(type_name(ctx, ret)));
 }
 
 static void print_function_args(const compile_ctx_t *ctx, type_id id, const string_view_t idents[]) {
