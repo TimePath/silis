@@ -19,8 +19,23 @@ cmake -H. -Bcmake-build-debug && cmake --build cmake-build-debug -- -j$(nproc)
     * evaluates all expressions in `body`
     * returning the value of the last expression
 
+* `#while (predicate: expr, body: expr)`
+    * evaluates `predicate`, branches to `body` if non-zero
+    * repeat
+
 ## todo
 
+### generators
+
+* place all variables (including arguments) into a struct, redirect reads/writes
+* assign each yield point a number
+* return an object with current index + state
+    * .next() calls original function (since rewritten with no args)
+        * passes `this`
+        * yield: sets index, returns value  
+        * original function knows how to jump to a yield point
+            * or each part is its own function
+ 
 ### language
 
 * build standard library on top of intrinsics (#)
