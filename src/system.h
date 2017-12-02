@@ -1,5 +1,13 @@
 #pragma once
 
+#ifndef __WORDSIZE
+#if defined __x86_64__ && !defined __ILP32__
+#define __WORDSIZE 64
+#else
+#define __WORDSIZE	32
+#endif
+#endif
+
 //#include <stdbool.h>
 
 #define bool _Bool
@@ -17,12 +25,25 @@ _Static_assert(sizeof(uint16_t) * 8 == 16, "uint16_t");
 typedef unsigned int uint32_t;
 _Static_assert(sizeof(uint32_t) * 8 == 32, "uint32_t");
 
+#if __WORDSIZE == 64
 typedef unsigned long uint64_t;
+#elif  __WORDSIZE == 32
+typedef unsigned long long uint64_t;
+#else
+#error "Unknown  __WORDSIZE"
+#endif
 _Static_assert(sizeof(uint64_t) * 8 == 64, "uint64_t");
 
 //#include <stddef.h>
 
+#if __WORDSIZE == 64
 typedef uint64_t size_t;
+#elif  __WORDSIZE == 32
+typedef uint32_t size_t;
+#else
+#error "Unknown  __WORDSIZE"
+#endif
+
 #define NULL ((void *) 0)
 
 //#include <stdio.h>
