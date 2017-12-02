@@ -186,7 +186,7 @@ static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t r
             assert(false);
         }
         case RETURN_TEMPORARY: {
-            OUT(ctx, "_%lu", ret.u.temporary.val.val);
+            OUT(ctx, "_%zu", ret.u.temporary.val.val);
             break;
         }
         case RETURN_NAMED: {
@@ -261,7 +261,7 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
             return true;
         case NODE_INTEGRAL:
             return_assign(ctx, state, ret);
-            OUT(ctx, "%lu", it->u.integral.value);
+            OUT(ctx, "%zu", it->u.integral.value);
             return true;
         case NODE_STRING:
             return_assign(ctx, state, ret);
@@ -324,10 +324,10 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
     }
     TAB();
     return_assign(ctx, state, ret);
-    OUT(ctx, "_%lu(", node_ref(ctx->ctx, func).val);
+    OUT(ctx, "_%zu(", node_ref(ctx->ctx, func).val);
     for (size_t i = 1; i < n; ++i) {
         const bool last = i == n - 1;
-        OUT(ctx, "_%lu", node_ref(ctx->ctx, children[i]).val);
+        OUT(ctx, "_%zu", node_ref(ctx->ctx, children[i]).val);
         if (!last) {
             OUT(ctx, ", ");
         }
@@ -382,7 +382,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         OUT(ctx, "\n");
 
         TAB();
-        OUT(ctx, "if (_%lu) {\n", node_ref(ctx->ctx, predNode).val);
+        OUT(ctx, "if (_%zu) {\n", node_ref(ctx->ctx, predNode).val);
         {
             state.depth++;
             // todo: same as #do
@@ -405,7 +405,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         OUT(ctx, "\n");
 
         TAB();
-        OUT(ctx, "while (_%lu) {\n", node_ref(ctx->ctx, predNode).val);
+        OUT(ctx, "while (_%zu) {\n", node_ref(ctx->ctx, predNode).val);
         {
             state.depth++;
             // todo: same as #do

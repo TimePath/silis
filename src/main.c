@@ -63,7 +63,7 @@ int main(int argc, const char *argv[]) {
         vec_loop(ctx->flatten.out, i, 1) {
             const node_t *it = node_get(ctx, (node_id) {i});
             if (it->kind == NODE_LIST_BEGIN) {
-                fprintf(stdout, ";; var_%lu\n", i);
+                fprintf(stdout, ";; var_%zu\n", i);
             }
             state = print(stdout, state, it);
             if (it->kind == NODE_LIST_END) {

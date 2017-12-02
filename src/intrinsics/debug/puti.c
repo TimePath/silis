@@ -8,6 +8,6 @@ INTRINSIC(puti, ((type_id[]) {
 })) {
     const value_t *arg_val = &argv[0];
     const size_t val = arg_val->u.integral.value;
-    fprintf(stdout, "%lu", val);
+    fprintf(stdout, "%zu", val);
     return (value_t) {.type = ctx->state.types.t_unit};
 }

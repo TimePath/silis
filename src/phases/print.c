@@ -20,7 +20,7 @@ print_state_t print(FILE *f, print_state_t state, const node_t *it) {
         print_indent(f, &state);
         ++state.depth;
         fprintf(f, "(");
-        fprintf(f, " ; children(first: %lu, last: %lu, size: %lu)", it->u.list.begin, it->u.list.end, it->u.list.size);
+        fprintf(f, " ; children(first: %zu, last: %zu, size: %zu)", it->u.list.begin, it->u.list.end, it->u.list.size);
         state.needTab = true;
         state.needLine = true;
     } else if (it->kind == NODE_LIST_END) {
@@ -36,13 +36,13 @@ print_state_t print(FILE *f, print_state_t state, const node_t *it) {
                 assert(false);
                 break;
             case NODE_REF:
-                fprintf(f, "var_%lu", it->u.ref.value.val);
+                fprintf(f, "var_%zu", it->u.ref.value.val);
                 break;
             case NODE_ATOM:
                 fprintf(f, "`" STR_PRINTF "`", STR_PRINTF_PASS(it->u.atom.value));
                 break;
             case NODE_INTEGRAL:
-                fprintf(f, "%lu", it->u.integral.value);
+                fprintf(f, "%zu", it->u.integral.value);
                 break;
             case NODE_STRING:
                 fprintf(f, "\"" STR_PRINTF "\"", STR_PRINTF_PASS(it->u.string.value));
