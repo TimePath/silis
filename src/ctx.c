@@ -31,7 +31,7 @@ void ctx_init(ctx_t *self) {
 
     self->state.types.t_int = type_new(self, (type_t) {
             .kind = TYPE_OPAQUE,
-            .u.opaque.size = sizeof(int),
+            .u.opaque.size = sizeof(size_t),
     });
     sym_def(self, STR("#types/int"), (sym_t) {
             .type = self->state.types.t_type,
@@ -196,10 +196,10 @@ enum {
     TRIE_CREATE_INTERMEDIATES = 1,
 };
 
-static sym_trie_node_t *sym_trie_at(sym_trie_t *self, string_view_t ident, int flags) {
+static sym_trie_node_t *sym_trie_at(sym_trie_t *self, string_view_t ident, uint8_t flags) {
     sym_trie_node_t *n = &self->nodes.data[0];
     str_loop(ident, it, 0) {
-        uint8_t i = sym_trie_chars[(int) *it];
+        uint8_t i = sym_trie_chars[(uint8_t) *it];
         assert(i && "char is defined");
         i -= 1;
         const uint16_t idx = n->children[i];

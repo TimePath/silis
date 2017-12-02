@@ -8,7 +8,7 @@
 #include "phases/compile/compile.h"
 #include "intrinsics/func.h"
 
-int main(int argc, const char *argv[]) {
+native_int_t main(native_int_t argc, const char *argv[]) {
     (void) argc;
     struct {
         bool run : 1;
@@ -27,7 +27,7 @@ int main(int argc, const char *argv[]) {
     };
     FILE *file = fopen(argv[1], "r");
     fseek(file, 0, SEEK_END);
-    const long ret = ftell(file);
+    const native_long_t ret = ftell(file);
     if (ret < 0) return 1;
     const size_t len = (size_t) ret;
     fseek(file, 0, SEEK_SET);

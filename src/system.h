@@ -92,3 +92,9 @@ extern void *memcpy(void *dest, const void *src, size_t n);
 extern size_t strlen(const char *s);
 
 #include <assert.h>
+
+typedef int native_int_t;
+#define int
+
+typedef long native_long_t;
+#define long

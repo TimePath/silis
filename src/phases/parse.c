@@ -53,14 +53,14 @@ char_rule_e parse_chars[256] = {
 };
 
 static bool parse_is_space(char c) {
-    return parse_chars[(int) c] == CHAR_WS;
+    return parse_chars[(uint8_t) c] == CHAR_WS;
 }
 
 static size_t parse_atom(ctx_t *ctx, buffer_t prog) {
     const char *begin = prog.data, *end = begin;
     bool number = true;
     for (char c; (c = *end); ++end) {
-        const char_rule_e r = parse_chars[(int) c];
+        const char_rule_e r = parse_chars[(uint8_t) c];
         if (r <= CHAR_WS) {
             break;
         }
