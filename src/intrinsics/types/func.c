@@ -12,7 +12,7 @@ INTRINSIC_("types/func", func, ((type_id[]) {
     const value_t *arg_args = &argv[0];
 
     const node_t *args = ctx_node(ctx, arg_args->u.expr.value);
-    assert(args->type == NODE_LIST_BEGIN);
+    assert(args->kind == NODE_LIST_BEGIN);
     const size_t argc = args->u.list.size;
     assert(argc >= 2 && "has enough arguments");
 

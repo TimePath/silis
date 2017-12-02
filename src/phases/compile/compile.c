@@ -35,7 +35,7 @@ typedef enum {
 } return_e;
 
 typedef struct {
-    return_e tag;
+    return_e kind;
     union {
         struct {
             size_t val;
@@ -64,7 +64,7 @@ void do_compile(const ctx_t *g_ctx) {
     const compile_ctx_t *ctx = &ctx_;
 
     const sym_t *entry = sym_lookup(ctx->ctx, STR("main"));
-    assert(type_lookup(ctx->ctx, entry->value.type).type == TYPE_FUNCTION);
+    assert(type_lookup(ctx->ctx, entry->value.type).kind == TYPE_FUNCTION);
 
     const sym_trie_t *globals = &ctx->ctx->state.symbols.scopes.data[0];
     vec_loop(globals->list, i, 0) {
@@ -79,7 +79,7 @@ void do_compile(const ctx_t *g_ctx) {
         if (sym->flags.native) {
             OUT(ctx, "extern ");
         }
-        if (type_lookup(ctx->ctx, type).type == TYPE_FUNCTION) {
+        if (type_lookup(ctx->ctx, type).kind == TYPE_FUNCTION) {
             print_function(ctx, type, ident, NULL);
         } else {
             print_declaration(ctx, type, ident);
@@ -99,7 +99,7 @@ void do_compile(const ctx_t *g_ctx) {
         }
         const string_view_t ident = e->key;
         const type_id type = sym->type;
-        if (type_lookup(ctx->ctx, type).type == TYPE_FUNCTION) {
+        if (type_lookup(ctx->ctx, type).kind == TYPE_FUNCTION) {
             OUT(ctx, "\n");
             const node_ref_t args = nod->value.value.u.func.arglist;
             const node_t *argv = ctx_node(ctx->ctx, args);
@@ -110,7 +110,7 @@ void do_compile(const ctx_t *g_ctx) {
             OUT(ctx, "\n{\n");
 
             const node_ref_t impl = nod->value.value.u.func.value;
-            visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.tag = RETURN_FUNC}, ctx_node(ctx->ctx, impl));
+            visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, ctx_node(ctx->ctx, impl));
 
             OUT(ctx, "\n}\n");
         }
@@ -143,7 +143,7 @@ static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t i
 
 static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_t ident) {
     const type_t T = type_lookup(ctx->ctx, id);
-    if (T.type == TYPE_FUNCTION) {
+    if (T.kind == TYPE_FUNCTION) {
         print_function_ret(ctx, id);
         OUT(ctx, "(*");
         if (str_size(ident)) {
@@ -175,7 +175,7 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const stri
         const string_view_t s = idents ? idents[i++] : STR("");
         print_declaration(ctx, arg, s);
         const type_t next = type_lookup(ctx->ctx, argp.u.func.out);
-        if (next.type != TYPE_FUNCTION) {
+        if (next.kind != TYPE_FUNCTION) {
             break;
         }
         argp = next;
@@ -188,7 +188,7 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const stri
 
 static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
     (void) state;
-    switch (ret.tag) {
+    switch (ret.kind) {
         default: {
             assert(false);
         }
@@ -203,8 +203,10 @@ static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t r
     }
 }
 
-static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
-    switch (ret.tag) {
+static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
+                           const node_t *it) {
+    (void) it;
+    switch (ret.kind) {
         default: {
             assert(false);
             break;
@@ -221,7 +223,7 @@ static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return
 
 static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
     (void) state;
-    switch (ret.tag) {
+    switch (ret.kind) {
         default: {
             assert(false);
             break;
@@ -256,7 +258,7 @@ static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t r
 
 static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                                const node_t *it) {
-    switch (it->type) {
+    switch (it->kind) {
         default:
             assert(false);
             break;
@@ -294,7 +296,7 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 
 static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                             const node_t *it) {
-    assert(it->type == NODE_LIST_BEGIN);
+    assert(it->kind == NODE_LIST_BEGIN);
     const node_t *childrenRaw = NODE_LIST_CHILDREN(it);
     const size_t n = it->u.list.size;
     const node_t *children[n];
@@ -319,9 +321,9 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 
     for (size_t i = 0; i < n; ++i) {
         const node_t *it = children[i];
-        const return_t out = (return_t) {.tag = RETURN_TEMPORARY, .u.temporary.val = node_id(ctx->ctx, it)};
+        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_id(ctx->ctx, it)};
         TAB();
-        return_declare(ctx, state, out);
+        return_declare(ctx, state, out, it);
         OUT(ctx, "\n");
         TAB();
         visit_node(ctx, state, out, it);
@@ -347,25 +349,25 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 // fixme: check the value, not the name
 static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                              const node_t *func, size_t _n, const node_t *children[_n]) {
-    if (func->type != NODE_ATOM) {
+    if (func->kind != NODE_ATOM) {
         return false;
     }
     if (str_equals(func->u.atom.value, STR("#do"))) {
         // todo: extract
         const node_t *bodyNode = children[1];
-        assert(bodyNode->type == NODE_LIST_BEGIN);
+        assert(bodyNode->kind == NODE_LIST_BEGIN);
         const size_t n = bodyNode->u.list.size;
         const node_t *bodyChildren = NODE_LIST_CHILDREN(bodyNode);
         for (size_t i = 0; i < n; ++i) {
             const bool last = i == n - 1;
             const node_t *it = node_deref(ctx->ctx, &bodyChildren[i]);
             const return_t out = last ? ret : (return_t) {
-                    .tag = RETURN_TEMPORARY,
+                    .kind = RETURN_TEMPORARY,
                     .u.temporary.val = node_id(ctx->ctx, it)
             };
             if (!last) {
                 TAB();
-                return_declare(ctx, state, out);
+                return_declare(ctx, state, out, it);
                 OUT(ctx, "\n");
             }
             TAB();
@@ -377,9 +379,9 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     } else if (str_equals(func->u.atom.value, STR("#if"))) {
         const node_t *predNode = children[1];
         const node_t *bodyNode = children[2];
-        const return_t out = (return_t) {.tag = RETURN_TEMPORARY, .u.temporary.val = node_id(ctx->ctx, predNode)};
+        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_id(ctx->ctx, predNode)};
         // don't need first TAB()
-        return_declare(ctx, state, out);
+        return_declare(ctx, state, out, predNode);
         OUT(ctx, "\n");
 
         TAB();
@@ -400,9 +402,9 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     } else if (str_equals(func->u.atom.value, STR("#while"))) {
         const node_t *predNode = children[1];
         const node_t *bodyNode = children[2];
-        const return_t out = (return_t) {.tag = RETURN_TEMPORARY, .u.temporary.val = node_id(ctx->ctx, predNode)};
+        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_id(ctx->ctx, predNode)};
         // don't need first TAB()
-        return_declare(ctx, state, out);
+        return_declare(ctx, state, out, predNode);
         OUT(ctx, "\n");
 
         TAB();

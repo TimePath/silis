@@ -37,16 +37,13 @@ int main(int argc, const char *argv[]) {
     buf[len] = 0;
     fclose(file);
 
-    ctx_t ctx_ = {
-            .source.buffer = (buffer_t) {.data = buf, .size = len},
-    };
-    ctx_t *ctx = &ctx_;
+    ctx_t *ctx = &(ctx_t) {0};
     ctx_init(ctx);
 
     if (args.print_parse) {
         printf("PARSE:\n-----\n");
     }
-    parse_list(ctx, ctx->source.buffer);
+    parse_list(ctx, (buffer_t) {.data = buf, .size = len});
     if (args.print_parse) {
         print_state_t state = {0};
         const vec_t(node_t) *out = &ctx->parse.out;
@@ -65,11 +62,11 @@ int main(int argc, const char *argv[]) {
         print_state_t state = {0};
         vec_loop(ctx->flatten.out, i, 1) {
             const node_t *it = ctx_node(ctx, (node_ref_t) {i});
-            if (it->type == NODE_LIST_BEGIN) {
+            if (it->kind == NODE_LIST_BEGIN) {
                 printf(";; var_%lu\n", i);
             }
             state = print(stdout, state, it);
-            if (it->type == NODE_LIST_END) {
+            if (it->kind == NODE_LIST_END) {
                 printf("\n");
                 state = (print_state_t) {0};
             }
@@ -90,7 +87,7 @@ int main(int argc, const char *argv[]) {
             printf("RUN:\n---\n");
         }
         const sym_t *entry = sym_lookup(ctx, STR("main"));
-        assert(type_lookup(ctx, entry->type).type == TYPE_FUNCTION && "main is a function");
+        assert(type_lookup(ctx, entry->type).kind == TYPE_FUNCTION && "main is a function");
         func_call(ctx, entry->value, NULL);
     } else {
         if (args.print_compile) {

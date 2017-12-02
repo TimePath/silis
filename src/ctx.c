@@ -6,20 +6,20 @@
 void ctx_init(ctx_t *self) {
     sym_push(self, 0);
     self->state.types.t_unit = type_new(self, (type_t) {
-            .type = TYPE_OPAQUE,
+            .kind = TYPE_OPAQUE,
             .u.opaque.size = 0,
     });
     assert(self->state.types.t_unit.value == 0 && "unit has type id 0");
     self->state.types.t_expr = type_new(self, (type_t) {
-            .type = TYPE_OPAQUE,
+            .kind = TYPE_OPAQUE,
             .u.opaque.size = 0,
     });
     self->state.types.t_type = type_new(self, (type_t) {
-            .type = TYPE_OPAQUE,
+            .kind = TYPE_OPAQUE,
             .u.opaque.size = sizeof(type_id),
     });
     self->state.types.t_string = type_new(self, (type_t) {
-            .type = TYPE_OPAQUE,
+            .kind = TYPE_OPAQUE,
             .u.opaque.size = sizeof(const char *),
     });
     sym_def(self, STR("#types/string"), (sym_t) {
@@ -30,7 +30,7 @@ void ctx_init(ctx_t *self) {
     });
 
     self->state.types.t_int = type_new(self, (type_t) {
-            .type = TYPE_OPAQUE,
+            .kind = TYPE_OPAQUE,
             .u.opaque.size = sizeof(int),
     });
     sym_def(self, STR("#types/int"), (sym_t) {
@@ -55,9 +55,9 @@ size_t node_id(const ctx_t *ctx, const node_t *it) {
 }
 
 const node_t *node_deref(const ctx_t *ctx, const node_t *it) {
-    if (it->type == NODE_REF) {
+    if (it->kind == NODE_REF) {
         const node_t *ret = ctx_node(ctx, it->u.ref.value);
-        assert(ret->type != NODE_REF && "no double refs");
+        assert(ret->kind != NODE_REF && "no double refs");
         return ret;
     }
     return it;
@@ -76,7 +76,7 @@ size_t ast_parse_push(ctx_t *self) {
         parent->u.list.size += 1;
     }
     node_t it = (node_t) {
-            .type = NODE_LIST_BEGIN,
+            .kind = NODE_LIST_BEGIN,
     };
     vec_push(out, it);
     return parentIdx;
@@ -99,7 +99,7 @@ void ast_parse_pop(ctx_t *self, size_t tok) {
     vec_t(node_t) *out = &self->parse.out;
     self->parse.list_parent_idx = tok;
     node_t it = (node_t) {
-            .type = NODE_LIST_END,
+            .kind = NODE_LIST_END,
     };
     vec_push(out, it);
 }
@@ -117,7 +117,7 @@ type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n) {
     while (i-- > 0) {
         type_id in = argv[i];
         ret = type_new(ctx, (type_t) {
-                .type = TYPE_FUNCTION,
+                .kind = TYPE_FUNCTION,
                 .u.func.in = in,
                 .u.func.out = ret,
         });
@@ -127,7 +127,7 @@ type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n) {
 
 type_id type_func_ret(const ctx_t *ctx, type_t T) {
     type_id ret = {.value = 0};
-    for (type_t it = T; it.type == TYPE_FUNCTION; it = type_lookup(ctx, it.u.func.out)) {
+    for (type_t it = T; it.kind == TYPE_FUNCTION; it = type_lookup(ctx, it.u.func.out)) {
         ret = it.u.func.out;
     }
     return ret;
@@ -135,7 +135,7 @@ type_id type_func_ret(const ctx_t *ctx, type_t T) {
 
 size_t type_func_argc(const ctx_t *ctx, type_t T) {
     size_t argc = 0;
-    for (type_t it = T; it.type == TYPE_FUNCTION; it = type_lookup(ctx, it.u.func.out)) {
+    for (type_t it = T; it.kind == TYPE_FUNCTION; it = type_lookup(ctx, it.u.func.out)) {
         ++argc;
     }
     return argc;
@@ -148,7 +148,7 @@ type_t type_lookup(const ctx_t *ctx, type_id id) {
 // Values
 
 value_t val_from(const ctx_t *ctx, const node_t *n) {
-    switch (n->type) {
+    switch (n->kind) {
         default:
             assert(false);
             return (value_t) {0};

@@ -31,14 +31,12 @@ typedef enum {
      */ NODE_STRING,
 } node_e;
 
-#define NODE_LIST_CHILDREN(ptr) (ptr + 1)
-
 typedef struct {
     size_t val;
 } node_ref_t;
 
 typedef struct {
-    node_e type;
+    node_e kind;
     union {
         /// NODE_LIST_BEGIN
         struct {
@@ -70,11 +68,9 @@ typedef struct {
     } u;
 } node_t;
 
-// Types
+#define NODE_LIST_CHILDREN(ptr) ((ptr) + 1)
 
-typedef struct {
-    size_t value;
-} type_id;
+// Types
 
 typedef enum {
     TYPE_INVALID,
@@ -93,7 +89,11 @@ typedef enum {
 } type_e;
 
 typedef struct {
-    type_e type;
+    size_t value;
+} type_id;
+
+typedef struct {
+    type_e kind;
     union {
         /// TYPE_OPAQUE
         struct {
@@ -160,7 +160,7 @@ typedef struct value_s {
 // Symbols
 
 typedef struct {
-    type_id type;
+    type_id type; // could be removed if values could be tagged as undefined
     value_t value;
     struct {
         /// intrinsic, can't be compiled
@@ -207,9 +207,6 @@ instantiate_vec_t(size_t);
 instantiate_vec_t(node_t);
 
 typedef struct ctx_s {
-    struct {
-        buffer_t buffer;
-    } source;
     struct {
         struct {
             vec_t(type_t) all;

@@ -12,7 +12,7 @@ INTRINSIC(define, ((type_id[]) {
     const value_t *arg_val = &argv[1];
 
     const node_t *name = ctx_node(ctx, arg_name->u.expr.value);
-    assert(name->type == NODE_ATOM);
+    assert(name->kind == NODE_ATOM);
     const node_t *val = ctx_node(ctx, arg_val->u.expr.value);
 
     const value_t v = eval_node(ctx, val);

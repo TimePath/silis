@@ -5,13 +5,13 @@
 
 void do_eval(ctx_t *ctx) {
     const node_t *it = ctx_node(ctx, (node_ref_t) {ctx->flatten.out.size - 1});
-    assert(it->type == NODE_LIST_END);
-    while ((--it)->type != NODE_LIST_BEGIN);
+    assert(it->kind == NODE_LIST_END);
+    while ((--it)->kind != NODE_LIST_BEGIN);
     eval_list_block(ctx, it);
 }
 
 value_t eval_list_block(ctx_t *ctx, const node_t *it) {
-    assert(it->type == NODE_LIST_BEGIN);
+    assert(it->kind == NODE_LIST_BEGIN);
     const size_t n = it->u.list.size;
     const node_t *children = NODE_LIST_CHILDREN(it);
     value_t ret = (value_t) {.type = ctx->state.types.t_unit};
@@ -23,7 +23,7 @@ value_t eval_list_block(ctx_t *ctx, const node_t *it) {
 
 value_t eval_node(ctx_t *ctx, const node_t *it) {
     it = node_deref(ctx, it);
-    if (it->type != NODE_LIST_BEGIN) {
+    if (it->kind != NODE_LIST_BEGIN) {
         return val_from(ctx, it);
     }
     const size_t n = it->u.list.size;
@@ -36,14 +36,14 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
     }
     const value_t func = eval_node(ctx, &children[0]);
     const type_t T = type_lookup(ctx, func.type);
-    assert(T.type == TYPE_FUNCTION);
+    assert(T.kind == TYPE_FUNCTION);
 
     const size_t ofs = ctx->eval.stack.size;
     const type_id expr_t = ctx->state.types.t_expr;
     size_t T_argc = 0;
     // holds return value after this loop
     type_t link = T;
-    for (; link.type == TYPE_FUNCTION; ++T_argc) {
+    for (; link.kind == TYPE_FUNCTION; ++T_argc) {
         assert((n - 1) > T_argc && "argument underflow");
         const node_t *arg = &children[T_argc + 1];
         const type_id arg_t = link.u.func.in;

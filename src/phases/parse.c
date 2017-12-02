@@ -73,12 +73,12 @@ static size_t parse_atom(ctx_t *ctx, buffer_t prog) {
     const string_view_t name = (string_view_t) {.begin = begin, .end = end};
     if (number) {
         ast_push(ctx, (node_t) {
-                .type = NODE_INTEGRAL,
+                .kind = NODE_INTEGRAL,
                 .u.integral.value = strtoul(begin, NULL, 10),
         });
     } else {
         ast_push(ctx, (node_t) {
-                .type = NODE_ATOM,
+                .kind = NODE_ATOM,
                 .u.atom.value = name,
         });
     }
@@ -115,7 +115,7 @@ static size_t parse_string(ctx_t *ctx, buffer_t prog) {
     done:;
     const string_view_t value = (string_view_t) {.begin = begin, .end = out};
     ast_push(ctx, (node_t) {
-            .type = NODE_STRING,
+            .kind = NODE_STRING,
             .u.string.value = value,
     });
     return str_size((string_view_t) {.begin = begin, .end = end}) + 1;

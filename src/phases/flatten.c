@@ -8,7 +8,7 @@ void do_flatten(ctx_t *ctx) {
     {
         // make usable ids start from 1
         vec_t(node_t) *out = &ctx->flatten.out;
-        const node_t dummy = (node_t) {.type = NODE_INVALID};
+        const node_t dummy = (node_t) {.kind = NODE_INVALID};
         vec_push(out, dummy);
         assert(out->size == 1);
     }
@@ -27,7 +27,7 @@ void do_flatten(ctx_t *ctx) {
 
 static size_t do_flatten_rec(ctx_t *ctx, vec_t(node_t) *stack, const node_t *begin) {
     const node_t *it = begin;
-    if (it->type != NODE_LIST_BEGIN) {
+    if (it->kind != NODE_LIST_BEGIN) {
         vec_push(stack, *it);
         return 1;
     }
@@ -35,7 +35,7 @@ static size_t do_flatten_rec(ctx_t *ctx, vec_t(node_t) *stack, const node_t *beg
     // depth-first flatten
     {
         ++it; // skip begin
-        while (it->type != NODE_LIST_END) {
+        while (it->kind != NODE_LIST_END) {
             it += do_flatten_rec(ctx, stack, it);
         }
         ++it; // skip end
@@ -47,7 +47,7 @@ static size_t do_flatten_rec(ctx_t *ctx, vec_t(node_t) *stack, const node_t *beg
     // just parsed a full expression
     {
         const node_t open = (node_t) {
-                .type = NODE_LIST_BEGIN,
+                .kind = NODE_LIST_BEGIN,
                 .u.list.begin = !argc ? 0 : out->size + 1,
                 .u.list.end = !argc ? 0 : out->size + argc,
                 .u.list.size = argc,
@@ -59,11 +59,11 @@ static size_t do_flatten_rec(ctx_t *ctx, vec_t(node_t) *stack, const node_t *beg
         for (size_t i = 0; i < argc; ++i) {
             vec_pop(stack);
         }
-        const node_t close = (node_t) {.type = NODE_LIST_END};
+        const node_t close = (node_t) {.kind = NODE_LIST_END};
         vec_push(out, close);
     }
     const node_t ret = (node_t) {
-            .type = NODE_REF,
+            .kind = NODE_REF,
             .u.ref.value = refIdx,
     };
     vec_push(stack, ret);

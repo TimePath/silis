@@ -14,17 +14,17 @@ static void print_indent(FILE *f, print_state_t *state) {
 }
 
 print_state_t print(FILE *f, print_state_t state, const node_t *it) {
-    if (it->type == NODE_INVALID) {
+    if (it->kind == NODE_INVALID) {
         return state;
     }
-    if (it->type == NODE_LIST_BEGIN) {
+    if (it->kind == NODE_LIST_BEGIN) {
         print_indent(f, &state);
         ++state.depth;
         fprintf(f, "(");
         fprintf(f, " ; children(first: %lu, last: %lu, size: %lu)", it->u.list.begin, it->u.list.end, it->u.list.size);
         state.needTab = true;
         state.needLine = true;
-    } else if (it->type == NODE_LIST_END) {
+    } else if (it->kind == NODE_LIST_END) {
         --state.depth;
         print_indent(f, &state);
         fprintf(f, ")");
@@ -32,7 +32,7 @@ print_state_t print(FILE *f, print_state_t state, const node_t *it) {
         state.needLine = true;
     } else {
         print_indent(f, &state);
-        switch (it->type) {
+        switch (it->kind) {
             default:
                 assert(false);
                 break;
