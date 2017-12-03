@@ -27,6 +27,7 @@ typedef enum {
 
 typedef struct {
     return_e kind;
+    uint8_t padding[4];
     union {
         struct {
             node_id val;
@@ -148,14 +149,16 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_
     }
     OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(type_name(ctx, id)));
     if (str_size(ident)) {
-        OUT(ctx, " " STR_PRINTF, STR_PRINTF_PASS(ident));
+        OUT(ctx, " "
+                STR_PRINTF, STR_PRINTF_PASS(ident));
     }
 }
 
 static void print_function_ret(const compile_ctx_t *ctx, type_id id) {
     const type_t *T = type_lookup(ctx->ctx, id);
     const type_id ret = type_func_ret(ctx->ctx, T);
-    OUT(ctx, STR_PRINTF " ", STR_PRINTF_PASS(type_name(ctx, ret)));
+    OUT(ctx, STR_PRINTF
+            " ", STR_PRINTF_PASS(type_name(ctx, ret)));
 }
 
 static void print_function_args(const compile_ctx_t *ctx, type_id id, const string_view_t idents[]) {
@@ -182,56 +185,51 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const stri
 static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
     (void) state;
     switch (ret.kind) {
-        default: {
-            assert(false);
-        }
-        case RETURN_TEMPORARY: {
+        case RETURN_TEMPORARY:
             OUT(ctx, "_%zu", ret.u.temporary.val.val);
-            break;
-        }
-        case RETURN_NAMED: {
+            return;
+        case RETURN_NAMED:
             assert(false); // todo
+            return;
+        case RETURN_NO:
+        case RETURN_FUNC:
             break;
-        }
     }
+    assert(false);
 }
 
 static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                            const node_t *it) {
     (void) it;
     switch (ret.kind) {
-        default: {
-            assert(false);
-            break;
-        }
         case RETURN_TEMPORARY:
-        case RETURN_NAMED: {
+        case RETURN_NAMED:
             OUT(ctx, "auto ");
             return_ref(ctx, state, ret);
             OUT(ctx, ";");
+            return;
+        case RETURN_NO:
+        case RETURN_FUNC:
             break;
-        }
     }
+    assert(false);
 }
 
 static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
     (void) state;
     switch (ret.kind) {
-        default: {
-            assert(false);
-            break;
-        }
-        case RETURN_FUNC: {
+        case RETURN_FUNC:
             OUT(ctx, "return ");
-            break;
-        }
+            return;
         case RETURN_TEMPORARY:
-        case RETURN_NAMED: {
+        case RETURN_NAMED:
             return_ref(ctx, state, ret);
             OUT(ctx, " = ");
+            return;
+        case RETURN_NO:
             break;
-        }
     }
+    assert(false);
 }
 
 static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
@@ -252,9 +250,6 @@ static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t r
 static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                                const node_t *it) {
     switch (it->kind) {
-        default:
-            assert(false);
-            break;
         case NODE_ATOM:
             return_assign(ctx, state, ret);
             OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(it->u.atom.value));
@@ -266,7 +261,9 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
         case NODE_STRING:
             return_assign(ctx, state, ret);
             // todo: escape
-            OUT(ctx, "\"" STR_PRINTF "\"", STR_PRINTF_PASS(it->u.string.value));
+            OUT(ctx, "\""
+                    STR_PRINTF
+                    "\"", STR_PRINTF_PASS(it->u.string.value));
             return true;
         case NODE_LIST_BEGIN: {
             const size_t n = it->u.list.size;
@@ -275,9 +272,14 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
                 OUT(ctx, "void");
                 return true;
             }
-            break;
+            return false;
         }
+        case NODE_INVALID:
+        case NODE_LIST_END:
+        case NODE_REF:
+            break;
     }
+    assert(false);
     return false;
 }
 

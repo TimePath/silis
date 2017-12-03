@@ -39,6 +39,7 @@ typedef struct {
 
 typedef struct {
     node_e kind;
+    uint8_t padding[4];
     union {
         /// NODE_LIST_BEGIN
         struct {
@@ -49,7 +50,7 @@ typedef struct {
         } list;
         /// NODE_LIST_END
         struct {
-            bool _: 1;
+            uint8_t padding;
         } list_end;
         /// NODE_REF
         struct {
@@ -81,7 +82,7 @@ const node_t *node_deref(const ctx_t *ctx, const node_t *it);
 // AST
 
 /// begin a new list
-/// \param ctx
+/// \param ctx compiler context
 /// \return token to current list
 size_t ast_parse_push(ctx_t *ctx);
 
@@ -113,6 +114,7 @@ typedef struct {
 
 typedef struct {
     type_e kind;
+    uint8_t padding[4];
     union {
         /// TYPE_OPAQUE
         struct {
@@ -200,7 +202,9 @@ typedef struct {
         bool native : 1;
         /// interpreter variable (function call)
         bool eval : 1;
+        uint8_t padding : 5;
     } flags;
+    uint8_t padding[7];
 } sym_t;
 
 typedef struct {
@@ -213,6 +217,7 @@ instantiate_vec_t(sym_trie_node_t);
 typedef struct {
     string_view_t key;
     uint16_t value;
+    uint8_t padding[6];
 } sym_trie_entry_t;
 
 instantiate_vec_t(sym_trie_entry_t);

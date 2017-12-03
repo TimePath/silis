@@ -15,7 +15,8 @@ static INLINE string_view_t str_new(const char *str) {
 }
 
 INLINE size_t str_size(string_view_t self) {
-    return self.end - self.begin;
+    assert(self.end >= self.begin);
+    return (size_t) (self.end - self.begin);
 }
 
 bool str_equals(string_view_t self, string_view_t other);

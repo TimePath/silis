@@ -1,5 +1,8 @@
 #pragma once
 
+#define USE_REAL_HEADERS 0
+
+#if !USE_REAL_HEADERS
 #ifndef __WORDSIZE
 #if defined __x86_64__ && !defined __ILP32__
 #define __WORDSIZE 64
@@ -7,14 +10,21 @@
 #define __WORDSIZE	32
 #endif
 #endif
+#endif
 
-//#include <stdbool.h>
+#if USE_REAL_HEADERS
+#include <stdbool.h>
+#else
 
 #define bool _Bool
 #define true 1
 #define false 0
 
-//#include <stdint.h>
+#endif
+
+#if USE_REAL_HEADERS
+#include <stdint.h>
+#else
 
 typedef unsigned char uint8_t;
 _Static_assert(sizeof(uint8_t) * 8 == 8, "uint8_t");
@@ -34,7 +44,11 @@ typedef unsigned long long uint64_t;
 #endif
 _Static_assert(sizeof(uint64_t) * 8 == 64, "uint64_t");
 
-//#include <stddef.h>
+#endif
+
+#if USE_REAL_HEADERS
+#include <stddef.h>
+#else
 
 #if __WORDSIZE == 64
 typedef uint64_t size_t;
@@ -46,7 +60,11 @@ typedef uint32_t size_t;
 
 #define NULL ((void *) 0)
 
-//#include <stdio.h>
+#endif
+
+#if USE_REAL_HEADERS
+#include <stdio.h>
+#else
 
 typedef struct FILE_impl FILE;
 
@@ -71,7 +89,11 @@ extern int fprintf(FILE *stream, const char *format, ...);
 
 extern FILE *stdout;
 
-//#include <stdlib.h>
+#endif
+
+#if USE_REAL_HEADERS
+#include <stdlib.h>
+#else
 
 enum {
     EXIT_SUCCESS = 0,
@@ -83,13 +105,19 @@ extern void free(void *ptr);
 
 extern void *realloc(void *ptr, size_t size);
 
-//#include <string.h>
+#endif
+
+#if USE_REAL_HEADERS
+#include <string.h>
+#else
 
 extern int memcmp(const void *s1, const void *s2, size_t n);
 
 extern void *memcpy(void *dest, const void *src, size_t n);
 
 extern size_t strlen(const char *s);
+
+#endif
 
 #include <assert.h>
 

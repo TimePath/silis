@@ -53,7 +53,8 @@ const node_t *node_get(const ctx_t *ctx, node_id ref) {
 }
 
 node_id node_ref(const ctx_t *ctx, const node_t *it) {
-    return (node_id) {it - ctx->flatten.out.data};
+    assert(it >= ctx->flatten.out.data && it <= &ctx->flatten.out.data[ctx->flatten.out.size - 1]);
+    return (node_id) {(size_t) (it - ctx->flatten.out.data)};
 }
 
 const node_t *node_deref(const ctx_t *ctx, const node_t *it) {
@@ -151,9 +152,6 @@ const type_t *type_lookup(const ctx_t *ctx, type_id id) {
 
 value_t value_from(const ctx_t *ctx, const node_t *n) {
     switch (n->kind) {
-        default:
-            assert(false);
-            return (value_t) {0};
         case NODE_ATOM: {
             const sym_t *symbol = sym_lookup(ctx, n->u.atom.value);
             assert(symbol && "symbol is defined");
@@ -169,7 +167,14 @@ value_t value_from(const ctx_t *ctx, const node_t *n) {
                     .type = ctx->state.types.t_string,
                     .u.string.value = n->u.string.value,
             };
+        case NODE_INVALID:
+        case NODE_LIST_BEGIN:
+        case NODE_LIST_END:
+        case NODE_REF:
+            break;
     }
+    assert(false);
+    return (value_t) {0};
 }
 
 // Symbols

@@ -66,5 +66,5 @@ static size_t do_flatten_rec(ctx_t *ctx, vec_t(node_t) *stack, const node_t *beg
             .u.ref.value = refIdx,
     };
     vec_push(stack, ret);
-    return it - begin;
+    return (size_t) (it - begin);
 }

@@ -13,13 +13,6 @@ stdenv.mkDerivation {
     name = "silis";
     src = src;
     nativeBuildInputs = [ pkgs.cmake ];
-    buildInputs = stdenv.lib.optionals (stdenv.isLinux && stdenv?isStatic && stdenv.isStatic) [
-         pkgs.glibc.static  # todo: musl
-    ];
-    cmakeFlags = [
-        "-DCMAKE_C_COMPILER_WORKS:BOOL=ON"
-        "-DCMAKE_CXX_COMPILER_WORKS:BOOL=ON"
-    ];
     installPhase = ''
         mkdir -p $out/bin
         mv silis $out/bin

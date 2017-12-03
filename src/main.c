@@ -17,6 +17,7 @@ native_int_t main(native_int_t argc, const char *argv[]) {
         bool print_eval : 1;
         bool print_compile : 1;
         bool print_run : 1;
+        uint8_t padding : 2;
     } args = {
             .run = false,
             .print_parse = false,

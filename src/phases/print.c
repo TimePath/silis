@@ -32,9 +32,6 @@ print_state_t print(FILE *f, print_state_t state, const node_t *it) {
     } else {
         print_indent(f, &state);
         switch (it->kind) {
-            default:
-                assert(false);
-                break;
             case NODE_REF:
                 fprintf(f, "var_%zu", it->u.ref.value.val);
                 break;
@@ -46,6 +43,11 @@ print_state_t print(FILE *f, print_state_t state, const node_t *it) {
                 break;
             case NODE_STRING:
                 fprintf(f, "\"" STR_PRINTF "\"", STR_PRINTF_PASS(it->u.string.value));
+                break;
+            case NODE_INVALID:
+            case NODE_LIST_BEGIN:
+            case NODE_LIST_END:
+                assert(false);
                 break;
         }
         state.needTab = true;

@@ -128,7 +128,7 @@ size_t parse_list(ctx_t *ctx, buffer_t prog) {
             continue;
         }
         char *next = end + 1;
-        const size_t count = next - begin;
+        const size_t count = (size_t) (next - begin);
         buffer_t rest = (buffer_t) {.size = prog.size - count, .data = next};
         switch (c) {
             case ';':
@@ -152,7 +152,7 @@ size_t parse_list(ctx_t *ctx, buffer_t prog) {
                 break;
         }
     }
-    ret = end - begin - 1;
+    ret = (size_t) (end - begin) - 1;
     done:;
     ast_parse_pop(ctx, tok);
     return ret;
