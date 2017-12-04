@@ -7,7 +7,7 @@
 #if defined __x86_64__ && !defined __ILP32__
 #define __WORDSIZE 64
 #else
-#define __WORDSIZE	32
+#define __WORDSIZE 32
 #endif
 #endif
 #endif
