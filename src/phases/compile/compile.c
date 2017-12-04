@@ -2,13 +2,12 @@
 #include "compile.h"
 
 #include "../../intrinsics/func.h"
+#include "../../lib/stdio.h"
 
 typedef struct {
     const ctx_t *ctx;
     FILE *out;
 } compile_ctx_t;
-
-#define OUT(ctx, ...) fprintf((ctx)->out, __VA_ARGS__)
 
 static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, const string_view_t idents[]);
 
@@ -70,18 +69,18 @@ void do_compile(const ctx_t *g_ctx) {
         const string_view_t ident = e->key;
         const type_id type = sym->type;
         if (sym->flags.native) {
-            OUT(ctx, "extern ");
+            fprintf_s(ctx->out, STR("extern "));
         }
         if (type_lookup(ctx->ctx, type)->kind == TYPE_FUNCTION) {
             print_function(ctx, type, ident, NULL);
         } else {
             print_declaration(ctx, type, ident);
             if (!sym->flags.native) {
-                OUT(ctx, " = ");
+                fprintf_s(ctx->out, STR(" = "));
                 // todo: sym->value
             }
         }
-        OUT(ctx, ";\n");
+        fprintf_s(ctx->out, STR(";\n"));
     }
     vec_loop(globals->list, i, 0) {
         const sym_trie_entry_t *e = &globals->list.data[i];
@@ -93,25 +92,25 @@ void do_compile(const ctx_t *g_ctx) {
         const string_view_t ident = e->key;
         const type_id type = sym->type;
         if (type_lookup(ctx->ctx, type)->kind == TYPE_FUNCTION) {
-            OUT(ctx, "\n");
+            fprintf_s(ctx->out, STR("\n"));
             const node_id args = nod->value.value.u.func.arglist;
             const node_t *argv = node_get(ctx->ctx, args);
             const size_t argc = argv->u.list.size;
             string_view_t argnames[argc];
             func_args_names(ctx->ctx, node_list_children(argv), argc, argnames);
             print_function(ctx, type, ident, argnames);
-            OUT(ctx, "\n{\n");
+            fprintf_s(ctx->out, STR("\n{\n"));
 
             const node_id impl = nod->value.value.u.func.value;
             visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, node_get(ctx->ctx, impl));
 
-            OUT(ctx, "\n}\n");
+            fprintf_s(ctx->out, STR("\n}\n"));
         }
     }
 #ifdef DEBUG_COMPILE
 #else
     fclose(out);
-    fprintf(stdout, BUF_PRINTF, BUF_PRINTF_PASS(buf));
+    fprintf_buf(stdout, buf);
 #endif
 }
 
@@ -131,7 +130,7 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const stri
 
 static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, const string_view_t idents[]) {
     print_function_ret(ctx, id);
-    OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(ident));
+    fprintf_s(ctx->out, ident);
     print_function_args(ctx, id, idents);
 }
 
@@ -139,30 +138,30 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_
     const type_t *T = type_lookup(ctx->ctx, id);
     if (T->kind == TYPE_FUNCTION) {
         print_function_ret(ctx, id);
-        OUT(ctx, "(*");
+        fprintf_s(ctx->out, STR("(*"));
         if (str_size(ident)) {
-            OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(ident));
+            fprintf_s(ctx->out, ident);
         }
-        OUT(ctx, ")");
+        fprintf_s(ctx->out, STR(")"));
         print_function_args(ctx, id, NULL);
         return;
     }
-    OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(type_name(ctx, id)));
+    fprintf_s(ctx->out, type_name(ctx, id));
     if (str_size(ident)) {
-        OUT(ctx, " "
-                STR_PRINTF, STR_PRINTF_PASS(ident));
+        fprintf_s(ctx->out, STR(" "));
+        fprintf_s(ctx->out, ident);
     }
 }
 
 static void print_function_ret(const compile_ctx_t *ctx, type_id id) {
     const type_t *T = type_lookup(ctx->ctx, id);
     const type_id ret = type_func_ret(ctx->ctx, T);
-    OUT(ctx, STR_PRINTF
-            " ", STR_PRINTF_PASS(type_name(ctx, ret)));
+    fprintf_s(ctx->out, type_name(ctx, ret));
+    fprintf_s(ctx->out, STR(" "));
 }
 
 static void print_function_args(const compile_ctx_t *ctx, type_id id, const string_view_t idents[]) {
-    OUT(ctx, "(");
+    fprintf_s(ctx->out, STR("("));
     const type_t *T = type_lookup(ctx->ctx, id);
     const type_t *argp = T;
     size_t i = 0;
@@ -175,18 +174,19 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const stri
             break;
         }
         argp = next;
-        OUT(ctx, ", ");
+        fprintf_s(ctx->out, STR(", "));
     }
-    OUT(ctx, ")");
+    fprintf_s(ctx->out, STR(")"));
 }
 
-#define TAB() OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(str_indent(state.depth * 4)))
+#define TAB() fprintf_s(ctx->out, str_indent(state.depth * 4))
 
 static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
     (void) state;
     switch (ret.kind) {
         case RETURN_TEMPORARY:
-            OUT(ctx, "_%zu", ret.u.temporary.val.val);
+            fprintf_s(ctx->out, STR("_"));
+            fprintf_zu(ctx->out, ret.u.temporary.val.val);
             return;
         case RETURN_NAMED:
             assert(false); // todo
@@ -204,9 +204,9 @@ static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return
     switch (ret.kind) {
         case RETURN_TEMPORARY:
         case RETURN_NAMED:
-            OUT(ctx, "auto ");
+            fprintf_s(ctx->out, STR("auto "));
             return_ref(ctx, state, ret);
-            OUT(ctx, ";");
+            fprintf_s(ctx->out, STR(";"));
             return;
         case RETURN_NO:
         case RETURN_FUNC:
@@ -219,12 +219,12 @@ static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_
     (void) state;
     switch (ret.kind) {
         case RETURN_FUNC:
-            OUT(ctx, "return ");
+            fprintf_s(ctx->out, STR("return "));
             return;
         case RETURN_TEMPORARY:
         case RETURN_NAMED:
             return_ref(ctx, state, ret);
-            OUT(ctx, " = ");
+            fprintf_s(ctx->out, STR(" = "));
             return;
         case RETURN_NO:
             break;
@@ -241,7 +241,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
 static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                        const node_t *it) {
     if (visit_node_primary(ctx, state, ret, it)) {
-        OUT(ctx, ";");
+        fprintf_s(ctx->out, STR(";"));
         return;
     }
     visit_node_list(ctx, state, ret, it);
@@ -252,24 +252,24 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
     switch (it->kind) {
         case NODE_ATOM:
             return_assign(ctx, state, ret);
-            OUT(ctx, STR_PRINTF, STR_PRINTF_PASS(it->u.atom.value));
+            fprintf_s(ctx->out, it->u.atom.value);
             return true;
         case NODE_INTEGRAL:
             return_assign(ctx, state, ret);
-            OUT(ctx, "%zu", it->u.integral.value);
+            fprintf_zu(ctx->out, it->u.integral.value);
             return true;
         case NODE_STRING:
             return_assign(ctx, state, ret);
+            fprintf_s(ctx->out, STR("\""));
             // todo: escape
-            OUT(ctx, "\""
-                    STR_PRINTF
-                    "\"", STR_PRINTF_PASS(it->u.string.value));
+            fprintf_s(ctx->out, it->u.string.value);
+            fprintf_s(ctx->out, STR("\""));
             return true;
         case NODE_LIST_BEGIN: {
             const size_t n = it->u.list.size;
             if (!n) {
                 return_assign(ctx, state, ret);
-                OUT(ctx, "void");
+                fprintf_s(ctx->out, STR("void"));
                 return true;
             }
             return false;
@@ -311,7 +311,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
 
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                             const node_t *func, size_t n, const node_t *children[n]) {
-    OUT(ctx, "{\n");
+    fprintf_s(ctx->out, STR("{\n"));
     state.depth++;
 
     for (size_t i = 0; i < n; ++i) {
@@ -319,26 +319,29 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, it)};
         TAB();
         return_declare(ctx, state, out, it);
-        OUT(ctx, "\n");
+        fprintf_s(ctx->out, STR("\n"));
         TAB();
         visit_node(ctx, state, out, it);
-        OUT(ctx, "\n");
+        fprintf_s(ctx->out, STR("\n"));
     }
     TAB();
     return_assign(ctx, state, ret);
-    OUT(ctx, "_%zu(", node_ref(ctx->ctx, func).val);
+    fprintf_s(ctx->out, STR("_"));
+    fprintf_zu(ctx->out, node_ref(ctx->ctx, func).val);
+    fprintf_s(ctx->out, STR("("));
     for (size_t i = 1; i < n; ++i) {
         const bool last = i == n - 1;
-        OUT(ctx, "_%zu", node_ref(ctx->ctx, children[i]).val);
+        fprintf_s(ctx->out, STR("_"));
+        fprintf_zu(ctx->out, node_ref(ctx->ctx, children[i]).val);
         if (!last) {
-            OUT(ctx, ", ");
+            fprintf_s(ctx->out, STR(", "));
         }
     }
-    OUT(ctx, ");\n");
+    fprintf_s(ctx->out, STR(");\n"));
 
     state.depth--;
     TAB();
-    OUT(ctx, "}");
+    fprintf_s(ctx->out, STR("}"));
 }
 
 // fixme: check the value, not the name
@@ -363,12 +366,12 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
             if (!last) {
                 TAB();
                 return_declare(ctx, state, out, it);
-                OUT(ctx, "\n");
+                fprintf_s(ctx->out, STR("\n"));
             }
             TAB();
             visit_node(ctx, state, out, it);
             if (!last) {
-                OUT(ctx, "\n");
+                fprintf_s(ctx->out, STR("\n"));
             }
         }
     } else if (str_equals(func->u.atom.value, STR("#if"))) {
@@ -377,51 +380,57 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, predNode)};
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);
-        OUT(ctx, "\n");
+        fprintf_s(ctx->out, STR("\n"));
 
         TAB();
         visit_node(ctx, state, out, predNode);
-        OUT(ctx, "\n");
+        fprintf_s(ctx->out, STR("\n"));
 
         TAB();
-        OUT(ctx, "if (_%zu) {\n", node_ref(ctx->ctx, predNode).val);
+        fprintf_s(ctx->out, STR("if ("));
+        fprintf_s(ctx->out, STR("_"));
+        fprintf_zu(ctx->out, node_ref(ctx->ctx, predNode).val);
+        fprintf_s(ctx->out, STR(") {\n"));
         {
             state.depth++;
             // todo: same as #do
             visit_node(ctx, state, ret, bodyNode);
-            OUT(ctx, "\n");
+            fprintf_s(ctx->out, STR("\n"));
             state.depth--;
         }
         TAB();
-        OUT(ctx, "}");
+        fprintf_s(ctx->out, STR("}"));
     } else if (str_equals(func->u.atom.value, STR("#while"))) {
         const node_t *predNode = children[1];
         const node_t *bodyNode = children[2];
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, predNode)};
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);
-        OUT(ctx, "\n");
+        fprintf_s(ctx->out, STR("\n"));
 
         TAB();
         visit_node(ctx, state, out, predNode);
-        OUT(ctx, "\n");
+        fprintf_s(ctx->out, STR("\n"));
 
         TAB();
-        OUT(ctx, "while (_%zu) {\n", node_ref(ctx->ctx, predNode).val);
+        fprintf_s(ctx->out, STR("while ("));
+        fprintf_s(ctx->out, STR("_"));
+        fprintf_zu(ctx->out, node_ref(ctx->ctx, predNode).val);
+        fprintf_s(ctx->out, STR(") {\n"));
         {
             state.depth++;
             // todo: same as #do
             visit_node(ctx, state, ret, bodyNode);
-            OUT(ctx, "\n");
+            fprintf_s(ctx->out, STR("\n"));
 
             TAB();
             visit_node(ctx, state, out, predNode);
-            OUT(ctx, "\n");
+            fprintf_s(ctx->out, STR("\n"));
 
             state.depth--;
         }
         TAB();
-        OUT(ctx, "}");
+        fprintf_s(ctx->out, STR("}"));
     } else {
         return false;
     }

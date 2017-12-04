@@ -7,6 +7,7 @@
 #include "phases/eval.h"
 #include "phases/compile/compile.h"
 #include "intrinsics/func.h"
+#include "lib/stdio.h"
 
 native_int_t main(native_int_t argc, const char *argv[]) {
     (void) argc;
@@ -42,7 +43,7 @@ native_int_t main(native_int_t argc, const char *argv[]) {
     ctx_init(ctx);
 
     if (args.print_parse) {
-        fprintf(stdout, "PARSE:\n-----\n");
+        fprintf_s(stdout, STR("PARSE:\n-----\n"));
     }
     parse_list(ctx, (buffer_t) {.data = buf, .size = len});
     if (args.print_parse) {
@@ -52,11 +53,11 @@ native_int_t main(native_int_t argc, const char *argv[]) {
             const node_t *it = &out->data[i];
             state = print(stdout, state, it);
         }
-        fprintf(stdout, "\n\n");
+        fprintf_s(stdout, STR("\n\n"));
     }
 
     if (args.print_flatten) {
-        fprintf(stdout, "FLATTEN:\n-------\n");
+        fprintf_s(stdout, STR("FLATTEN:\n-------\n"));
     }
     do_flatten(ctx);
     if (args.print_flatten) {
@@ -64,39 +65,41 @@ native_int_t main(native_int_t argc, const char *argv[]) {
         vec_loop(ctx->flatten.out, i, 1) {
             const node_t *it = node_get(ctx, (node_id) {i});
             if (it->kind == NODE_LIST_BEGIN) {
-                fprintf(stdout, ";; var_%zu\n", i);
+                fprintf_s(stdout, STR(";; var_"));
+                fprintf_zu(stdout, i);
+                fprintf_s(stdout, STR("\n"));
             }
             state = print(stdout, state, it);
             if (it->kind == NODE_LIST_END) {
-                fprintf(stdout, "\n");
+                fprintf_s(stdout, STR("\n"));
                 state = (print_state_t) {0};
             }
         }
-        fprintf(stdout, "\n");
+        fprintf_s(stdout, STR("\n"));
     }
 
     if (args.print_eval) {
-        fprintf(stdout, "EVAL:\n----\n");
+        fprintf_s(stdout, STR("EVAL:\n----\n"));
     }
     do_eval(ctx);
     if (args.print_eval) {
-        fprintf(stdout, "\n");
+        fprintf_s(stdout, STR("\n"));
     }
 
     if (args.run) {
         if (args.print_run) {
-            fprintf(stdout, "RUN:\n---\n");
+            fprintf_s(stdout, STR("RUN:\n---\n"));
         }
         const sym_t *entry = sym_lookup(ctx, STR("main"));
         assert(type_lookup(ctx, entry->type)->kind == TYPE_FUNCTION && "main is a function");
         func_call(ctx, entry->value, NULL);
     } else {
         if (args.print_compile) {
-            fprintf(stdout, "COMPILE:\n-------\n");
+            fprintf_s(stdout, STR("COMPILE:\n-------\n"));
         }
         do_compile(ctx);
     }
 
-    fprintf(stdout, "\n");
+    fprintf_s(stdout, STR("\n"));
     return EXIT_SUCCESS;
 }

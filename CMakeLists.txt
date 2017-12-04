@@ -36,6 +36,7 @@ set(SOURCE_FILES
         src/lib/vector.c
         src/lib/buffer.c
         src/lib/string.c
+        src/lib/stdio.c
 
         src/ctx.c
         src/main.c

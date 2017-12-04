@@ -83,9 +83,9 @@ extern long ftell(FILE *stream);
 
 extern size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
-extern int fclose(FILE *stream);
+extern size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
-extern int fprintf(FILE *stream, const char *format, ...);
+extern int fclose(FILE *stream);
 
 extern FILE *stdout;
 
@@ -122,7 +122,7 @@ extern size_t strlen(const char *s);
 #include <assert.h>
 
 typedef int native_int_t;
-#define int
+#define int void
 
 typedef long native_long_t;
-#define long
+#define long void

@@ -9,6 +9,21 @@ cmake -H. -Bcmake-build-debug && cmake --build cmake-build-debug -- -j$(nproc)
 ./cmake-build-debug/silis ./tests/hello.sil
 ```
 
+## benchmark
+
+```
+nix-build -A silis-static && time ./result/bin/silis tests/hello.sil | wc -l
+nix-build -A silis-musl-static && time ./result/bin/silis tests/hello.sil | wc -l
+```
+
+## profile
+
+```
+valgrind --tool=callgrind ./cmake-build-debug/silis ./tests/hello.sil >/dev/null
+```
+
+`kcachegrind` the generated `callgrind.out.${PID}` file
+
 ## intrinsics
 
 * `#cond (predicate: expr, true: expr, false: expr)`
