@@ -1,6 +1,7 @@
 #pragma once
 
 #include "string.h"
+#include "buffer.h"
 
 void fprintf_s(FILE *stream, string_view_t s);
 

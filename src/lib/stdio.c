@@ -1,6 +1,5 @@
 #include "../system.h"
-#include "string.h"
-#include "buffer.h"
+#include "stdio.h"
 
 void fprintf_s(FILE *stream, string_view_t s) {
     fwrite(s.begin, sizeof(char), str_size(s), stream);
@@ -31,7 +30,7 @@ static const char itoa_lookup[] =
                 "6061626364656667686970717273747576777879"
                 "8081828384858687888990919293949596979899";
 
-string_view_t itoa(itoa_T val) {
+static string_view_t itoa(itoa_T val) {
     char *end = &itoa_buf[ARRAY_LEN(itoa_buf) - 1];
     char *p = end;
     while (val >= 100) {
