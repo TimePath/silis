@@ -24,9 +24,8 @@ m = {
     };
     libc = {
         default = pkg: pkg.overrideAttrs (oldAttrs: {
-            buildInputs = (oldAttrs.buildInputs or []) ++ [
-                pkgs.glibc.static
-            ];
+            buildInputs = (oldAttrs.buildInputs or [])
+                ++ lib.optionals (pkg.stdenv.isStatic or false) [ pkgs.glibc.static ];
         });
         musl = pkg: pkg.overrideAttrs (oldAttrs: {
             cmakeFlags = [
@@ -41,12 +40,12 @@ m = {
     };
     link = {
         default = identity;
-        static = pkg: pkg.override {
+        static = pkg: let
             stdenv = makeStaticBinaries pkg.stdenv;
-        };
+        in (pkg.override { inherit stdenv; }) // { inherit stdenv; };
     };
 };
-build' = pkg: cc: libc: link: (link (libc (cc pkg)));
+build' = pkg: cc: libc: link: (cc (libc (link pkg)));
 build = cc: libc: link: (build' silis cc libc link);
 flavor = it: if it == "default" then "" else "-${it}";
 all = lib.listToAttrs (lib.collect (it: it?name) (
