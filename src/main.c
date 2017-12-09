@@ -9,7 +9,7 @@
 #include "intrinsics/func.h"
 #include "lib/stdio.h"
 
-native_int_t main(native_int_t argc, const char *argv[]) {
+native_int_t main(native_int_t argc, const native_char_t *argv[]) {
     (void) argc;
     struct {
         bool run : 1;
@@ -33,7 +33,7 @@ native_int_t main(native_int_t argc, const char *argv[]) {
     if (ret < 0) return 1;
     const size_t len = (size_t) ret;
     fseek(file, 0, SEEK_SET);
-    char buf[len + 1];
+    native_char_t buf[len + 1];
     fread(buf, len, 1, file);
     buf[len] = 0;
     fclose(file);
@@ -45,7 +45,7 @@ native_int_t main(native_int_t argc, const char *argv[]) {
     if (args.print_parse) {
         fprintf_s(stdout, STR("PARSE:\n-----\n"));
     }
-    parse_list(ctx, (buffer_t) {.data = buf, .size = len});
+    parse_list(ctx, (buffer_t) {.data = (uint8_t *) buf, .size = len});
     if (args.print_parse) {
         print_state_t state = {0};
         const vec_t(node_t) *out = &ctx->parse.out;

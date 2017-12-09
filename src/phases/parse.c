@@ -52,14 +52,14 @@ char_rule_e parse_chars[256] = {
 #undef CASE
 };
 
-static bool parse_is_space(char c) {
+static bool parse_is_space(native_char_t c) {
     return parse_chars[(uint8_t) c] == CHAR_WS;
 }
 
 static size_t parse_atom(ctx_t *ctx, buffer_t prog) {
-    const char *begin = prog.data, *end = begin;
+    const native_char_t *begin = (const native_char_t *) prog.data, *end = begin;
     bool number = true;
-    for (char c; (c = *end); ++end) {
+    for (native_char_t c; (c = *end); ++end) {
         const char_rule_e r = parse_chars[(uint8_t) c];
         if (r <= CHAR_WS) {
             break;
@@ -68,7 +68,7 @@ static size_t parse_atom(ctx_t *ctx, buffer_t prog) {
             number = false;
         }
     }
-    const string_view_t name = (string_view_t) {.begin = begin, .end = end};
+    const string_view_t name = (string_view_t) {.begin = (const uint8_t *) begin, .end = (const uint8_t *) end};
     if (number) {
         ast_push(ctx, (node_t) {
                 .kind = NODE_INTEGRAL,
@@ -84,9 +84,9 @@ static size_t parse_atom(ctx_t *ctx, buffer_t prog) {
 }
 
 static size_t parse_string(ctx_t *ctx, buffer_t prog) {
-    char *out = prog.data;
-    const char *begin = prog.data, *end = begin;
-    for (char c; (c = *end); ++end) {
+    native_char_t *out = (native_char_t *) prog.data;
+    const native_char_t *begin = (const native_char_t *) prog.data, *end = begin;
+    for (native_char_t c; (c = *end); ++end) {
         switch (c) {
             default:
                 *out++ = c;
@@ -111,25 +111,25 @@ static size_t parse_string(ctx_t *ctx, buffer_t prog) {
         }
     }
     done:;
-    const string_view_t value = (string_view_t) {.begin = begin, .end = out};
+    const string_view_t value = (string_view_t) {.begin = (const uint8_t *) begin, .end = (const uint8_t *) out};
     ast_push(ctx, (node_t) {
             .kind = NODE_STRING,
             .u.string.value = value,
     });
-    return str_size((string_view_t) {.begin = begin, .end = end}) + 1;
+    return str_size((string_view_t) {.begin = (const uint8_t *) begin, .end = (const uint8_t *) end}) + 1;
 }
 
 size_t parse_list(ctx_t *ctx, buffer_t prog) {
     const size_t tok = ast_parse_push(ctx);
-    char *begin = prog.data, *end = begin;
+    native_char_t *begin = (native_char_t *) prog.data, *end = begin;
     size_t ret;
-    for (char c; (c = *end); ++end) {
+    for (native_char_t c; (c = *end); ++end) {
         if (parse_is_space(c)) {
             continue;
         }
-        char *next = end + 1;
+        native_char_t *next = end + 1;
         const size_t count = (size_t) (next - begin);
-        buffer_t rest = (buffer_t) {.size = prog.size - count, .data = next};
+        buffer_t rest = (buffer_t) {.size = prog.size - count, .data = (uint8_t *) next};
         switch (c) {
             case ';':
                 while (*++end != '\n');

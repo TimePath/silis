@@ -121,6 +121,9 @@ extern size_t strlen(const char *s);
 
 #include <assert.h>
 
+typedef char native_char_t;
+#define char void
+
 typedef int native_int_t;
 #define int void
 
