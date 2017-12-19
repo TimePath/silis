@@ -1,1 +1,3 @@
-(import ./release.nix).silis
+(import ./release.nix).silis.overrideAttrs (oldAttrs: {
+    hardeningDisable = [ "all" ];
+})
