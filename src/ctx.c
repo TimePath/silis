@@ -153,7 +153,8 @@ const type_t *type_lookup(const ctx_t *ctx, type_id id) {
 value_t value_from(const ctx_t *ctx, const node_t *n) {
     switch (n->kind) {
         case NODE_ATOM: {
-            const sym_t *symbol = sym_lookup(ctx, n->u.atom.value);
+            const string_view_t ident = n->u.atom.value;
+            const sym_t *symbol = sym_lookup(ctx, ident);
             assert(symbol && "symbol is defined");
             return symbol->value;
         }
@@ -185,7 +186,7 @@ static uint8_t sym_trie_chars[256];
 STATIC_INIT(sym_trie_chars) {
     uint8_t n = 0;
     for (size_t i = 0; i < 256; ++i) {
-        sym_trie_chars[i] = parse_chars[i] ? ++n : (uint8_t) 0;
+        sym_trie_chars[i] = parse_char(i) ? ++n : (uint8_t) 0;
     }
 }
 
@@ -203,8 +204,11 @@ enum {
 
 static sym_trie_node_t *sym_trie_at(sym_trie_t *self, string_view_t ident, uint8_t flags) {
     sym_trie_node_t *n = &self->nodes.data[0];
-    str_loop(ident, it, 0) {
-        uint8_t i = sym_trie_chars[(uint8_t) *it];
+    const ascii_unit *begin = str_begin(ident), *end = str_end(ident), *it = begin;
+    for (; it != end; it = ascii_next(it)) {
+        const ascii_codepoint c = ascii_get(it);
+        assert(c < ARRAY_LEN(sym_trie_chars));
+        uint8_t i = sym_trie_chars[c];
         assert(i && "char is defined");
         i -= 1;
         const uint16_t idx = n->children[i];

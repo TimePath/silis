@@ -2,11 +2,11 @@
 #include "stdio.h"
 
 void fprintf_s(FILE *stream, string_view_t s) {
-    fwrite(s.begin, sizeof(uint8_t), str_size(s), stream);
+    fwrite(str_begin(s), sizeof(uint8_t), str_byte_size(s), stream);
 }
 
 void fprintf_buf(FILE *stream, buffer_t buf) {
-    fprintf_s(stream, (string_view_t) {.begin = buf.data, .end = buf.data + buf.size});
+    fprintf_s(stream, str_from(buf.data, buf.data + buf.size));
 }
 
 typedef size_t itoa_T;
@@ -43,7 +43,7 @@ static string_view_t itoa(itoa_T val) {
     *--p = itoa_lookup[index + 1];
     *--p = itoa_lookup[index];
     native_char_t *begin = &p[val < 10];
-    return (string_view_t) {.begin = (const uint8_t *) begin, .end = (const uint8_t *) end};
+    return str_from(begin, end);
 }
 
 void fprintf_zu(FILE *stream, size_t zu) {

@@ -45,7 +45,7 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
     if (args.print_parse) {
         fprintf_s(stdout, STR("PARSE:\n-----\n"));
     }
-    parse_list(ctx, (buffer_t) {.data = (uint8_t *) buf, .size = len});
+    parse_list(ctx, str_from(buf, buf + len));
     if (args.print_parse) {
         print_state_t state = {0};
         const vec_t(node_t) *out = &ctx->parse.out;

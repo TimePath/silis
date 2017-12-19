@@ -139,7 +139,7 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_
     if (T->kind == TYPE_FUNCTION) {
         print_function_ret(ctx, id);
         fprintf_s(ctx->out, STR("(*"));
-        if (str_size(ident)) {
+        if (str_byte_size(ident)) {
             fprintf_s(ctx->out, ident);
         }
         fprintf_s(ctx->out, STR(")"));
@@ -147,7 +147,7 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_
         return;
     }
     fprintf_s(ctx->out, type_name(ctx, id));
-    if (str_size(ident)) {
+    if (str_byte_size(ident)) {
         fprintf_s(ctx->out, STR(" "));
         fprintf_s(ctx->out, ident);
     }

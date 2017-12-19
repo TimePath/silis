@@ -115,13 +115,12 @@ extern int memcmp(const void *s1, const void *s2, size_t n);
 
 extern void *memcpy(void *dest, const void *src, size_t n);
 
-extern size_t strlen(const char *s);
-
 #endif
 
 #include <assert.h>
 
 typedef char native_char_t;
+typedef unsigned char native_uchar_t;
 #define char void
 
 typedef int native_int_t;

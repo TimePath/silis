@@ -21,6 +21,7 @@ try_flag(CMAKE_C_FLAGS "-Wextra")
 try_flag(CMAKE_C_FLAGS "-Weverything")
 
 # keep
+try_flag(CMAKE_C_FLAGS "-Wno-type-limits")
 try_flag(CMAKE_C_FLAGS "-Wno-unused-command-line-argument")
 try_flag(CMAKE_C_FLAGS "-Wno-keyword-macro")
 try_flag(CMAKE_C_FLAGS "-Wno-reserved-id-macro")
@@ -36,6 +37,7 @@ set(SOURCE_FILES
         src/lib/vector.c
         src/lib/buffer.c
         src/lib/string.c
+        src/lib/string/ascii.c
         src/lib/stdio.c
 
         src/ctx.c
