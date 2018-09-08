@@ -1,4 +1,5 @@
-#include "system.h"
+#include <system.h>
+
 #include "ctx.h"
 
 #include "phases/parse.h"
@@ -39,8 +40,7 @@ void ctx_init(ctx_t *self) {
             .value.u.type.value = self->state.types.t_int,
             .flags.intrinsic = true,
     });
-
-    vec_loop(intrinsics, i, 0) {
+    Slice_loop(Vector_toSlice(ctx_register_t, intrinsics), i) {
         intrinsics.data[i](self);
     }
     self->state.types.end_intrinsics = self->state.types.all.size - 1;
@@ -69,7 +69,7 @@ const node_t *node_deref(const ctx_t *ctx, const node_t *it) {
 // AST
 
 size_t ast_parse_push(ctx_t *ctx) {
-    vec_t(node_t) *out = &ctx->parse.out;
+    Vector(node_t) *out = &ctx->parse.out;
     const size_t thisIdx = out->size;
     const size_t parentIdx = ctx->parse.list_parent_idx;
     ctx->parse.list_parent_idx = thisIdx;
@@ -81,12 +81,12 @@ size_t ast_parse_push(ctx_t *ctx) {
     node_t it = (node_t) {
             .kind = NODE_LIST_BEGIN,
     };
-    vec_push(out, it);
+    Vector_push(out, it);
     return parentIdx;
 }
 
 void ast_push(ctx_t *ctx, node_t it) {
-    vec_t(node_t) *out = &ctx->parse.out;
+    Vector(node_t) *out = &ctx->parse.out;
     const size_t thisIdx = out->size;
     const size_t parentIdx = ctx->parse.list_parent_idx;
     node_t *parent = &out->data[parentIdx];
@@ -95,22 +95,22 @@ void ast_push(ctx_t *ctx, node_t it) {
     }
     parent->u.list.end = thisIdx;
     parent->u.list.size += 1;
-    vec_push(out, it);
+    Vector_push(out, it);
 }
 
 void ast_parse_pop(ctx_t *ctx, size_t tok) {
-    vec_t(node_t) *out = &ctx->parse.out;
+    Vector(node_t) *out = &ctx->parse.out;
     ctx->parse.list_parent_idx = tok;
     node_t it = (node_t) {
             .kind = NODE_LIST_END,
     };
-    vec_push(out, it);
+    Vector_push(out, it);
 }
 
 // Types
 
 type_id type_new(ctx_t *ctx, type_t it) {
-    vec_push(&ctx->state.types.all, it);
+    Vector_push(&ctx->state.types.all, it);
     return (type_id) {ctx->state.types.all.size - 1};
 }
 
@@ -153,7 +153,7 @@ const type_t *type_lookup(const ctx_t *ctx, type_id id) {
 value_t value_from(const ctx_t *ctx, const node_t *n) {
     switch (n->kind) {
         case NODE_ATOM: {
-            const string_view_t ident = n->u.atom.value;
+            const String ident = n->u.atom.value;
             const sym_t *symbol = sym_lookup(ctx, ident);
             assert(symbol && "symbol is defined");
             return symbol->value;
@@ -193,7 +193,7 @@ STATIC_INIT(sym_trie_chars) {
 static sym_trie_t sym_trie_new(void) {
     sym_trie_t self = (sym_trie_t) {0};
     const sym_trie_node_t root = (sym_trie_node_t) {0};
-    vec_push(&self.nodes, root);
+    Vector_push(&self.nodes, root);
     return self;
 }
 
@@ -202,9 +202,9 @@ enum {
     TRIE_CREATE_INTERMEDIATES = 1,
 };
 
-static sym_trie_node_t *sym_trie_at(sym_trie_t *self, string_view_t ident, uint8_t flags) {
+static sym_trie_node_t *sym_trie_at(sym_trie_t *self, String ident, uint8_t flags) {
     sym_trie_node_t *n = &self->nodes.data[0];
-    const ascii_unit *begin = str_begin(ident), *end = str_end(ident), *it = begin;
+    const ascii_unit *begin = String_begin(ident), *end = String_end(ident), *it = begin;
     for (; it != end; it = ascii_next(it)) {
         const ascii_codepoint c = ascii_get(it);
         assert(c < ARRAY_LEN(sym_trie_chars));
@@ -226,7 +226,7 @@ static sym_trie_node_t *sym_trie_at(sym_trie_t *self, string_view_t ident, uint8
         const uint16_t end = (uint16_t) end_;
         const sym_trie_node_t empty = (sym_trie_node_t) {0};
         n->children[i] = end;
-        vec_push(&self->nodes, empty);
+        Vector_push(&self->nodes, empty);
         n = &self->nodes.data[end];
     }
     if (!(flags & TRIE_CREATE_INTERMEDIATES) && !n->value.type.value) {
@@ -239,16 +239,16 @@ void sym_push(ctx_t *ctx, size_t parent) {
     sym_trie_t newscope = sym_trie_new();
     newscope.parent = parent;
     symbols_t *symbols = &ctx->state.symbols;
-    vec_push(&symbols->scopes, newscope);
+    Vector_push(&symbols->scopes, newscope);
 }
 
 void sym_pop(ctx_t *ctx) {
     symbols_t *symbols = &ctx->state.symbols;
-    vec_free(&symbols->scopes.data[symbols->scopes.size - 1].nodes);
-    vec_pop(&symbols->scopes);
+    Vector_delete(&symbols->scopes.data[symbols->scopes.size - 1].nodes);
+    Vector_pop(&symbols->scopes);
 }
 
-const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident) {
+const sym_t *sym_lookup(const ctx_t *ctx, String ident) {
     const symbols_t *symbols = &ctx->state.symbols;
     size_t i = symbols->scopes.size - 1;
     for (;;) {
@@ -265,7 +265,7 @@ const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident) {
     }
 }
 
-void sym_def(ctx_t *ctx, string_view_t ident, sym_t sym) {
+void sym_def(ctx_t *ctx, String ident, sym_t sym) {
     symbols_t *symbols = &ctx->state.symbols;
     sym_trie_t *self = &symbols->scopes.data[symbols->scopes.size - 1];
     sym_trie_node_t *ret = sym_trie_at(self, ident, TRIE_CREATE_INTERMEDIATES);
@@ -274,14 +274,14 @@ void sym_def(ctx_t *ctx, string_view_t ident, sym_t sym) {
             .key = ident,
             .value = (uint16_t) (ret - self->nodes.data),
     };
-    vec_push(&self->list, e);
+    Vector_push(&self->list, e);
 }
 
 // Intrinsics
 
-vec_t(ctx_register_t) intrinsics = {0};
+Vector(ctx_register_t) intrinsics = {0};
 
-void ctx_init_intrinsic(ctx_t *self, string_view_t name, type_id T, intrinsic_t func) {
+void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func) {
     sym_def(self, name, (sym_t) {
             .type = T,
             .value.type = T,

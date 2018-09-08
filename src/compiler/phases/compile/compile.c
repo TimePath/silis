@@ -1,17 +1,19 @@
-#include "../../system.h"
+#include <system.h>
+
 #include "compile.h"
 
+#include <lib/stdio.h>
+
 #include "../../intrinsics/func.h"
-#include "../../lib/stdio.h"
 
 typedef struct {
     const ctx_t *ctx;
     FILE *out;
 } compile_ctx_t;
 
-static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, const string_view_t idents[]);
+static void print_function(const compile_ctx_t *ctx, type_id id, String ident, const String idents[]);
 
-static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_t ident);
+static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident);
 
 #ifndef NDEBUG
 #define DEBUG_COMPILE
@@ -32,7 +34,7 @@ typedef struct {
             node_id val;
         } temporary;
         struct {
-            string_view_t val;
+            String val;
         } named;
     } u;
 } return_t;
@@ -44,12 +46,18 @@ typedef struct {
 static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                        const node_t *it);
 
-void do_compile(const ctx_t *g_ctx) {
 #ifdef DEBUG_COMPILE
+#define OUTPUT_DEBUG 1
+#else
+#define OUTPUT_DEBUG 0
+#endif
+
+void do_compile(const ctx_t *g_ctx) {
+#if OUTPUT_DEBUG
     FILE *out = stdout;
 #else
-    buffer_t buf;
-    FILE *out = buf_file(&buf);
+    Buffer buf;
+    FILE *out = Buffer_toFile(&buf);
 #endif
     const compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
     const compile_ctx_t *ctx = &ctx_;
@@ -59,14 +67,14 @@ void do_compile(const ctx_t *g_ctx) {
     assert(type_lookup(ctx->ctx, entry->value.type)->kind == TYPE_FUNCTION);
 
     const sym_trie_t *globals = &ctx->ctx->state.symbols.scopes.data[0];
-    vec_loop(globals->list, i, 0) {
+    Slice_loop(Vector_toSlice(sym_trie_entry_t, globals->list), i) {
         const sym_trie_entry_t *e = &globals->list.data[i];
         const sym_trie_node_t *nod = &globals->nodes.data[e->value];
         const sym_t *sym = &nod->value;
         if (sym->flags.intrinsic) {
             continue;
         }
-        const string_view_t ident = e->key;
+        const String ident = e->key;
         const type_id type = sym->type;
         if (sym->flags.native) {
             fprintf_s(ctx->out, STR("extern "));
@@ -82,21 +90,21 @@ void do_compile(const ctx_t *g_ctx) {
         }
         fprintf_s(ctx->out, STR(";\n"));
     }
-    vec_loop(globals->list, i, 0) {
+    Slice_loop(Vector_toSlice(sym_trie_entry_t, globals->list), i) {
         const sym_trie_entry_t *e = &globals->list.data[i];
         const sym_trie_node_t *nod = &globals->nodes.data[e->value];
         const sym_t *sym = &nod->value;
         if (sym->flags.intrinsic || sym->flags.native) {
             continue;
         }
-        const string_view_t ident = e->key;
+        const String ident = e->key;
         const type_id type = sym->type;
         if (type_lookup(ctx->ctx, type)->kind == TYPE_FUNCTION) {
             fprintf_s(ctx->out, STR("\n"));
             const node_id args = nod->value.value.u.func.arglist;
             const node_t *argv = node_get(ctx->ctx, args);
             const size_t argc = argv->u.list.size;
-            string_view_t argnames[argc];
+            String argnames[argc];
             func_args_names(ctx->ctx, node_list_children(argv), argc, argnames);
             print_function(ctx, type, ident, argnames);
             fprintf_s(ctx->out, STR("\n{\n"));
@@ -107,14 +115,13 @@ void do_compile(const ctx_t *g_ctx) {
             fprintf_s(ctx->out, STR("\n}\n"));
         }
     }
-#ifdef DEBUG_COMPILE
-#else
+#if !OUTPUT_DEBUG
     fclose(out);
     fprintf_buf(stdout, buf);
 #endif
 }
 
-static string_view_t type_name(const compile_ctx_t *ctx, type_id id) {
+static String type_name(const compile_ctx_t *ctx, type_id id) {
 #define CASE(T) if (id.value == ctx->ctx->state.types.T.value)
     CASE(t_unit) return STR("void");
     CASE(t_int) return STR("int");
@@ -126,20 +133,20 @@ static string_view_t type_name(const compile_ctx_t *ctx, type_id id) {
 
 static void print_function_ret(const compile_ctx_t *ctx, type_id id);
 
-static void print_function_args(const compile_ctx_t *ctx, type_id id, const string_view_t idents[]);
+static void print_function_args(const compile_ctx_t *ctx, type_id id, const String idents[]);
 
-static void print_function(const compile_ctx_t *ctx, type_id id, string_view_t ident, const string_view_t idents[]) {
+static void print_function(const compile_ctx_t *ctx, type_id id, String ident, const String idents[]) {
     print_function_ret(ctx, id);
     fprintf_s(ctx->out, ident);
     print_function_args(ctx, id, idents);
 }
 
-static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_t ident) {
+static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident) {
     const type_t *T = type_lookup(ctx->ctx, id);
     if (T->kind == TYPE_FUNCTION) {
         print_function_ret(ctx, id);
         fprintf_s(ctx->out, STR("(*"));
-        if (str_byte_size(ident)) {
+        if (String_sizeBytes(ident)) {
             fprintf_s(ctx->out, ident);
         }
         fprintf_s(ctx->out, STR(")"));
@@ -147,7 +154,7 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, string_view_
         return;
     }
     fprintf_s(ctx->out, type_name(ctx, id));
-    if (str_byte_size(ident)) {
+    if (String_sizeBytes(ident)) {
         fprintf_s(ctx->out, STR(" "));
         fprintf_s(ctx->out, ident);
     }
@@ -160,14 +167,14 @@ static void print_function_ret(const compile_ctx_t *ctx, type_id id) {
     fprintf_s(ctx->out, STR(" "));
 }
 
-static void print_function_args(const compile_ctx_t *ctx, type_id id, const string_view_t idents[]) {
+static void print_function_args(const compile_ctx_t *ctx, type_id id, const String idents[]) {
     fprintf_s(ctx->out, STR("("));
     const type_t *T = type_lookup(ctx->ctx, id);
     const type_t *argp = T;
     size_t i = 0;
     while (true) {
         const type_id arg = argp->u.func.in;
-        const string_view_t s = idents ? idents[i++] : STR("");
+        const String s = idents ? idents[i++] : STR("");
         print_declaration(ctx, arg, s);
         const type_t *next = type_lookup(ctx->ctx, argp->u.func.out);
         if (next->kind != TYPE_FUNCTION) {
@@ -179,7 +186,7 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const stri
     fprintf_s(ctx->out, STR(")"));
 }
 
-#define TAB() fprintf_s(ctx->out, str_indent(state.depth * 4))
+#define TAB() fprintf_s(ctx->out, String_indent(state.depth * 4))
 
 static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
     (void) state;
@@ -350,7 +357,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     if (func->kind != NODE_ATOM) {
         return false;
     }
-    if (str_equals(func->u.atom.value, STR("#do"))) {
+    if (String_equals(func->u.atom.value, STR("#do"))) {
         // todo: extract
         const node_t *bodyNode = children[1];
         assert(bodyNode->kind == NODE_LIST_BEGIN);
@@ -374,7 +381,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
                 fprintf_s(ctx->out, STR("\n"));
             }
         }
-    } else if (str_equals(func->u.atom.value, STR("#if"))) {
+    } else if (String_equals(func->u.atom.value, STR("#if"))) {
         const node_t *predNode = children[1];
         const node_t *bodyNode = children[2];
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, predNode)};
@@ -400,7 +407,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         }
         TAB();
         fprintf_s(ctx->out, STR("}"));
-    } else if (str_equals(func->u.atom.value, STR("#while"))) {
+    } else if (String_equals(func->u.atom.value, STR("#while"))) {
         const node_t *predNode = children[1];
         const node_t *bodyNode = children[2];
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, predNode)};

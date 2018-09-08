@@ -1,10 +1,11 @@
-#include "../system.h"
+#include <system.h>
+
 #include "string.h"
 
-bool str_equals(string_view_t self, string_view_t other) {
-    const size_t selfSize = str_byte_size(self);
-    const size_t otherSize = str_byte_size(other);
-    return selfSize == otherSize && memcmp(str_begin(self), str_begin(other), selfSize) == 0;
+bool String_equals(String self, String other) {
+    const size_t selfSize = String_sizeBytes(self);
+    const size_t otherSize = String_sizeBytes(other);
+    return selfSize == otherSize && memcmp(String_begin(self), String_begin(other), selfSize) == 0;
 }
 
 static native_char_t spaces[8 * 4 + 1];
@@ -15,7 +16,7 @@ STATIC_INIT(spaces) {
     }
 }
 
-string_view_t str_indent(size_t n) {
+String String_indent(size_t n) {
     assert(n < ARRAY_LEN(spaces));
-    return str_from(spaces, spaces + n);
+    return String_fromSlice((Slice(void)) {spaces, spaces + n});
 }

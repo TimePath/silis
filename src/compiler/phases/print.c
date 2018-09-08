@@ -1,6 +1,8 @@
-#include "../system.h"
+#include <system.h>
+
 #include "print.h"
-#include "../lib/stdio.h"
+
+#include <lib/stdio.h>
 
 static void print_indent(FILE *f, print_state_t *state) {
     if (state->needLine) {
@@ -8,7 +10,7 @@ static void print_indent(FILE *f, print_state_t *state) {
         state->needLine = false;
     }
     if (state->needTab) {
-        fprintf_s(f, str_indent(2 * state->depth));
+        fprintf_s(f, String_indent(2 * state->depth));
         state->needTab = false;
     }
 }

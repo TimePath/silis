@@ -2,7 +2,7 @@
 
 #include "vector.h"
 
-instantiate_vec_t(uint8_t);
-typedef vec_t(uint8_t) buffer_t;
+Vector_$(uint8_t);
+typedef Vector(uint8_t) Buffer;
 
-FILE *buf_file(buffer_t *self);
+FILE *Buffer_toFile(Buffer *self);

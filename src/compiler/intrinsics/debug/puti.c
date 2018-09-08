@@ -1,7 +1,8 @@
-#include "../../system.h"
+#include <system.h>
+
+#include <lib/stdio.h>
 
 #include "../_.h"
-#include "../../lib/stdio.h"
 
 INTRINSIC(puti, ((type_id[]) {
         ctx->state.types.t_int,

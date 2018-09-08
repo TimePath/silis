@@ -30,38 +30,41 @@ try_flag(CMAKE_C_FLAGS "-Wno-disabled-macro-expansion")
 try_flag(CMAKE_C_FLAGS "-Wno-missing-braces")
 try_flag(CMAKE_C_FLAGS "-Wno-missing-field-initializers")
 
+include_directories(src)
+
 set(SOURCE_FILES
         src/system.h
 
-        src/lib/macro.h
-        src/lib/vector.c
-        src/lib/buffer.c
-        src/lib/string.c
         src/lib/string/ascii.c
+        src/lib/buffer.c
+        src/lib/macro.h
+        src/lib/slice.h
         src/lib/stdio.c
+        src/lib/string.c
+        src/lib/vector.c
 
-        src/ctx.c
-        src/main.c
+        src/compiler/ctx.c
+        src/compiler/main.c
 
-        src/phases/parse.c src/phases/parse.inc.h
-        src/phases/flatten.c
-        src/phases/print.c
-        src/phases/eval.c
-        src/phases/compile/compile.c
+        src/compiler/phases/parse.c src/compiler/phases/parse.inc.h
+        src/compiler/phases/flatten.c
+        src/compiler/phases/print.c
+        src/compiler/phases/eval.c
+        src/compiler/phases/compile/compile.c
 
-        src/intrinsics/debug/puti.c
-        src/intrinsics/debug/puts.c
+        src/compiler/intrinsics/debug/puti.c
+        src/compiler/intrinsics/debug/puts.c
 
-        src/intrinsics/_.h
-        src/intrinsics/cond.c
-        src/intrinsics/define.c
-        src/intrinsics/do.c
-        src/intrinsics/extern.c
-        src/intrinsics/func.c
+        src/compiler/intrinsics/_.h
+        src/compiler/intrinsics/cond.c
+        src/compiler/intrinsics/define.c
+        src/compiler/intrinsics/do.c
+        src/compiler/intrinsics/extern.c
+        src/compiler/intrinsics/func.c
 
-        src/intrinsics/minus.c
-        src/intrinsics/plus.c
+        src/compiler/intrinsics/minus.c
+        src/compiler/intrinsics/plus.c
 
-        src/intrinsics/types/func.c
+        src/compiler/intrinsics/types/func.c
         )
 add_executable(silis ${SOURCE_FILES})

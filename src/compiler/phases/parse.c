@@ -1,4 +1,5 @@
-#include "../system.h"
+#include <system.h>
+
 #include "parse.h"
 
 /*
@@ -62,8 +63,8 @@ static bool parse_is_space(ascii_codepoint c) {
     return parse_char(c) == CHAR_WS;
 }
 
-static size_t parse_atom(ctx_t *ctx, string_view_t prog) {
-    const ascii_unit *begin = str_begin(prog), *end = str_end(prog), *it = begin;
+static size_t parse_atom(ctx_t *ctx, String prog) {
+    const ascii_unit *begin = String_begin(prog), *end = String_end(prog), *it = begin;
     bool number = true;
     for (; it != end; it = ascii_next(it)) {
         const ascii_codepoint c = ascii_get(it);
@@ -75,11 +76,11 @@ static size_t parse_atom(ctx_t *ctx, string_view_t prog) {
             number = false;
         }
     }
-    const string_view_t atom = str_from(begin, it);
+    const String atom = String_fromSlice((Slice(void)) {begin, it});
     if (number) {
         ast_push(ctx, (node_t) {
                 .kind = NODE_INTEGRAL,
-                .u.integral.value = strtoul(ascii_native(str_begin(atom)), NULL, 10),
+                .u.integral.value = strtoul(ascii_native(String_begin(atom)), NULL, 10),
         });
     } else {
         ast_push(ctx, (node_t) {
@@ -87,11 +88,11 @@ static size_t parse_atom(ctx_t *ctx, string_view_t prog) {
                 .u.atom.value = atom,
         });
     }
-    return ascii_unit_count(str_begin(atom), str_end(atom));
+    return ascii_unit_count(String_begin(atom), String_end(atom));
 }
 
-static size_t parse_string(ctx_t *ctx, string_view_t prog) {
-    const ascii_unit *begin = str_begin(prog), *end = str_end(prog), *it = begin;
+static size_t parse_string(ctx_t *ctx, String prog) {
+    const ascii_unit *begin = String_begin(prog), *end = String_end(prog), *it = begin;
     ascii_unit *out = (ascii_unit *) begin; // XXX: mutation, but only decreases size
     for (; it != end; it = ascii_next(it)) {
         ascii_codepoint c = ascii_get(it);
@@ -119,7 +120,7 @@ static size_t parse_string(ctx_t *ctx, string_view_t prog) {
         }
     }
     done:;
-    const string_view_t value = str_from(begin, out);
+    const String value = String_fromSlice((Slice(void)) {begin, out});
     ast_push(ctx, (node_t) {
             .kind = NODE_STRING,
             .u.string.value = value,
@@ -127,9 +128,9 @@ static size_t parse_string(ctx_t *ctx, string_view_t prog) {
     return 1 + ascii_unit_count(begin, it) + 1;
 }
 
-size_t parse_list(ctx_t *ctx, string_view_t prog) {
+size_t parse_list(ctx_t *ctx, String prog) {
     const size_t tok = ast_parse_push(ctx);
-    const ascii_unit *begin = str_begin(prog), *end = str_end(prog), *it = begin;
+    const ascii_unit *begin = String_begin(prog), *end = String_end(prog), *it = begin;
     size_t ret;
     for (const ascii_unit *next; next = ascii_next(it), it != end; it = next) {
         ascii_codepoint c = ascii_get(it);
@@ -148,17 +149,17 @@ size_t parse_list(ctx_t *ctx, string_view_t prog) {
                 break;
             case '(':
             case '[': // sugar
-                next = ascii_unit_skip(it, parse_list(ctx, str_from(next, end)));
+                next = ascii_unit_skip(it, parse_list(ctx, String_fromSlice((Slice(void)) {next, end})));
                 break;
             case ')':
             case ']': // sugar
                 ret = 1 + ascii_unit_count(begin, it) + 1;
                 goto done;
             case '"':
-                next = ascii_unit_skip(it, parse_string(ctx, str_from(next, end)));
+                next = ascii_unit_skip(it, parse_string(ctx, String_fromSlice((Slice(void)) {next, end})));
                 break;
             default:
-                next = ascii_unit_skip(it, parse_atom(ctx, str_from(it, end)));
+                next = ascii_unit_skip(it, parse_atom(ctx, String_fromSlice((Slice(void)) {it, end})));
                 break;
         }
     }

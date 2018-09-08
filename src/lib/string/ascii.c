@@ -1,4 +1,5 @@
-#include "../../system.h"
+#include <system.h>
+
 #include "ascii.h"
 
 struct ascii_unit {

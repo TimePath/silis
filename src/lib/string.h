@@ -2,43 +2,42 @@
 
 #include "string/ascii.h"
 #include "macro.h"
+#include "slice.h"
+
+Slice_$(void);
+#ifndef NDEBUG
+Slice_$(native_char_t);
+#endif
 
 typedef struct {
     union {
-        struct {
-            const void *begin;
-            /// one after the actual last character (the \0 of a null-terminated string)
-            const void *end;
-        };
+        Slice(void) slice;
 #ifndef NDEBUG
-        struct {
-            const native_char_t *begin;
-            const native_char_t *end;
-        } debug;
+        Slice(native_char_t) debug;
 #endif
     };
-} string_view_t;
+} String;
 
-INLINE string_view_t str_from(const void *begin, const void *end) {
-    return (string_view_t) {.begin = begin, .end = end};
-}
-
-INLINE const void *str_begin(string_view_t self) {
-    return self.begin;
-}
-
-INLINE const void *str_end(string_view_t self) {
-    return self.end;
-}
-
-#define STR_(str) str_from((str), (str) + sizeof (str) - 1)
 #define STR(str) STR_(ASCII_(str))
+#define STR_(str) String_fromSlice((Slice(void)) {(str), (str) + sizeof (str) - 1})
 
-INLINE size_t str_byte_size(string_view_t self) {
-    assert(str_end(self) >= str_begin(self));
-    return (size_t) ((uint8_t *) str_end(self) - (uint8_t *) str_begin(self));
+INLINE String String_fromSlice(Slice(void) slice) {
+    return (String) {.slice = slice};
 }
 
-bool str_equals(string_view_t self, string_view_t other);
+INLINE const void *String_begin(String self) {
+    return self.slice.begin;
+}
 
-string_view_t str_indent(size_t n);
+INLINE const void *String_end(String self) {
+    return self.slice.end;
+}
+
+INLINE size_t String_sizeBytes(String self) {
+    assert(String_end(self) >= String_begin(self));
+    return (size_t) ((uint8_t *) String_end(self) - (uint8_t *) String_begin(self));
+}
+
+bool String_equals(String self, String other);
+
+String String_indent(size_t n);

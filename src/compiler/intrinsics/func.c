@@ -1,4 +1,5 @@
-#include "../system.h"
+#include <system.h>
+
 #include "func.h"
 
 #include "_.h"
@@ -52,7 +53,7 @@ static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id
     }
 }
 
-void func_args_names(const ctx_t *ctx, const node_t *args, size_t argc, string_view_t out[argc]) {
+void func_args_names(const ctx_t *ctx, const node_t *args, size_t argc, String out[argc]) {
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(ctx, &args[i]);
         assert(it->kind == NODE_LIST_BEGIN);

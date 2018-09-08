@@ -1,7 +1,8 @@
 #pragma once
 
-#include "lib/string.h"
-#include "lib/buffer.h"
+#include <lib/buffer.h>
+#include <lib/string.h>
+
 #include "phases/parse.inc.h"
 
 typedef struct ctx_s ctx_t;
@@ -58,7 +59,7 @@ typedef struct {
         } ref;
         /// NODE_ATOM
         struct {
-            string_view_t value;
+            String value;
         } atom;
         /// NODE_INTEGRAL
         struct {
@@ -66,7 +67,7 @@ typedef struct {
         } integral;
         /// NODE_STRING
         struct {
-            string_view_t value;
+            String value;
         } string;
     } u;
 } node_t;
@@ -166,7 +167,7 @@ struct value_s {
         } integral;
 
         struct {
-            string_view_t value;
+            String value;
         } string;
 
         struct {
@@ -212,57 +213,57 @@ typedef struct {
     uint16_t children[PARSE_NP2]; // consider alphabet reduction
 } sym_trie_node_t;
 
-instantiate_vec_t(sym_trie_node_t);
+Vector_$(sym_trie_node_t);
 
 typedef struct {
-    string_view_t key;
+    String key;
     uint16_t value;
     uint8_t padding[6];
 } sym_trie_entry_t;
 
-instantiate_vec_t(sym_trie_entry_t);
+Vector_$(sym_trie_entry_t);
 
 typedef struct {
     size_t parent;
-    vec_t(sym_trie_node_t) nodes;
-    vec_t(sym_trie_entry_t) list;
+    Vector(sym_trie_node_t) nodes;
+    Vector(sym_trie_entry_t) list;
 } sym_trie_t;
 
-instantiate_vec_t(sym_trie_t);
+Vector_$(sym_trie_t);
 
 typedef struct symbols_s {
-    vec_t(sym_trie_t) scopes;
+    Vector(sym_trie_t) scopes;
 } symbols_t;
 
 void sym_push(ctx_t *ctx, size_t parent);
 
 void sym_pop(ctx_t *ctx);
 
-const sym_t *sym_lookup(const ctx_t *ctx, string_view_t ident);
+const sym_t *sym_lookup(const ctx_t *ctx, String ident);
 
-void sym_def(ctx_t *ctx, string_view_t ident, sym_t sym);
+void sym_def(ctx_t *ctx, String ident, sym_t sym);
 
 // Intrinsics
 
 typedef void (*ctx_register_t)(ctx_t *ctx);
 
-instantiate_vec_t(ctx_register_t);
-extern vec_t(ctx_register_t) intrinsics;
+Vector_$(ctx_register_t);
+extern Vector(ctx_register_t) intrinsics;
 
-void ctx_init_intrinsic(ctx_t *self, string_view_t name, type_id T, intrinsic_t func);
+void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func);
 
 // State
 
-instantiate_vec_t(type_t);
-instantiate_vec_t(value_t);
-instantiate_vec_t(sym_t);
-instantiate_vec_t(size_t);
-instantiate_vec_t(node_t);
+Vector_$(type_t);
+Vector_$(value_t);
+Vector_$(sym_t);
+Vector_$(size_t);
+Vector_$(node_t);
 
 struct ctx_s {
     struct {
         struct {
-            vec_t(type_t) all;
+            Vector(type_t) all;
             /// can be produced with `()`
             type_id t_unit;
             /// typedefs have this type
@@ -284,14 +285,14 @@ struct ctx_s {
     } state;
     struct {
         size_t list_parent_idx;
-        vec_t(node_t) out;
+        Vector(node_t) out;
     } parse;
     struct {
         /// ordered list of expressions to be evaluated at runtime
         /// starting from 1
-        vec_t(node_t) out;
+        Vector(node_t) out;
     } flatten;
     struct {
-        vec_t(value_t) stack;
+        Vector(value_t) stack;
     } eval;
 };

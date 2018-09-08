@@ -1,4 +1,6 @@
-#include "system.h"
+#include <system.h>
+
+#include <lib/stdio.h>
 
 #include "ctx.h"
 #include "phases/parse.h"
@@ -7,7 +9,6 @@
 #include "phases/eval.h"
 #include "phases/compile/compile.h"
 #include "intrinsics/func.h"
-#include "lib/stdio.h"
 
 native_int_t main(native_int_t argc, const native_char_t *argv[]) {
     (void) argc;
@@ -37,6 +38,7 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
     fread(buf, len, 1, file);
     buf[len] = 0;
     fclose(file);
+    String fileStr = String_fromSlice((Slice(void)) {buf, buf + len});
 
     ctx_t ctx_ = (ctx_t) {0};
     ctx_t *ctx = &ctx_;
@@ -45,10 +47,10 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
     if (args.print_parse) {
         fprintf_s(stdout, STR("PARSE:\n-----\n"));
     }
-    parse_list(ctx, str_from(buf, buf + len));
+    parse_list(ctx, fileStr);
     if (args.print_parse) {
         print_state_t state = {0};
-        const vec_t(node_t) *out = &ctx->parse.out;
+        const Vector(node_t) *out = &ctx->parse.out;
         for (size_t i = 0; i < out->size; ++i) {
             const node_t *it = &out->data[i];
             state = print(stdout, state, it);
@@ -62,7 +64,8 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
     do_flatten(ctx);
     if (args.print_flatten) {
         print_state_t state = {0};
-        vec_loop(ctx->flatten.out, i, 1) {
+        Slice_loop(Vector_toSlice(node_t, ctx->flatten.out), i) {
+            if (i < 1) continue;
             const node_t *it = node_get(ctx, (node_id) {i});
             if (it->kind == NODE_LIST_BEGIN) {
                 fprintf_s(stdout, STR(";; var_"));

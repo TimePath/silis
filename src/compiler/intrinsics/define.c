@@ -1,10 +1,9 @@
-#include "../system.h"
+#include <system.h>
 
 #include "_.h"
-
 #include "../phases/eval.h"
 
-INTRINSIC(extern, ((type_id[]) {
+INTRINSIC(define, ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr,
         ctx->state.types.t_unit,
 })) {
@@ -16,10 +15,9 @@ INTRINSIC(extern, ((type_id[]) {
     const node_t *val = node_get(ctx, arg_val->u.expr.value);
 
     const value_t v = eval_node(ctx, val);
-    assert(v.type.value == ctx->state.types.t_type.value);
     sym_def(ctx, name->u.atom.value, (sym_t) {
-            .type = v.u.type.value,
-            .flags.native = true,
+            .type = v.type,
+            .value = v,
     });
     return (value_t) {.type = ctx->state.types.t_unit};
 }

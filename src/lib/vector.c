@@ -1,26 +1,31 @@
-#include "../system.h"
+#include <system.h>
+
 #include "vector.h"
 
-instantiate_vec_t(void);
+Vector_$(void);
 
-void (vec_push)(void *self, const void *data, size_t size) {
-    vec_t(void) *vec = (vec_t(void) *) self;
+void (Vector_push)(void *_self, const void *data, size_t size)
+{
+    Vector(void) *self = (Vector(void) *) _self;
     // todo: smarter growth strategy
-    vec->data = realloc(vec->data, (vec->size + 1) * size);
-    memcpy((uint8_t *) vec->data + (vec->size++ * size), data, size);
+    self->data = realloc(self->data, (self->size + 1) * size);
+    memcpy((uint8_t *) self->data + (self->size++ * size), data, size);
 }
 
-void vec_pop(void *self) {
-    vec_t(void) *vec = (vec_t(void) *) self;
-    --vec->size;
-    if (vec->size == 0) {
-        free(vec->data);
-        vec->data = NULL;
+void Vector_pop(void *_self)
+{
+    Vector(void) *self = (Vector(void) *) _self;
+    --self->size;
+    if (self->size == 0) {
+        free(self->data);
+        self->data = NULL;
     }
 }
 
-void vec_free(void *self) {
-    vec_t(void) *vec = (vec_t(void) *) self;
-    vec->size = 1;
-    vec_pop(vec);
+void Vector_delete(void *_self)
+{
+    Vector(void) *self = (Vector(void) *) _self;
+    self->size = 0;
+    free(self->data);
+    self->data = NULL;
 }

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "string.h"
 #include "buffer.h"
-
-void fprintf_s(FILE *stream, string_view_t s);
-
-void fprintf_buf(FILE *stream, buffer_t buf);
+#include "string.h"
 
 void fprintf_zu(FILE *stream, size_t zu);
+
+void fprintf_buf(FILE *stream, Buffer buf);
+
+void fprintf_s(FILE *stream, String s);

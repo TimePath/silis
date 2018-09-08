@@ -1,9 +1,10 @@
 #pragma once
 
-#include "../ctx.h"
-#include "../lib/string.h"
+#include <lib/string.h>
 
-size_t parse_list(ctx_t *ctx, string_view_t prog);
+#include "../ctx.h"
+
+size_t parse_list(ctx_t *ctx, String prog);
 
 typedef enum {
     CHAR_INVALID,

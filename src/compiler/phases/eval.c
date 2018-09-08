@@ -1,4 +1,5 @@
-#include "../system.h"
+#include <system.h>
+
 #include "eval.h"
 
 #include "../intrinsics/func.h"
@@ -52,11 +53,11 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
                     .type = expr_t,
                     .u.expr.value = node_ref(ctx, node_deref(ctx, arg)),
             };
-            vec_push(&ctx->eval.stack, v);
+            Vector_push(&ctx->eval.stack, v);
         } else {
             value_t v = eval_node(ctx, arg);
             assert(v.type.value == arg_t.value);
-            vec_push(&ctx->eval.stack, v);
+            Vector_push(&ctx->eval.stack, v);
         }
         link = type_lookup(ctx, link->u.func.out);
     }
@@ -65,7 +66,7 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
     const value_t *argv = &ctx->eval.stack.data[ofs];
     value_t ret = func_call(ctx, func, argv);
     for (size_t i = 1; i < n; ++i) {
-        vec_pop(&ctx->eval.stack);
+        Vector_pop(&ctx->eval.stack);
     }
     return ret;
 }

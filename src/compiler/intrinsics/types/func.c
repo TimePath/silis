@@ -1,4 +1,4 @@
-#include "../../system.h"
+#include <system.h>
 
 #include "../_.h"
 #include "../../phases/eval.h"

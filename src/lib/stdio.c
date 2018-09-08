@@ -1,15 +1,20 @@
-#include "../system.h"
+#include <system.h>
 #include "stdio.h"
 
-void fprintf_s(FILE *stream, string_view_t s) {
-    fwrite(str_begin(s), sizeof(uint8_t), str_byte_size(s), stream);
-}
-
-void fprintf_buf(FILE *stream, buffer_t buf) {
-    fprintf_s(stream, str_from(buf.data, buf.data + buf.size));
-}
-
 typedef size_t itoa_T;
+static String itoa(itoa_T val);
+
+void fprintf_zu(FILE *stream, size_t zu) {
+    fprintf_s(stream, itoa(zu));
+}
+
+void fprintf_buf(FILE *stream, Buffer buf) {
+    fprintf_s(stream, String_fromSlice((Slice(void)) {buf.data, buf.data + buf.size}));
+}
+
+void fprintf_s(FILE *stream, String s) {
+    fwrite(String_begin(s), sizeof(uint8_t), String_sizeBytes(s), stream);
+}
 
 /// buffer size calculated as follows:
 /// std::numeric_limits<T>::digits10
@@ -30,7 +35,7 @@ static const native_char_t itoa_lookup[] =
                 "6061626364656667686970717273747576777879"
                 "8081828384858687888990919293949596979899";
 
-static string_view_t itoa(itoa_T val) {
+static String itoa(itoa_T val) {
     native_char_t *end = &itoa_buf[ARRAY_LEN(itoa_buf) - 1];
     native_char_t *p = end;
     while (val >= 100) {
@@ -43,9 +48,5 @@ static string_view_t itoa(itoa_T val) {
     *--p = itoa_lookup[index + 1];
     *--p = itoa_lookup[index];
     native_char_t *begin = &p[val < 10];
-    return str_from(begin, end);
-}
-
-void fprintf_zu(FILE *stream, size_t zu) {
-    fprintf_s(stream, itoa(zu));
+    return String_fromSlice((Slice(void)) {begin, end});
 }
