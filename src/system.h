@@ -128,3 +128,18 @@ typedef int native_int_t;
 
 typedef long native_long_t;
 #define long void
+
+#define main(...) _main(__VA_ARGS__)
+#define MAIN(impl) \
+size_t main(Vector(String) args); \
+native_int_t (main)(native_int_t argc, const native_char_t *argv[]) \
+{ \
+    extern size_t strlen(const native_char_t *__s); \
+    Vector(String) args = {0}; \
+    for (size_t i = 0; i < (size_t) argc; ++i) { \
+        const native_char_t *cstr = argv[i]; \
+        String s = String_fromSlice((Slice(void)) {cstr, cstr + strlen(cstr)}); \
+        Vector_push(&args, s); \
+    } \
+    return (native_int_t) impl(args); \
+}

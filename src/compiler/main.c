@@ -1,6 +1,7 @@
 #include <system.h>
 
 #include <lib/stdio.h>
+#include <lib/string.h>
 
 #include "ctx.h"
 #include "phases/parse.h"
@@ -10,8 +11,11 @@
 #include "phases/compile/compile.h"
 #include "intrinsics/func.h"
 
-native_int_t main(native_int_t argc, const native_char_t *argv[]) {
-    (void) argc;
+Vector_$(String);
+
+MAIN(main)
+
+size_t main(Vector(String) args) {
     struct {
         bool run : 1;
         bool print_parse : 1;
@@ -20,7 +24,7 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
         bool print_compile : 1;
         bool print_run : 1;
         uint8_t padding : 2;
-    } args = {
+    } flags = {
             .run = false,
             .print_parse = false,
             .print_flatten = true,
@@ -28,7 +32,7 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
             .print_compile = true,
             .print_run = true,
     };
-    FILE *file = fopen(argv[1], "r");
+    FILE *file = fopen(String_begin(args.data[1]), "r");
     fseek(file, 0, SEEK_END);
     const native_long_t ret = ftell(file);
     if (ret < 0) return 1;
@@ -44,11 +48,11 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
     ctx_t *ctx = &ctx_;
     ctx_init(ctx);
 
-    if (args.print_parse) {
+    if (flags.print_parse) {
         fprintf_s(stdout, STR("PARSE:\n-----\n"));
     }
     parse_list(ctx, fileStr);
-    if (args.print_parse) {
+    if (flags.print_parse) {
         print_state_t state = {0};
         const Vector(node_t) *out = &ctx->parse.out;
         for (size_t i = 0; i < out->size; ++i) {
@@ -58,11 +62,11 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
         fprintf_s(stdout, STR("\n\n"));
     }
 
-    if (args.print_flatten) {
+    if (flags.print_flatten) {
         fprintf_s(stdout, STR("FLATTEN:\n-------\n"));
     }
     do_flatten(ctx);
-    if (args.print_flatten) {
+    if (flags.print_flatten) {
         print_state_t state = {0};
         Slice_loop(Vector_toSlice(node_t, ctx->flatten.out), i) {
             if (i < 1) continue;
@@ -81,23 +85,23 @@ native_int_t main(native_int_t argc, const native_char_t *argv[]) {
         fprintf_s(stdout, STR("\n"));
     }
 
-    if (args.print_eval) {
+    if (flags.print_eval) {
         fprintf_s(stdout, STR("EVAL:\n----\n"));
     }
     do_eval(ctx);
-    if (args.print_eval) {
+    if (flags.print_eval) {
         fprintf_s(stdout, STR("\n"));
     }
 
-    if (args.run) {
-        if (args.print_run) {
+    if (flags.run) {
+        if (flags.print_run) {
             fprintf_s(stdout, STR("RUN:\n---\n"));
         }
         const sym_t *entry = sym_lookup(ctx, STR("main"));
         assert(type_lookup(ctx, entry->type)->kind == TYPE_FUNCTION && "main is a function");
         func_call(ctx, entry->value, NULL);
     } else {
-        if (args.print_compile) {
+        if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));
         }
         do_compile(ctx);
