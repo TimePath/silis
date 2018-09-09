@@ -10,4 +10,9 @@ struct { \
     const T *end; /** one after the actual last element */ \
 }
 
-#define Slice_loop(self, i) for (size_t n = (self).end - (self).begin, (i) = 0; (i) < n; ++(i))
+Slice_$(uint8_t);
+
+#define Slice_size(self) ((size_t) ((self).end - (self).begin))
+#define Slice_data(self) ((self).begin)
+
+#define Slice_loop(self, i) for (size_t n = Slice_size(self), (i) = 0; (i) < n; ++(i))

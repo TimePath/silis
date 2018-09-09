@@ -2,6 +2,9 @@
 
 #include "ctx.h"
 
+#include <lib/string.h>
+#include <lib/slice.h>
+
 #include "phases/parse.h"
 
 void ctx_init(ctx_t *self) {
@@ -203,10 +206,10 @@ enum {
 };
 
 static sym_trie_node_t *sym_trie_at(sym_trie_t *self, String ident, uint8_t flags) {
+    const StringEncoding *enc = ident.encoding;
     sym_trie_node_t *n = &self->nodes.data[0];
-    const ascii_unit *begin = String_begin(ident), *end = String_end(ident), *it = begin;
-    for (; it != end; it = ascii_next(it)) {
-        const ascii_codepoint c = ascii_get(it);
+    for (Slice(uint8_t) it = ident.bytes; it.begin != it.end; it = enc->next(it)) {
+        const size_t c = enc->get(it);
         assert(c < ARRAY_LEN(sym_trie_chars));
         uint8_t i = sym_trie_chars[c];
         assert(i && "char is defined");

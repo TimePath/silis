@@ -5,4 +5,6 @@
 Vector_$(uint8_t);
 typedef Vector(uint8_t) Buffer;
 
-FILE *Buffer_toFile(Buffer *self);
+#define Buffer_toSlice(self) Vector_toSlice(uint8_t, (self))
+
+FILE *Buffer_asFile(Buffer *self);

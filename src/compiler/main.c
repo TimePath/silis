@@ -38,11 +38,11 @@ size_t main(Vector(String) args) {
     if (ret < 0) return 1;
     const size_t len = (size_t) ret;
     fseek(file, 0, SEEK_SET);
-    native_char_t buf[len + 1];
+    uint8_t buf[len + 1];
     fread(buf, len, 1, file);
     buf[len] = 0;
     fclose(file);
-    String fileStr = String_fromSlice((Slice(void)) {buf, buf + len});
+    String fileStr = String_fromSlice((Slice(uint8_t)) {buf, buf + len}, ENCODING_DEFAULT);
 
     ctx_t ctx_ = (ctx_t) {0};
     ctx_t *ctx = &ctx_;

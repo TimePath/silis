@@ -4,7 +4,7 @@
 #include "slice.h"
 
 #define Vector(T) Vector__##T
-#define Vector_$(T) Slice_$(T); typedef Vector_(T) Vector(T)
+#define Vector_$(T) typedef Vector_(T) Vector(T)
 #define Vector_(T) \
 struct { \
     size_t size; \

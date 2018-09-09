@@ -35,7 +35,7 @@ include_directories(src)
 set(SOURCE_FILES
         src/system.h
 
-        src/lib/string/ascii.c
+        src/lib/encoding/ascii.c
         src/lib/buffer.c
         src/lib/macro.h
         src/lib/slice.h

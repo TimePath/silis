@@ -18,5 +18,6 @@ STATIC_INIT(spaces) {
 
 String String_indent(size_t n) {
     assert(n < ARRAY_LEN(spaces));
-    return String_fromSlice((Slice(void)) {spaces, spaces + n});
+    Slice(uint8_t) slice = {(const uint8_t *) spaces, (const uint8_t *) (spaces + n)};
+    return String_fromSlice(slice, ENCODING_COMPILER);
 }

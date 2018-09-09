@@ -2,6 +2,9 @@
 
 #include "parse.h"
 
+#include <lib/slice.h>
+#include <lib/string.h>
+
 /*
 
  program: expression* EOF;
@@ -59,15 +62,16 @@ char_rule_e parse_char(size_t c) {
            : CHAR_INVALID;
 }
 
-static bool parse_is_space(ascii_codepoint c) {
+static bool parse_is_space(size_t c) {
     return parse_char(c) == CHAR_WS;
 }
 
 static size_t parse_atom(ctx_t *ctx, String prog) {
-    const ascii_unit *begin = String_begin(prog), *end = String_end(prog), *it = begin;
+    const StringEncoding *enc = prog.encoding;
     bool number = true;
-    for (; it != end; it = ascii_next(it)) {
-        const ascii_codepoint c = ascii_get(it);
+    Slice(uint8_t) it = prog.bytes;
+    for (; it.begin != it.end; it = enc->next(it)) {
+        const size_t c = enc->get(it);
         const char_rule_e r = parse_char(c);
         if (r <= CHAR_WS) {
             break;
@@ -76,11 +80,11 @@ static size_t parse_atom(ctx_t *ctx, String prog) {
             number = false;
         }
     }
-    const String atom = String_fromSlice((Slice(void)) {begin, it});
+    const String atom = String_fromSlice((Slice(uint8_t)) {String_begin(prog), it.begin}, enc);
     if (number) {
         ast_push(ctx, (node_t) {
                 .kind = NODE_INTEGRAL,
-                .u.integral.value = strtoul(ascii_native(String_begin(atom)), NULL, 10),
+                .u.integral.value = strtoul(String_begin(atom), NULL, 10),
         });
     } else {
         ast_push(ctx, (node_t) {
@@ -88,29 +92,31 @@ static size_t parse_atom(ctx_t *ctx, String prog) {
                 .u.atom.value = atom,
         });
     }
-    return ascii_unit_count(String_begin(atom), String_end(atom));
+    return String_sizeUnits(atom);
 }
 
 static size_t parse_string(ctx_t *ctx, String prog) {
-    const ascii_unit *begin = String_begin(prog), *end = String_end(prog), *it = begin;
-    ascii_unit *out = (ascii_unit *) begin; // XXX: mutation, but only decreases size
-    for (; it != end; it = ascii_next(it)) {
-        ascii_codepoint c = ascii_get(it);
+    const StringEncoding *enc = prog.encoding;
+    const uint8_t *begin = String_begin(prog);
+    /* XXX */ uint8_t *out = (uint8_t *) begin; // mutation, but only decreases size
+    Slice(uint8_t) it = prog.bytes;
+    for (; it.begin != it.end; it = enc->next(it)) {
+        size_t c = enc->get(it);
         switch (c) {
             default:
-                out = ascii_set(out, c);
+                /* XXX */ *out++ = (uint8_t) c;
                 break;
             case '"':
                 goto done;
             case '\\':
-                switch (c = ascii_get(it = ascii_next(it))) {
+                switch (c = enc->get(it = enc->next(it))) {
                     default:
                         assert(false);
                     case '\\':
                     case '"':
-                        out = ascii_set(out, c);
+                        /* XXX */ *out++ = (uint8_t) c;
                         break;
-#define X(code, replacement) case code: out = ascii_set(out, replacement); break
+#define X(code, replacement) case code: /* XXX */ *out++ = (uint8_t) (replacement); break
                     X('n', '\n');
                     X('r', '\r');
                     X('t', '\t');
@@ -120,28 +126,30 @@ static size_t parse_string(ctx_t *ctx, String prog) {
         }
     }
     done:;
-    const String value = String_fromSlice((Slice(void)) {begin, out});
+    const String value = String_fromSlice((Slice(uint8_t)) {begin, (const uint8_t *) out}, enc);
     ast_push(ctx, (node_t) {
             .kind = NODE_STRING,
             .u.string.value = value,
     });
-    return 1 + ascii_unit_count(begin, it) + 1;
+    return 1 + enc->count_units((Slice(uint8_t)) {begin, it.begin}) + 1;
 }
 
 size_t parse_list(ctx_t *ctx, String prog) {
+    const StringEncoding *enc = prog.encoding;
     const size_t tok = ast_parse_push(ctx);
-    const ascii_unit *begin = String_begin(prog), *end = String_end(prog), *it = begin;
+    const uint8_t *begin = String_begin(prog);
     size_t ret;
-    for (const ascii_unit *next; next = ascii_next(it), it != end; it = next) {
-        ascii_codepoint c = ascii_get(it);
+    Slice(uint8_t) it = prog.bytes;
+    for (Slice(uint8_t) next; next = enc->next(it), it.begin != it.end; it = next) {
+        size_t c = enc->get(it);
         if (parse_is_space(c)) {
             continue;
         }
         switch (c) {
             case ';':
                 for (;;) {
-                    c = ascii_get(next);
-                    next = ascii_next(next);
+                    c = enc->get(next);
+                    next = enc->next(next);
                     if (c == '\n') {
                         break;
                     }
@@ -149,21 +157,21 @@ size_t parse_list(ctx_t *ctx, String prog) {
                 break;
             case '(':
             case '[': // sugar
-                next = ascii_unit_skip(it, parse_list(ctx, String_fromSlice((Slice(void)) {next, end})));
+                next = enc->skip_units(it, parse_list(ctx, String_fromSlice(next, enc)));
                 break;
             case ')':
             case ']': // sugar
-                ret = 1 + ascii_unit_count(begin, it) + 1;
+                ret = 1 + enc->count_units((Slice(uint8_t)) {begin, it.begin}) + 1;
                 goto done;
             case '"':
-                next = ascii_unit_skip(it, parse_string(ctx, String_fromSlice((Slice(void)) {next, end})));
+                next = enc->skip_units(it, parse_string(ctx, String_fromSlice(next, enc)));
                 break;
             default:
-                next = ascii_unit_skip(it, parse_atom(ctx, String_fromSlice((Slice(void)) {it, end})));
+                next = enc->skip_units(it, parse_atom(ctx, String_fromSlice(it, enc)));
                 break;
         }
     }
-    ret = ascii_unit_count(begin, it); // EOF
+    ret = enc->count_units((Slice(uint8_t)) {begin, it.begin}); // EOF
     done:;
     ast_parse_pop(ctx, tok);
     return ret;

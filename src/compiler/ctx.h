@@ -222,6 +222,7 @@ typedef struct {
 } sym_trie_entry_t;
 
 Vector_$(sym_trie_entry_t);
+Slice_$(sym_trie_entry_t);
 
 typedef struct {
     size_t parent;
@@ -248,6 +249,7 @@ void sym_def(ctx_t *ctx, String ident, sym_t sym);
 typedef void (*ctx_register_t)(ctx_t *ctx);
 
 Vector_$(ctx_register_t);
+Slice_$(ctx_register_t);
 extern Vector(ctx_register_t) intrinsics;
 
 void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func);
@@ -259,6 +261,7 @@ Vector_$(value_t);
 Vector_$(sym_t);
 Vector_$(size_t);
 Vector_$(node_t);
+Slice_$(node_t);
 
 struct ctx_s {
     struct {

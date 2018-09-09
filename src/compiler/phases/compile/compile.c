@@ -57,7 +57,7 @@ void do_compile(const ctx_t *g_ctx) {
     FILE *out = stdout;
 #else
     Buffer buf;
-    FILE *out = Buffer_toFile(&buf);
+    FILE *out = Buffer_asFile(&buf);
 #endif
     const compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
     const compile_ctx_t *ctx = &ctx_;
@@ -117,7 +117,7 @@ void do_compile(const ctx_t *g_ctx) {
     }
 #if !OUTPUT_DEBUG
     fclose(out);
-    fprintf_buf(stdout, buf);
+    fprintf_raw(stdout, Buffer_toSlice(buf));
 #endif
 }
 

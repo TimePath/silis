@@ -123,6 +123,8 @@ typedef char native_char_t;
 typedef unsigned char native_uchar_t;
 #define char void
 
+typedef const native_char_t *native_string_t;
+
 typedef int native_int_t;
 #define int void
 
@@ -132,13 +134,14 @@ typedef long native_long_t;
 #define main(...) _main(__VA_ARGS__)
 #define MAIN(impl) \
 size_t main(Vector(String) args); \
-native_int_t (main)(native_int_t argc, const native_char_t *argv[]) \
+native_int_t (main)(native_int_t argc, native_string_t argv[]) \
 { \
-    extern size_t strlen(const native_char_t *__s); \
+    extern size_t strlen(native_string_t __s); \
     Vector(String) args = {0}; \
     for (size_t i = 0; i < (size_t) argc; ++i) { \
-        const native_char_t *cstr = argv[i]; \
-        String s = String_fromSlice((Slice(void)) {cstr, cstr + strlen(cstr)}); \
+        native_string_t cstr = argv[i]; \
+        Slice(uint8_t) slice = {(const uint8_t *) cstr, (const uint8_t *) (cstr + strlen(cstr))}; \
+        String s = String_fromSlice(slice, ENCODING_SYSTEM); \
         Vector_push(&args, s); \
     } \
     return (native_int_t) impl(args); \
