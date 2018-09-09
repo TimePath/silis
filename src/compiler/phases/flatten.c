@@ -1,5 +1,4 @@
 #include <system.h>
-
 #include "flatten.h"
 
 static size_t do_flatten_rec(ctx_t *ctx, Vector(node_t) *stack, const node_t *begin);

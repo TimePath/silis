@@ -1,5 +1,4 @@
 #include <system.h>
-
 #include "buffer.h"
 
 FILE *Buffer_asFile(Buffer *self) {

@@ -1,5 +1,4 @@
 #include <system.h>
-
 #include "string.h"
 
 bool String_equals(String self, String other) {

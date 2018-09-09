@@ -1,5 +1,4 @@
 #include <system.h>
-
 #include "stdio.h"
 
 #include "buffer.h"

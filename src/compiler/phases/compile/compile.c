@@ -1,5 +1,4 @@
 #include <system.h>
-
 #include "compile.h"
 
 #include <lib/stdio.h>

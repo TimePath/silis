@@ -1,5 +1,4 @@
 #include <system.h>
-
 #include "vector.h"
 
 Vector_$(void);
