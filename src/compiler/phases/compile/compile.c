@@ -14,10 +14,6 @@ static void print_function(const compile_ctx_t *ctx, type_id id, String ident, c
 
 static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident);
 
-#ifndef NDEBUG
-#define DEBUG_COMPILE
-#endif
-
 typedef enum {
     RETURN_NO,
     RETURN_FUNC,
@@ -42,22 +38,9 @@ typedef struct {
     size_t depth;
 } visit_state_t;
 
-static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                       const node_t *it);
+static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it);
 
-#ifdef DEBUG_COMPILE
-#define OUTPUT_DEBUG 1
-#else
-#define OUTPUT_DEBUG 0
-#endif
-
-void do_compile(const ctx_t *g_ctx) {
-#if OUTPUT_DEBUG
-    FILE *out = stdout;
-#else
-    Buffer buf;
-    FILE *out = Buffer_asFile(&buf);
-#endif
+void do_compile(const ctx_t *g_ctx, FILE *out) {
     const compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
     const compile_ctx_t *ctx = &ctx_;
 
@@ -114,10 +97,6 @@ void do_compile(const ctx_t *g_ctx) {
             fprintf_s(ctx->out, STR("\n}\n"));
         }
     }
-#if !OUTPUT_DEBUG
-    fclose(out);
-    fprintf_raw(stdout, Buffer_toSlice(buf));
-#endif
 }
 
 static String type_name(const compile_ctx_t *ctx, type_id id) {
@@ -204,8 +183,7 @@ static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t r
     assert(false);
 }
 
-static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                           const node_t *it) {
+static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
     (void) it;
     switch (ret.kind) {
         case RETURN_TEMPORARY:
@@ -238,14 +216,11 @@ static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_
     assert(false);
 }
 
-static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                               const node_t *it);
+static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it);
 
-static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                            const node_t *it);
+static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it);
 
-static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                       const node_t *it) {
+static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
     if (visit_node_primary(ctx, state, ret, it)) {
         fprintf_s(ctx->out, STR(";"));
         return;
@@ -253,8 +228,7 @@ static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t r
     visit_node_list(ctx, state, ret, it);
 }
 
-static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                               const node_t *it) {
+static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
     switch (it->kind) {
         case NODE_ATOM:
             return_assign(ctx, state, ret);
@@ -295,8 +269,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                             const node_t *func, size_t n, const node_t *children[n]);
 
-static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                            const node_t *it) {
+static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
     assert(it->kind == NODE_LIST_BEGIN);
     const node_t *childrenRaw = node_list_children(it);
     const size_t n = it->u.list.size;

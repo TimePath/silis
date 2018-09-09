@@ -15,6 +15,12 @@ Vector_$(String);
 
 MAIN(main)
 
+#ifdef NDEBUG
+#define OUTPUT_BUFFER 1
+#else
+#define OUTPUT_BUFFER 0
+#endif
+
 size_t main(Vector(String) args) {
     struct {
         bool run : 1;
@@ -23,7 +29,8 @@ size_t main(Vector(String) args) {
         bool print_eval : 1;
         bool print_compile : 1;
         bool print_run : 1;
-        uint8_t padding : 2;
+        bool buffer : 1;
+        uint8_t padding : 1;
     } flags = {
             .run = false,
             .print_parse = false,
@@ -31,6 +38,7 @@ size_t main(Vector(String) args) {
             .print_eval = false,
             .print_compile = true,
             .print_run = true,
+            .buffer = OUTPUT_BUFFER,
     };
     FILE *file = fopen(String_begin(Vector_data(&args)[1]), "r");
     fseek(file, 0, SEEK_END);
@@ -104,7 +112,17 @@ size_t main(Vector(String) args) {
         if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));
         }
-        do_compile(ctx);
+        FILE *out = stdout;
+        Buffer outBuf;
+        FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : out;
+        do_compile(ctx, f);
+        if (flags.buffer) {
+            fclose(f);
+            fprintf_raw(out, Buffer_toSlice(&outBuf));
+        }
+        if (out != stdout) {
+            fclose(out);
+        }
     }
 
     fprintf_s(stdout, STR("\n"));
