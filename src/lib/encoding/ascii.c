@@ -35,25 +35,25 @@ static size_t ascii_point_units(size_t c)
 
 static size_t ascii_count_points(Slice(uint8_t) slice)
 {
-    return Slice_size(slice);
+    return Slice_size(&slice);
 }
 
 static size_t ascii_count_units(Slice(uint8_t) slice)
 {
-    return Slice_size(slice);
+    return Slice_size(&slice);
 }
 
 static Slice(uint8_t) ascii_next(Slice(uint8_t) slice)
 {
-    return (Slice(uint8_t)) {slice.begin + 1, slice.end};
+    return (Slice(uint8_t)) {Slice_begin(&slice) + 1, Slice_end(&slice)};
 }
 
 static Slice(uint8_t) ascii_skip_units(Slice(uint8_t) slice, size_t n)
 {
-    return (Slice(uint8_t)) {slice.begin + n, slice.end};
+    return (Slice(uint8_t)) {Slice_begin(&slice) + n, Slice_end(&slice)};
 }
 
 static size_t ascii_get(Slice(uint8_t) slice)
 {
-    return *slice.begin;
+    return *Slice_begin(&slice);
 }

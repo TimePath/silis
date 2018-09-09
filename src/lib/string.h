@@ -43,11 +43,11 @@ INLINE String String_fromSlice(Slice(uint8_t) slice, const StringEncoding *encod
 }
 
 INLINE const void *String_begin(String self) {
-    return self.bytes.begin;
+    return Slice_begin(&self.bytes);
 }
 
 INLINE const void *String_end(String self) {
-    return self.bytes.end;
+    return Slice_end(&self.bytes);
 }
 
 INLINE size_t String_sizePoints(String self) {

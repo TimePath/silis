@@ -32,7 +32,7 @@ size_t main(Vector(String) args) {
             .print_compile = true,
             .print_run = true,
     };
-    FILE *file = fopen(String_begin(args.data[1]), "r");
+    FILE *file = fopen(String_begin(Vector_data(&args)[1]), "r");
     fseek(file, 0, SEEK_END);
     const native_long_t ret = ftell(file);
     if (ret < 0) return 1;
@@ -55,8 +55,8 @@ size_t main(Vector(String) args) {
     if (flags.print_parse) {
         print_state_t state = {0};
         const Vector(node_t) *out = &ctx->parse.out;
-        for (size_t i = 0; i < out->size; ++i) {
-            const node_t *it = &out->data[i];
+        for (size_t i = 0; i < Vector_size(out); ++i) {
+            const node_t *it = &Vector_data(out)[i];
             state = print(stdout, state, it);
         }
         fprintf_s(stdout, STR("\n\n"));
@@ -68,7 +68,7 @@ size_t main(Vector(String) args) {
     do_flatten(ctx);
     if (flags.print_flatten) {
         print_state_t state = {0};
-        Slice_loop(Vector_toSlice(node_t, ctx->flatten.out), i) {
+        Slice_loop(&Vector_toSlice(node_t, &ctx->flatten.out), i) {
             if (i < 1) continue;
             const node_t *it = node_get(ctx, (node_id) {i});
             if (it->kind == NODE_LIST_BEGIN) {

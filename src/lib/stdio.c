@@ -6,7 +6,7 @@
 #include "string.h"
 
 void fprintf_raw(FILE *stream, Slice(uint8_t) slice) {
-    fwrite(slice.begin, sizeof(uint8_t), slice.end - slice.begin, stream);
+    fwrite(Slice_begin(&slice), sizeof(uint8_t), Slice_size(&slice), stream);
 }
 
 typedef size_t itoa_T;
@@ -23,9 +23,9 @@ void fprintf_s(FILE *stream, String s) {
 static native_string_t hexdigits = "0123456789abcdef";
 
 static void _fprintf_hexdump(FILE *stream, Slice(uint8_t) slice) {
-    for (size_t i = 0; i < Slice_size(slice); ++i) {
+    for (size_t i = 0; i < Slice_size(&slice); ++i) {
         if (i) fprintf_s(stream, STR(" "));
-        const uint8_t b = Slice_data(slice)[i];
+        const uint8_t b = Slice_data(&slice)[i];
         fwrite(&hexdigits[((b & 0xF0) >> 4)], sizeof(uint8_t), 1, stream);
         fwrite(&hexdigits[((b & 0x0F) >> 0)], sizeof(uint8_t), 1, stream);
     }
@@ -37,7 +37,7 @@ void fprintf_slice(FILE *stream, Slice(uint8_t) slice) {
     fprintf_s(stream, STR(">"));
 }
 
-void fprintf_buf(FILE *stream, Buffer buf) {
+void fprintf_buf(FILE *stream, Buffer *buf) {
     fprintf_s(stream, STR("<Buffer "));
     _fprintf_hexdump(stream, Buffer_toSlice(buf));
     fprintf_s(stream, STR(">"));

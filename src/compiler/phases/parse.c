@@ -69,7 +69,7 @@ static size_t parse_atom(ctx_t *ctx, String prog) {
     const StringEncoding *enc = prog.encoding;
     bool number = true;
     Slice(uint8_t) it = prog.bytes;
-    for (; it.begin != it.end; it = enc->next(it)) {
+    for (; Slice_begin(&it) != Slice_end(&it); it = enc->next(it)) {
         const size_t c = enc->get(it);
         const char_rule_e r = parse_char(c);
         if (r <= CHAR_WS) {
@@ -79,7 +79,7 @@ static size_t parse_atom(ctx_t *ctx, String prog) {
             number = false;
         }
     }
-    const String atom = String_fromSlice((Slice(uint8_t)) {String_begin(prog), it.begin}, enc);
+    const String atom = String_fromSlice((Slice(uint8_t)) {String_begin(prog), Slice_begin(&it)}, enc);
     if (number) {
         ast_push(ctx, (node_t) {
                 .kind = NODE_INTEGRAL,
@@ -99,7 +99,7 @@ static size_t parse_string(ctx_t *ctx, String prog) {
     const uint8_t *begin = String_begin(prog);
     /* XXX */ uint8_t *out = (uint8_t *) begin; // mutation, but only decreases size
     Slice(uint8_t) it = prog.bytes;
-    for (; it.begin != it.end; it = enc->next(it)) {
+    for (; Slice_begin(&it) != Slice_end(&it); it = enc->next(it)) {
         size_t c = enc->get(it);
         switch (c) {
             default:
@@ -130,7 +130,7 @@ static size_t parse_string(ctx_t *ctx, String prog) {
             .kind = NODE_STRING,
             .u.string.value = value,
     });
-    return 1 + enc->count_units((Slice(uint8_t)) {begin, it.begin}) + 1;
+    return 1 + enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}) + 1;
 }
 
 size_t parse_list(ctx_t *ctx, String prog) {
@@ -139,7 +139,7 @@ size_t parse_list(ctx_t *ctx, String prog) {
     const uint8_t *begin = String_begin(prog);
     size_t ret;
     Slice(uint8_t) it = prog.bytes;
-    for (Slice(uint8_t) next; next = enc->next(it), it.begin != it.end; it = next) {
+    for (Slice(uint8_t) next; next = enc->next(it), Slice_begin(&it) != Slice_end(&it); it = next) {
         size_t c = enc->get(it);
         if (parse_is_space(c)) {
             continue;
@@ -160,7 +160,7 @@ size_t parse_list(ctx_t *ctx, String prog) {
                 break;
             case ')':
             case ']': // sugar
-                ret = 1 + enc->count_units((Slice(uint8_t)) {begin, it.begin}) + 1;
+                ret = 1 + enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}) + 1;
                 goto done;
             case '"':
                 next = enc->skip_units(it, parse_string(ctx, String_fromSlice(next, enc)));
@@ -170,7 +170,7 @@ size_t parse_list(ctx_t *ctx, String prog) {
                 break;
         }
     }
-    ret = enc->count_units((Slice(uint8_t)) {begin, it.begin}); // EOF
+    ret = enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}); // EOF
     done:;
     ast_parse_pop(ctx, tok);
     return ret;

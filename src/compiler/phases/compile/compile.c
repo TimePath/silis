@@ -65,10 +65,10 @@ void do_compile(const ctx_t *g_ctx) {
     (void) entry;
     assert(type_lookup(ctx->ctx, entry->value.type)->kind == TYPE_FUNCTION);
 
-    const sym_trie_t *globals = &ctx->ctx->state.symbols.scopes.data[0];
-    Slice_loop(Vector_toSlice(sym_trie_entry_t, globals->list), i) {
-        const sym_trie_entry_t *e = &globals->list.data[i];
-        const sym_trie_node_t *nod = &globals->nodes.data[e->value];
+    const sym_trie_t *globals = &Vector_data(&ctx->ctx->state.symbols.scopes)[0];
+    Slice_loop(&Vector_toSlice(sym_trie_entry_t, &globals->list), i) {
+        const sym_trie_entry_t *e = &Vector_data(&globals->list)[i];
+        const sym_trie_node_t *nod = &Vector_data(&globals->nodes)[e->value];
         const sym_t *sym = &nod->value;
         if (sym->flags.intrinsic) {
             continue;
@@ -89,9 +89,9 @@ void do_compile(const ctx_t *g_ctx) {
         }
         fprintf_s(ctx->out, STR(";\n"));
     }
-    Slice_loop(Vector_toSlice(sym_trie_entry_t, globals->list), i) {
-        const sym_trie_entry_t *e = &globals->list.data[i];
-        const sym_trie_node_t *nod = &globals->nodes.data[e->value];
+    Slice_loop(&Vector_toSlice(sym_trie_entry_t, &globals->list), i) {
+        const sym_trie_entry_t *e = &Vector_data(&globals->list)[i];
+        const sym_trie_node_t *nod = &Vector_data(&globals->nodes)[e->value];
         const sym_t *sym = &nod->value;
         if (sym->flags.intrinsic || sym->flags.native) {
             continue;

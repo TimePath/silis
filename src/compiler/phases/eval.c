@@ -4,7 +4,7 @@
 #include "../intrinsics/func.h"
 
 void do_eval(ctx_t *ctx) {
-    const node_t *it = node_get(ctx, (node_id) {ctx->flatten.out.size - 1});
+    const node_t *it = node_get(ctx, (node_id) {Vector_size(&ctx->flatten.out) - 1});
     assert(it->kind == NODE_LIST_END);
     while ((--it)->kind != NODE_LIST_BEGIN);
     eval_list_block(ctx, it);
@@ -38,7 +38,7 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
     const type_t *T = type_lookup(ctx, func.type);
     assert(T->kind == TYPE_FUNCTION);
 
-    const size_t ofs = ctx->eval.stack.size;
+    const size_t ofs = Vector_size(&ctx->eval.stack);
     const type_id expr_t = ctx->state.types.t_expr;
     size_t T_argc = 0;
     // holds return value after this loop
@@ -62,7 +62,7 @@ value_t eval_node(ctx_t *ctx, const node_t *it) {
     }
     assert((n - 1) == T_argc && "argument overflow");
 
-    const value_t *argv = &ctx->eval.stack.data[ofs];
+    const value_t *argv = &Vector_data(&ctx->eval.stack)[ofs];
     value_t ret = func_call(ctx, func, argv);
     for (size_t i = 1; i < n; ++i) {
         Vector_pop(&ctx->eval.stack);
