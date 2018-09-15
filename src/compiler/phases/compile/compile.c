@@ -53,7 +53,8 @@ void do_compile(const ctx_t *g_ctx, FILE *out) {
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
         const TrieNode(sym_t) *nod = &Vector_data(&globals->t.nodes)[e->value];
-        const sym_t *sym = &nod->value;
+        const sym_t sym_ = nod->value;
+        const sym_t *sym = &sym_;
         if (sym->flags.intrinsic) {
             continue;
         }
@@ -76,7 +77,8 @@ void do_compile(const ctx_t *g_ctx, FILE *out) {
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
         const TrieNode(sym_t) *nod = &Vector_data(&globals->t.nodes)[e->value];
-        const sym_t *sym = &nod->value;
+        const sym_t sym_ = nod->value;
+        const sym_t *sym = &sym_;
         if (sym->flags.intrinsic || sym->flags.native) {
             continue;
         }

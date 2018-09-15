@@ -3,14 +3,14 @@
 #include "macro.h"
 
 #define Slice(T) CAT2(Slice__, T)
-#define Slice_$(T) typedef Slice_(T) Slice(T)
+#define Slice_instantiate(T) typedef Slice_(T) Slice(T)
 #define Slice_(T) \
 struct { \
     const T *_begin; \
     const T *_end; /** one after the actual last element */ \
 }
 
-Slice_$(uint8_t);
+Slice_instantiate(uint8_t);
 
 #define Slice_begin(self) ((self)->_begin)
 #define Slice_end(self) ((self)->_end)

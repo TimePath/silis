@@ -1,7 +1,7 @@
 #include <system.h>
 #include "vector.h"
 
-Vector_$(void);
+Vector_instantiate(void);
 
 void (Vector_push)(size_t sizeof_T, void *_self, size_t dataSize, const void *data)
 {

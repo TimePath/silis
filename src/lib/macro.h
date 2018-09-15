@@ -10,3 +10,15 @@
 #define ARRAY_LEN(x) ((sizeof(x) / sizeof((x)[0])))
 
 #define CAT2(_0, _1) _0 ## _1
+
+#define STRINGIFY(self) #self
+
+#if defined(__clang__)
+#define DIAG_PUSH         _Pragma("GCC diagnostic push")
+#define DIAG_IGNORE(rule) _Pragma(STRINGIFY(GCC diagnostic ignored rule))
+#define DIAG_POP          _Pragma("GCC diagnostic pop")
+#else
+#define DIAG_PUSH
+#define DIAG_IGNORE(rule)
+#define DIAG_POP
+#endif

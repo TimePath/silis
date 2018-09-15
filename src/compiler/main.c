@@ -11,7 +11,7 @@
 #include "phases/compile/compile.h"
 #include "intrinsics/func.h"
 
-Vector_$(String);
+Vector_instantiate(String);
 
 MAIN(main)
 

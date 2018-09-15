@@ -4,7 +4,7 @@
 #include "slice.h"
 
 #define Vector(T) CAT2(Vector__, T)
-#define Vector_$(T) typedef Vector_(T) Vector(T)
+#define Vector_instantiate(T) typedef Vector_(T) Vector(T)
 #define Vector_(T) \
 struct { \
     size_t _size; \

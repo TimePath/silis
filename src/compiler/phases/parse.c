@@ -97,7 +97,8 @@ static size_t parse_atom(ctx_t *ctx, String prog) {
 static size_t parse_string(ctx_t *ctx, String prog) {
     const StringEncoding *enc = prog.encoding;
     const uint8_t *begin = String_begin(prog);
-    /* XXX */ uint8_t *out = (uint8_t *) begin; // mutation, but only decreases size
+    // mutation, but only decreases size
+    /* XXX */ uint8_t *out = ((union { const uint8_t *from; uint8_t *to; }) {.from=begin}.to);
     Slice(uint8_t) it = prog.bytes;
     for (; Slice_begin(&it) != Slice_end(&it); it = enc->next(it)) {
         size_t c = enc->get(it);
@@ -139,7 +140,7 @@ size_t parse_list(ctx_t *ctx, String prog) {
     const uint8_t *begin = String_begin(prog);
     size_t ret;
     Slice(uint8_t) it = prog.bytes;
-    for (Slice(uint8_t) next; next = enc->next(it), Slice_begin(&it) != Slice_end(&it); it = next) {
+    for (Slice(uint8_t) next; (void) (next = enc->next(it)), Slice_begin(&it) != Slice_end(&it); it = next) {
         size_t c = enc->get(it);
         if (parse_is_space(c)) {
             continue;

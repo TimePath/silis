@@ -209,13 +209,13 @@ typedef struct {
     uint8_t padding[7];
 } sym_t;
 
-Trie_$(sym_t);
+Trie_instantiate(sym_t);
 typedef struct {
     Trie(sym_t) t;
     size_t parent;
 } sym_scope_t;
 
-Vector_$(sym_scope_t);
+Vector_instantiate(sym_scope_t);
 typedef struct symbols_s {
     Vector(sym_scope_t) scopes;
 } symbols_t;
@@ -232,20 +232,20 @@ void sym_def(ctx_t *ctx, String ident, sym_t sym);
 
 typedef void (*ctx_register_t)(ctx_t *ctx);
 
-Vector_$(ctx_register_t);
-Slice_$(ctx_register_t);
+Vector_instantiate(ctx_register_t);
+Slice_instantiate(ctx_register_t);
 extern Vector(ctx_register_t) intrinsics;
 
 void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func);
 
 // State
 
-Vector_$(type_t);
-Vector_$(value_t);
-Vector_$(sym_t);
-Vector_$(size_t);
-Vector_$(node_t);
-Slice_$(node_t);
+Vector_instantiate(type_t);
+Vector_instantiate(value_t);
+Vector_instantiate(sym_t);
+Vector_instantiate(size_t);
+Vector_instantiate(node_t);
+Slice_instantiate(node_t);
 
 struct ctx_s {
     struct {

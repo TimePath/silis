@@ -1,9 +1,9 @@
 #include <system.h>
 #include "trie.h"
 
-#define Trie_node(self, i) ((TrieNode *) (((uint8_t *) (Vector_data(&(self)->nodes))) + (TrieNode_Size(self) * (i))))
+#define Trie_node(self, i) ((TrieNode *) (void *) (((uint8_t *) (Vector_data(&(self)->nodes))) + (TrieNode_Size(self) * (i))))
 
-bool Trie_get(Trie(bool) *self, Slice(uint8_t) key, void *out)
+bool Trie_get(AnyTrie *self, Slice(uint8_t) key, void *out)
 {
     TrieNode *n = Trie_node(self, 0);
     Slice_loop(&key, i) {
@@ -23,8 +23,9 @@ bool Trie_get(Trie(bool) *self, Slice(uint8_t) key, void *out)
 
 static const size_t uint16_max = (uint16_t) -1;
 
-void Trie_set(Trie(bool) *self, Slice(uint8_t) key, void *value)
+void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value)
 {
+    (void) uint16_max;
     TrieNode *n = Trie_node(self, 0);
     Slice_loop(&key, i) {
         const uint8_t b = Slice_data(&key)[i];
