@@ -1,4 +1,4 @@
-{pkgs, stdenv, lib}:
+{pkgs, stdenv, lib, debug ? false}:
 let
     cleanSourceFilter = name: type: let
         baseName = baseNameOf (toString name);
@@ -16,6 +16,12 @@ stdenv.mkDerivation {
     installPhase = ''
         mkdir -p $out/bin
         mv silis $out/bin
+    '';
+    dontStrip = if debug then true else false;
+    preConfigure = ''
+        cmakeFlagsArray+=(
+            "-DCMAKE_BUILD_TYPE=${if debug then "Debug" else "Release"}"
+        )
     '';
     meta = {
         description = "static interchange lisp in stages";

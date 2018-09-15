@@ -8,9 +8,10 @@ let
     };
     pkgs = import <nixpkgs> { inherit config; };
 in
-with pkgs; let
+let
+inherit (pkgs) lib stdenv;
 identity = it: it;
-m = {
+m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" "cc" "type" ]; } (with pkgs; {
     cc = {
         default = identity;
 
@@ -44,22 +45,26 @@ m = {
             stdenv = makeStaticBinaries pkg.stdenv;
         in (pkg.override { inherit stdenv; }) // { inherit stdenv; };
     };
-};
-build' = pkg: cc: libc: link: (cc (libc (link pkg)));
-build = cc: libc: link: (build' silis cc libc link);
-flavor = it: if it == "default" then "" else "-${it}";
-all = lib.listToAttrs (lib.collect (it: it?name) (
-    lib.mapAttrs (cc: _:
-    lib.mapAttrs (libc: _:
-    lib.mapAttrs (link: _:
-        let
-            flags = (flavor cc) + (flavor libc) + (flavor link);
-            pkg = (build m.cc.${cc} m.libc.${libc} m.link.${link});
-        in lib.nameValuePair ("silis" + flags) (pkg.overrideAttrs (oldAttrs: { name = oldAttrs.name + flags; }))
-    ) m.link
-    ) m.libc
-    ) m.cc
-));
-in all // {
+    type = {
+        default = identity;
+        debug = pkg: pkg.override { debug = true; };
+    };
+});
+buildMatrix = { name ? apply, apply ? name }: m: prefix: pkg: let
+    next = decided: alt: let
+        altAttrs = lib.attrNames alt;
+    in if (lib.length altAttrs) != 0
+        then let
+            k = lib.head altAttrs;
+        in lib.flatten (map (it: next (decided // { ${k} = it; }) (removeAttrs alt [k])) alt.${k})
+        else let
+            flavor = it: if it == "default" then "" else "-${it}";
+            flags = lib.concatStrings (map (it: flavor decided.${it}) name);
+            pkg' = lib.foldl (pkg: f: m.${f}.${decided.${f}} pkg) pkg apply;
+        in { name = prefix + flags; value = pkg'.overrideAttrs (oldAttrs: { name = oldAttrs.name + flags; }); }
+    ;
+    x = lib.listToAttrs (builtins.map (it: { name = it; value = lib.attrNames m.${it}; }) apply);
+in lib.listToAttrs (next {} x);
+in (m "silis" pkgs.silis) // {
 
 }
