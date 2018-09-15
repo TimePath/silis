@@ -2,6 +2,7 @@
 
 #include <lib/buffer.h>
 #include <lib/string.h>
+#include <lib/trie.h>
 
 #include "phases/parse.inc.h"
 
@@ -208,39 +209,22 @@ typedef struct {
     uint8_t padding[7];
 } sym_t;
 
+Trie_$(sym_t);
 typedef struct {
-    sym_t value; // must be first
-    uint16_t children[PARSE_NP2]; // consider alphabet reduction
-} sym_trie_node_t;
-
-Vector_$(sym_trie_node_t);
-
-typedef struct {
-    String key;
-    uint16_t value;
-    uint8_t padding[6];
-} sym_trie_entry_t;
-
-Vector_$(sym_trie_entry_t);
-Slice_$(sym_trie_entry_t);
-
-typedef struct {
+    Trie(sym_t) t;
     size_t parent;
-    Vector(sym_trie_node_t) nodes;
-    Vector(sym_trie_entry_t) list;
-} sym_trie_t;
+} sym_scope_t;
 
-Vector_$(sym_trie_t);
-
+Vector_$(sym_scope_t);
 typedef struct symbols_s {
-    Vector(sym_trie_t) scopes;
+    Vector(sym_scope_t) scopes;
 } symbols_t;
 
 void sym_push(ctx_t *ctx, size_t parent);
 
 void sym_pop(ctx_t *ctx);
 
-const sym_t *sym_lookup(const ctx_t *ctx, String ident);
+bool sym_lookup(const ctx_t *ctx, String ident, sym_t *out);
 
 void sym_def(ctx_t *ctx, String ident, sym_t sym);
 

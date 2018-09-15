@@ -44,19 +44,20 @@ void do_compile(const ctx_t *g_ctx, FILE *out) {
     const compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
     const compile_ctx_t *ctx = &ctx_;
 
-    const sym_t *entry = sym_lookup(ctx->ctx, STR("main"));
+    sym_t entry;
+    sym_lookup(ctx->ctx, STR("main"), &entry);
     (void) entry;
-    assert(type_lookup(ctx->ctx, entry->value.type)->kind == TYPE_FUNCTION);
+    assert(type_lookup(ctx->ctx, entry.value.type)->kind == TYPE_FUNCTION);
 
-    const sym_trie_t *globals = &Vector_data(&ctx->ctx->state.symbols.scopes)[0];
-    Slice_loop(&Vector_toSlice(sym_trie_entry_t, &globals->list), i) {
-        const sym_trie_entry_t *e = &Vector_data(&globals->list)[i];
-        const sym_trie_node_t *nod = &Vector_data(&globals->nodes)[e->value];
+    const sym_scope_t *globals = &Vector_data(&ctx->ctx->state.symbols.scopes)[0];
+    Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
+        const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
+        const TrieNode(sym_t) *nod = &Vector_data(&globals->t.nodes)[e->value];
         const sym_t *sym = &nod->value;
         if (sym->flags.intrinsic) {
             continue;
         }
-        const String ident = e->key;
+        const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
         const type_id type = sym->type;
         if (sym->flags.native) {
             fprintf_s(ctx->out, STR("extern "));
@@ -72,14 +73,14 @@ void do_compile(const ctx_t *g_ctx, FILE *out) {
         }
         fprintf_s(ctx->out, STR(";\n"));
     }
-    Slice_loop(&Vector_toSlice(sym_trie_entry_t, &globals->list), i) {
-        const sym_trie_entry_t *e = &Vector_data(&globals->list)[i];
-        const sym_trie_node_t *nod = &Vector_data(&globals->nodes)[e->value];
+    Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
+        const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
+        const TrieNode(sym_t) *nod = &Vector_data(&globals->t.nodes)[e->value];
         const sym_t *sym = &nod->value;
         if (sym->flags.intrinsic || sym->flags.native) {
             continue;
         }
-        const String ident = e->key;
+        const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
         const type_id type = sym->type;
         if (type_lookup(ctx->ctx, type)->kind == TYPE_FUNCTION) {
             fprintf_s(ctx->out, STR("\n"));

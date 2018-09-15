@@ -105,9 +105,10 @@ size_t main(Vector(String) args) {
         if (flags.print_run) {
             fprintf_s(stdout, STR("RUN:\n---\n"));
         }
-        const sym_t *entry = sym_lookup(ctx, STR("main"));
-        assert(type_lookup(ctx, entry->type)->kind == TYPE_FUNCTION && "main is a function");
-        func_call(ctx, entry->value, NULL);
+        sym_t entry;
+        sym_lookup(ctx, STR("main"), &entry);
+        assert(type_lookup(ctx, entry.type)->kind == TYPE_FUNCTION && "main is a function");
+        func_call(ctx, entry.value, NULL);
     } else {
         if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));

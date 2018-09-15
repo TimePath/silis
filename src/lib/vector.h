@@ -3,7 +3,7 @@
 #include "macro.h"
 #include "slice.h"
 
-#define Vector(T) Vector__##T
+#define Vector(T) CAT2(Vector__, T)
 #define Vector_$(T) typedef Vector_(T) Vector(T)
 #define Vector_(T) \
 struct { \
@@ -15,12 +15,12 @@ struct { \
 #define Vector_data(self) ((self)->_data)
 #define Vector_toSlice(T, self) ((Slice(T)) { Vector_data(self), Vector_data(self) + Vector_size(self) })
 
-void Vector_push(void *self, const void *data, size_t size);
+void (Vector_push)(size_t sizeof_T, void *self, size_t dataSize, const void *data);
 
 #define Vector_push(self, val) \
 MACRO_BEGIN \
     if (0) { (void) (Vector_data(self) == &(val)); } \
-    Vector_push(self, &(val), sizeof(val)); \
+    Vector_push(sizeof(val), self, sizeof(val), &(val)); \
 MACRO_END
 
 void Vector_pop(void *self);

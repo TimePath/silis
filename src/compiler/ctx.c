@@ -156,9 +156,11 @@ value_t value_from(const ctx_t *ctx, const node_t *n) {
     switch (n->kind) {
         case NODE_ATOM: {
             const String ident = n->u.atom.value;
-            const sym_t *symbol = sym_lookup(ctx, ident);
-            assert(symbol && "symbol is defined");
-            return symbol->value;
+            sym_t symbol;
+            bool status = sym_lookup(ctx, ident, &symbol);
+            (void) status;
+            assert(status && "symbol is defined");
+            return symbol.value;
         }
         case NODE_INTEGRAL:
             return (value_t) {
@@ -182,86 +184,48 @@ value_t value_from(const ctx_t *ctx, const node_t *n) {
 
 // Symbols
 
-/// map of parser characters to 0 or char id
-static uint8_t sym_trie_chars[256];
-
-STATIC_INIT(sym_trie_chars) {
-    uint8_t n = 0;
-    for (size_t i = 0; i < 256; ++i) {
-        sym_trie_chars[i] = parse_char(i) ? ++n : (uint8_t) 0;
-    }
-}
-
-static sym_trie_t sym_trie_new(void) {
-    sym_trie_t self = (sym_trie_t) {0};
-    const sym_trie_node_t root = (sym_trie_node_t) {0};
-    Vector_push(&self.nodes, root);
+static sym_scope_t sym_trie_new(size_t parent) {
+    sym_scope_t self = (sym_scope_t) { .parent = parent };
+    Trie_new(sym_t, &self.t);
     return self;
 }
 
-enum {
-    TRIE_NONE = 0,
-    TRIE_CREATE_INTERMEDIATES = 1,
-};
+static void sym_trie_delete(sym_scope_t *self) {
+    Vector_delete(&self->t.nodes);
+    Vector_delete(&self->t.entries);
+}
 
-static sym_trie_node_t *sym_trie_at(sym_trie_t *self, String ident, uint8_t flags) {
-    const StringEncoding *enc = ident.encoding;
-    sym_trie_node_t *n = &Vector_data(&self->nodes)[0];
-    for (Slice(uint8_t) it = ident.bytes; Slice_begin(&it) != Slice_end(&it); it = enc->next(it)) {
-        const size_t c = enc->get(it);
-        assert(c < ARRAY_LEN(sym_trie_chars));
-        uint8_t i = sym_trie_chars[c];
-        assert(i && "char is defined");
-        i -= 1;
-        const uint16_t idx = n->children[i];
-        if (idx != 0) {
-            n = &Vector_data(&self->nodes)[idx];
-            continue;
-        }
-        if (!(flags & TRIE_CREATE_INTERMEDIATES)) {
-            return NULL;
-        }
-        const size_t end_ = Vector_size(&self->nodes);
-        const size_t uint16_max = (uint16_t) -1;
-        (void) uint16_max;
-        assert(end_ < uint16_max && "size is constrained");
-        const uint16_t end = (uint16_t) end_;
-        const sym_trie_node_t empty = (sym_trie_node_t) {0};
-        n->children[i] = end;
-        Vector_push(&self->nodes, empty);
-        n = &Vector_data(&self->nodes)[end];
-    }
-    if (!(flags & TRIE_CREATE_INTERMEDIATES) && !n->value.type.value) {
-        return NULL;
-    }
-    return n;
+static bool sym_trie_get(sym_scope_t *self, String ident, sym_t *out) {
+    return Trie_get((void *) &self->t, ident.bytes, out);
+}
+
+static void sym_trie_set(sym_scope_t *self, String ident, sym_t val) {
+    Trie_set((void *) &self->t, ident.bytes, &val);
 }
 
 void sym_push(ctx_t *ctx, size_t parent) {
-    sym_trie_t newscope = sym_trie_new();
-    newscope.parent = parent;
     symbols_t *symbols = &ctx->state.symbols;
+    sym_scope_t newscope = sym_trie_new(parent);
     Vector_push(&symbols->scopes, newscope);
 }
 
 void sym_pop(ctx_t *ctx) {
     symbols_t *symbols = &ctx->state.symbols;
-    Vector_delete(&Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1].nodes);
+    sym_trie_delete(&Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1]);
     Vector_pop(&symbols->scopes);
 }
 
-const sym_t *sym_lookup(const ctx_t *ctx, String ident) {
+bool sym_lookup(const ctx_t *ctx, String ident, sym_t *out) {
     const symbols_t *symbols = &ctx->state.symbols;
     size_t i = Vector_size(&symbols->scopes) - 1;
     for (;;) {
-        sym_trie_t *self = &Vector_data(&symbols->scopes)[i];
-        sym_trie_node_t *ret = sym_trie_at(self, ident, TRIE_NONE);
-        if (ret) {
-            return &ret->value;
+        sym_scope_t *it = &Vector_data(&symbols->scopes)[i];
+        if (sym_trie_get(it, ident, out)) {
+            return true;
         }
-        const size_t next = self->parent;
+        const size_t next = it->parent;
         if (i == next) {
-            return NULL;
+            return false;
         }
         i = next;
     }
@@ -269,14 +233,8 @@ const sym_t *sym_lookup(const ctx_t *ctx, String ident) {
 
 void sym_def(ctx_t *ctx, String ident, sym_t sym) {
     symbols_t *symbols = &ctx->state.symbols;
-    sym_trie_t *self = &Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1];
-    sym_trie_node_t *ret = sym_trie_at(self, ident, TRIE_CREATE_INTERMEDIATES);
-    ret->value = sym;
-    sym_trie_entry_t e = (sym_trie_entry_t) {
-            .key = ident,
-            .value = (uint16_t) (ret - Vector_data(&self->nodes)),
-    };
-    Vector_push(&self->list, e);
+    sym_scope_t *top = &Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1];
+    sym_trie_set(top, ident, sym);
 }
 
 // Intrinsics

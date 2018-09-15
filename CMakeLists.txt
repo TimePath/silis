@@ -41,6 +41,7 @@ set(SOURCE_FILES
         src/lib/slice.h
         src/lib/stdio.c
         src/lib/string.c
+        src/lib/trie.c
         src/lib/vector.c
 
         src/compiler/ctx.c

@@ -1,8 +1,5 @@
 #pragma once
 
-/// nearest power of two
-#define PARSE_NP2 128
-
 #define PARSE_WS(_) \
     _('\t') \
     _('\n') \
