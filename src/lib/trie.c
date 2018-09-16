@@ -23,9 +23,10 @@ bool Trie_get(AnyTrie *self, Slice(uint8_t) key, void *out)
 
 static const size_t uint16_max = (uint16_t) -1;
 
-void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value)
+void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value, size_t sizeof_Node)
 {
-    (void) uint16_max;
+    (void) sizeof_Node;
+    assert(sizeof_Node == TrieNode_Size(self));
     TrieNode *n = Trie_node(self, 0);
     Slice_loop(&key, i) {
         const uint8_t b = Slice_data(&key)[i];
@@ -35,6 +36,7 @@ void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value)
             continue;
         }
         const size_t end = Vector_size(&self->nodes);
+        (void) uint16_max;
         assert(end < uint16_max && "size is constrained");
         n->children[b] = (uint16_t) end;
         TrieNode x = {0};

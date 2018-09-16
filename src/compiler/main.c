@@ -47,7 +47,8 @@ size_t main(Vector(String) args) {
     const size_t len = (size_t) ret;
     fseek(file, 0, SEEK_SET);
     uint8_t buf[len + 1];
-    fread(buf, len, 1, file);
+    size_t read = fread(buf, len, 1, file);
+    (void) read;
     buf[len] = 0;
     fclose(file);
     String fileStr = String_fromSlice((Slice(uint8_t)) {buf, buf + len}, ENCODING_DEFAULT);

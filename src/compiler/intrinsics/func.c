@@ -4,7 +4,7 @@
 #include "_.h"
 #include "../phases/eval.h"
 
-static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[argc]);
+static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[VLA_LEN(argc)]);
 
 INTRINSIC_IMPL(func, "func", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr,
@@ -28,7 +28,7 @@ INTRINSIC_IMPL(func, "func", ((type_id[]) {
     };
 }
 
-static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[argc]) {
+static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[VLA_LEN(argc)]) {
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(ctx, &args[i]);
         assert(it->kind == NODE_LIST_BEGIN);
@@ -52,7 +52,7 @@ static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id
     }
 }
 
-void func_args_names(const ctx_t *ctx, const node_t *args, size_t argc, String out[argc]) {
+void func_args_names(const ctx_t *ctx, const node_t *args, size_t argc, String out[VLA_LEN(argc)]) {
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(ctx, &args[i]);
         assert(it->kind == NODE_LIST_BEGIN);

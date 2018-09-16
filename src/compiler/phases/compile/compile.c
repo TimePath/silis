@@ -267,10 +267,10 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
 }
 
 static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                             const node_t *func, size_t _n, const node_t *children[_n]);
+                             const node_t *func, size_t _n, const node_t *children[VLA_LEN(_n)]);
 
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                            const node_t *func, size_t n, const node_t *children[n]);
+                            const node_t *func, size_t n, const node_t *children[VLA_LEN(n)]);
 
 static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
     assert(it->kind == NODE_LIST_BEGIN);
@@ -292,7 +292,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
 }
 
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                            const node_t *func, size_t n, const node_t *children[n]) {
+                            const node_t *func, size_t n, const node_t *children[VLA_LEN(n)]) {
     fprintf_s(ctx->out, STR("{\n"));
     state.depth++;
 
@@ -328,7 +328,7 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 
 // fixme: check the value, not the name
 static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                             const node_t *func, size_t _n, const node_t *children[_n]) {
+                             const node_t *func, size_t _n, const node_t *children[VLA_LEN(_n)]) {
     if (func->kind != NODE_ATOM) {
         return false;
     }

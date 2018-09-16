@@ -24,6 +24,15 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
         clang4 = pkg: pkg.override { stdenv = overrideCC stdenv clang_4; };
         clang5 = pkg: pkg.override { stdenv = overrideCC stdenv clang_5; };
         clang6 = pkg: pkg.override { stdenv = overrideCC stdenv clang_6; };
+
+        tcc = pkg: (pkg.override { stdenv = overrideCC stdenv tinycc; }).overrideAttrs (oldAttrs: {
+            CC = "tcc";
+            patchPhase = ''
+                grep -l -R "#pragma once" src | while read f; do
+                   ${casguard} $f | ${pkgs.moreutils}/bin/sponge $f
+                done
+            '';
+        });
     };
     libc = {
         default = pkg: pkg.overrideAttrs (oldAttrs: {
@@ -67,6 +76,33 @@ buildMatrix = { name ? apply, apply ? name }: m: prefix: pkg: let
     ;
     x = lib.listToAttrs (builtins.map (it: { name = it; value = lib.attrNames m.${it}; }) apply);
 in lib.listToAttrs (next {} x);
-in (m "silis" pkgs.silis) // {
+casguard = pkgs.writeScript "casguard.py" ''
+    #!${pkgs.python3}/bin/python
+    import sys
+    import shutil
+    from hashlib import sha256
 
+    def hash(path):
+      h = sha256()
+      with open(path, "rb", buffering = 0) as f:
+        for b in iter(lambda: f.read(128 * 1024), b""):
+          h.update(b)
+      return h.hexdigest()
+
+    def cat(path):
+      with open(path, "r") as f:
+        shutil.copyfileobj(f, sys.stdout)
+
+    path = sys.argv[1]
+    guard = "INCLUDED_" + hash(path)[0:32]
+
+    print(f"#ifndef {guard}")
+    print(f"#define {guard}")
+    print("")
+    cat(path)
+    print("")
+    print("#endif")
+'';
+in (m "silis" pkgs.silis) // {
+    casguard = casguard;
 }

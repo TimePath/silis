@@ -4,6 +4,12 @@
 #include "vector.h"
 #include "slice.h"
 
+#if !defined(__TINYC__)
+#define TrieNode_Padding
+#else
+#define TrieNode_Padding uint8_t padding[7];
+#endif
+
 #define TrieNode(T) CAT2(TrieNode__, T)
 #define TrieNode_instantiate(T) typedef TrieNode_(T) TrieNode(T)
 #define TrieNode_(T) \
@@ -12,6 +18,7 @@ DIAG_IGNORE("-Wpacked") \
 struct __attribute__((__packed__)) { \
     uint16_t children[256]; \
     bool initialised; \
+    TrieNode_Padding \
     T value; \
 } \
 DIAG_POP
@@ -21,6 +28,7 @@ DIAG_IGNORE("-Wpacked")
 typedef struct __attribute__((__packed__)) {
     uint16_t children[256];
     bool initialised;
+    TrieNode_Padding
     // T value;
 } TrieNode;
 DIAG_POP
@@ -64,4 +72,4 @@ typedef Trie(TriePlaceholder) AnyTrie;
 
 bool Trie_get(AnyTrie *self, Slice(uint8_t) key, void *out);
 
-void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value);
+void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value, size_t sizeof_Node);

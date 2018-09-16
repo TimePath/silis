@@ -222,7 +222,7 @@ static bool sym_trie_get(sym_scope_t *self, String ident, sym_t *out) {
 }
 
 static void sym_trie_set(sym_scope_t *self, String ident, sym_t val) {
-    Trie_set((void *) &self->t, ident.bytes, &val);
+    Trie_set((void *) &self->t, ident.bytes, &val, sizeof(TrieNode(sym_t)));
 }
 
 void sym_push(ctx_t *ctx, size_t parent) {

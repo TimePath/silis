@@ -35,10 +35,19 @@ typedef struct {
 } String;
 
 #define STR(str) STR_(""str"")
+#if !defined(__TINYC__)
 #define STR_(str) STR__(((Slice(uint8_t)) {(const uint8_t *) (str), (const uint8_t *) ((str) + (sizeof (str) - 1))}))
+#else
+#define STR_(str) STR__(((Slice(uint8_t)) {(const uint8_t *) (str), NULL + (sizeof (str) - 1)}))
+#endif
 #define STR__(slice) String_fromSlice(slice, ENCODING_COMPILER)
 
 INLINE String String_fromSlice(Slice(uint8_t) slice, const StringEncoding *encoding) {
+#if defined(__TINYC__)
+    if (slice._end < slice._begin) {
+        slice._end = slice._begin + (slice._end - NULL);
+    }
+#endif
     return (String) {.bytes = slice, .encoding = encoding};
 }
 
