@@ -1,9 +1,10 @@
 #include <system.h>
+#include "cond.h"
 
 #include "_.h"
 #include "../phases/eval.h"
 
-INTRINSIC(cond, ((type_id[]) {
+INTRINSIC_IMPL(cond, "cond", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr, ctx->state.types.t_expr,
         ctx->state.types.t_unit,
 })) {

@@ -7,16 +7,17 @@ bool String_equals(String self, String other) {
     return selfSize == otherSize && memcmp(String_begin(self), String_begin(other), selfSize) == 0;
 }
 
-static native_char_t spaces[8 * 4 + 1];
-
-STATIC_INIT(spaces) {
-    for (size_t i = 0; i < ARRAY_LEN(spaces) - 1; ++i) {
+static native_char_t *spaces(size_t n) {
+    static native_char_t *spaces = NULL;
+    static size_t i = 0;
+    for (spaces = realloc(spaces, n + 1); i < n; ++i) {
         spaces[i] = ' ';
     }
+    return spaces;
 }
 
 String String_indent(size_t n) {
-    assert(n < ARRAY_LEN(spaces));
-    Slice(uint8_t) slice = {(const uint8_t *) spaces, (const uint8_t *) (spaces + n)};
+    const uint8_t *p = (const uint8_t *) spaces(n);
+    Slice(uint8_t) slice = {p, p + n};
     return String_fromSlice(slice, ENCODING_COMPILER);
 }

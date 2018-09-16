@@ -53,16 +53,14 @@ set(SOURCE_FILES
         src/compiler/phases/eval.c
         src/compiler/phases/compile/compile.c
 
+        src/compiler/intrinsics/_.h
         src/compiler/intrinsics/debug/puti.c
         src/compiler/intrinsics/debug/puts.c
-
-        src/compiler/intrinsics/_.h
         src/compiler/intrinsics/cond.c
         src/compiler/intrinsics/define.c
         src/compiler/intrinsics/do.c
         src/compiler/intrinsics/extern.c
         src/compiler/intrinsics/func.c
-
         src/compiler/intrinsics/minus.c
         src/compiler/intrinsics/plus.c
 

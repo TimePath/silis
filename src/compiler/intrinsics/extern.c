@@ -1,9 +1,10 @@
 #include <system.h>
+#include "extern.h"
 
 #include "_.h"
 #include "../phases/eval.h"
 
-INTRINSIC(extern, ((type_id[]) {
+INTRINSIC_IMPL(extern, "extern", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr,
         ctx->state.types.t_unit,
 })) {

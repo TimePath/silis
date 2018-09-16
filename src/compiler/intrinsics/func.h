@@ -1,6 +1,8 @@
-#pragma once
+#include <system.h>
 
-#include "../ctx.h"
+#include "_.h"
+
+INTRINSIC(func);
 
 value_t func_call(ctx_t *ctx, value_t func, const value_t *argv);
 

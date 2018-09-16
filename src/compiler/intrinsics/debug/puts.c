@@ -1,10 +1,11 @@
 #include <system.h>
+#include "puts.h"
 
 #include <lib/stdio.h>
 
 #include "../_.h"
 
-INTRINSIC(puts, ((type_id[]) {
+INTRINSIC_IMPL(debug_puts, "puts", ((type_id[]) {
         ctx->state.types.t_string,
         ctx->state.types.t_unit,
 })) {

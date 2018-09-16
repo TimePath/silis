@@ -6,7 +6,7 @@
 
 static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[argc]);
 
-INTRINSIC(func, ((type_id[]) {
+INTRINSIC_IMPL(func, "func", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr,
         ctx->state.types.t_unit,
 })) {

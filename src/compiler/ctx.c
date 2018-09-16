@@ -6,6 +6,17 @@
 
 #include "phases/parse.h"
 
+#include <compiler/intrinsics/debug/puti.h>
+#include <compiler/intrinsics/debug/puts.h>
+#include <compiler/intrinsics/types/func.h>
+#include <compiler/intrinsics/cond.h>
+#include <compiler/intrinsics/define.h>
+#include <compiler/intrinsics/do.h>
+#include <compiler/intrinsics/extern.h>
+#include <compiler/intrinsics/func.h>
+#include <compiler/intrinsics/minus.h>
+#include <compiler/intrinsics/plus.h>
+
 void ctx_init(ctx_t *self) {
     sym_push(self, 0);
     self->state.types.t_unit = type_new(self, (type_t) {
@@ -42,9 +53,20 @@ void ctx_init(ctx_t *self) {
             .value.u.type.value = self->state.types.t_int,
             .flags.intrinsic = true,
     });
-    Slice_loop(&Vector_toSlice(ctx_register_t, &intrinsics), i) {
-        Vector_data(&intrinsics)[i](self);
-    }
+
+    intrin_debug_puti.load(self);
+    intrin_debug_puts.load(self);
+
+    intrin_types_func.load(self);
+
+    intrin_cond.load(self);
+    intrin_define.load(self);
+    intrin_do.load(self);
+    intrin_extern.load(self);
+    intrin_func.load(self);
+    intrin_minus.load(self);
+    intrin_plus.load(self);
+
     self->state.types.end_intrinsics = Vector_size(&self->state.types.all) - 1;
 }
 
@@ -238,8 +260,6 @@ void sym_def(ctx_t *ctx, String ident, sym_t sym) {
 }
 
 // Intrinsics
-
-Vector(ctx_register_t) intrinsics = {0};
 
 void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func) {
     sym_def(self, name, (sym_t) {

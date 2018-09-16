@@ -230,12 +230,6 @@ void sym_def(ctx_t *ctx, String ident, sym_t sym);
 
 // Intrinsics
 
-typedef void (*ctx_register_t)(ctx_t *ctx);
-
-Vector_instantiate(ctx_register_t);
-Slice_instantiate(ctx_register_t);
-extern Vector(ctx_register_t) intrinsics;
-
 void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func);
 
 // State

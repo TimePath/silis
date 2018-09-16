@@ -1,9 +1,10 @@
 #include <system.h>
+#include "do.h"
 
 #include "_.h"
 #include "../phases/eval.h"
 
-INTRINSIC(do, ((type_id[]) {
+INTRINSIC_IMPL(do, "do", ((type_id[]) {
         ctx->state.types.t_expr,
         ctx->state.types.t_unit,
 })) {

@@ -1,11 +1,12 @@
 #include <system.h>
+#include "func.h"
 
 #include "../_.h"
 #include "../../phases/eval.h"
 
 static void types_func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id *out);
 
-INTRINSIC_("types/func", types_func, ((type_id[]) {
+INTRINSIC_IMPL(types_func, "types/func", ((type_id[]) {
         ctx->state.types.t_expr,
         ctx->state.types.t_unit,
 })) {

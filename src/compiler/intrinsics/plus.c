@@ -1,8 +1,9 @@
 #include <system.h>
+#include "plus.h"
 
 #include "_.h"
 
-INTRINSIC_("+", plus, ((type_id[]) {
+INTRINSIC_IMPL(plus, "+", ((type_id[]) {
         ctx->state.types.t_int, ctx->state.types.t_int,
         ctx->state.types.t_int
 })) {
