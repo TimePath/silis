@@ -40,7 +40,8 @@ typedef struct {
 
 static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it);
 
-void do_compile(const ctx_t *g_ctx, FILE *out) {
+void do_compile(const ctx_t *g_ctx, FILE *out)
+{
     const compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
     const compile_ctx_t *ctx = &ctx_;
 
@@ -102,11 +103,12 @@ void do_compile(const ctx_t *g_ctx, FILE *out) {
     }
 }
 
-static String type_name(const compile_ctx_t *ctx, type_id id) {
+static String type_name(const compile_ctx_t *ctx, type_id id)
+{
 #define CASE(T) if (id.value == ctx->ctx->state.types.T.value)
-    CASE(t_unit) return STR("void");
-    CASE(t_int) return STR("int");
-    CASE(t_string) return STR("const char*");
+    CASE(t_unit) { return STR("void"); }
+    CASE(t_int) { return STR("int"); }
+    CASE(t_string) { return STR("const char*"); }
 #undef CASE
     assert(false);
     return STR("?");
@@ -116,13 +118,15 @@ static void print_function_ret(const compile_ctx_t *ctx, type_id id);
 
 static void print_function_args(const compile_ctx_t *ctx, type_id id, const String idents[]);
 
-static void print_function(const compile_ctx_t *ctx, type_id id, String ident, const String idents[]) {
+static void print_function(const compile_ctx_t *ctx, type_id id, String ident, const String idents[])
+{
     print_function_ret(ctx, id);
     fprintf_s(ctx->out, ident);
     print_function_args(ctx, id, idents);
 }
 
-static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident) {
+static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident)
+{
     const type_t *T = type_lookup(ctx->ctx, id);
     if (T->kind == TYPE_FUNCTION) {
         print_function_ret(ctx, id);
@@ -141,14 +145,16 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident
     }
 }
 
-static void print_function_ret(const compile_ctx_t *ctx, type_id id) {
+static void print_function_ret(const compile_ctx_t *ctx, type_id id)
+{
     const type_t *T = type_lookup(ctx->ctx, id);
     const type_id ret = type_func_ret(ctx->ctx, T);
     fprintf_s(ctx->out, type_name(ctx, ret));
     fprintf_s(ctx->out, STR(" "));
 }
 
-static void print_function_args(const compile_ctx_t *ctx, type_id id, const String idents[]) {
+static void print_function_args(const compile_ctx_t *ctx, type_id id, const String idents[])
+{
     fprintf_s(ctx->out, STR("("));
     const type_t *T = type_lookup(ctx->ctx, id);
     const type_t *argp = T;
@@ -169,7 +175,8 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const Stri
 
 #define TAB() fprintf_s(ctx->out, String_indent(state.depth * 4))
 
-static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
+static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t ret)
+{
     (void) state;
     switch (ret.kind) {
         case RETURN_TEMPORARY:
@@ -186,7 +193,8 @@ static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t r
     assert(false);
 }
 
-static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
+static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it)
+{
     (void) it;
     switch (ret.kind) {
         case RETURN_TEMPORARY:
@@ -202,7 +210,8 @@ static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return
     assert(false);
 }
 
-static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_t ret) {
+static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_t ret)
+{
     (void) state;
     switch (ret.kind) {
         case RETURN_FUNC:
@@ -223,7 +232,8 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
 
 static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it);
 
-static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
+static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it)
+{
     if (visit_node_primary(ctx, state, ret, it)) {
         fprintf_s(ctx->out, STR(";"));
         return;
@@ -231,7 +241,8 @@ static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t r
     visit_node_list(ctx, state, ret, it);
 }
 
-static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
+static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it)
+{
     switch (it->kind) {
         case NODE_ATOM:
             return_assign(ctx, state, ret);
@@ -272,7 +283,8 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                             const node_t *func, size_t n, const node_t *children[VLA_LEN(n)]);
 
-static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it) {
+static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it)
+{
     assert(it->kind == NODE_LIST_BEGIN);
     const node_t *childrenRaw = node_list_children(it);
     const size_t n = it->u.list.size;
@@ -292,7 +304,8 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
 }
 
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                            const node_t *func, size_t n, const node_t *children[VLA_LEN(n)]) {
+                            const node_t *func, size_t n, const node_t *children[VLA_LEN(n)])
+{
     fprintf_s(ctx->out, STR("{\n"));
     state.depth++;
 
@@ -328,7 +341,8 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 
 // fixme: check the value, not the name
 static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                             const node_t *func, size_t _n, const node_t *children[VLA_LEN(_n)]) {
+                             const node_t *func, size_t _n, const node_t *children[VLA_LEN(_n)])
+{
     if (func->kind != NODE_ATOM) {
         return false;
     }

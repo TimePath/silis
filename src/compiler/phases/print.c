@@ -3,7 +3,8 @@
 
 #include <lib/stdio.h>
 
-static void print_indent(FILE *f, print_state_t *state) {
+static void print_indent(FILE *f, print_state_t *state)
+{
     if (state->needLine) {
         fprintf_s(f, STR("\n"));
         state->needLine = false;
@@ -14,7 +15,8 @@ static void print_indent(FILE *f, print_state_t *state) {
     }
 }
 
-print_state_t print(FILE *f, print_state_t state, const node_t *it) {
+print_state_t print(FILE *f, print_state_t state, const node_t *it)
+{
     if (it->kind == NODE_INVALID) {
         return state;
     }

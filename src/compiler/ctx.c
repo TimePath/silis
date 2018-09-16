@@ -17,7 +17,8 @@
 #include <compiler/intrinsics/minus.h>
 #include <compiler/intrinsics/plus.h>
 
-void ctx_init(ctx_t *self) {
+void ctx_init(ctx_t *self)
+{
     sym_push(self, 0);
     self->state.types.t_unit = type_new(self, (type_t) {
             .kind = TYPE_OPAQUE,
@@ -72,16 +73,20 @@ void ctx_init(ctx_t *self) {
 
 // Nodes
 
-const node_t *node_get(const ctx_t *ctx, node_id ref) {
+const node_t *node_get(const ctx_t *ctx, node_id ref)
+{
     return &Vector_data(&ctx->flatten.out)[ref.val];
 }
 
-node_id node_ref(const ctx_t *ctx, const node_t *it) {
-    assert(it >= Vector_data(&ctx->flatten.out) && it <= &Vector_data(&ctx->flatten.out)[Vector_size(&ctx->flatten.out) - 1]);
+node_id node_ref(const ctx_t *ctx, const node_t *it)
+{
+    assert(it >= Vector_data(&ctx->flatten.out) &&
+           it <= &Vector_data(&ctx->flatten.out)[Vector_size(&ctx->flatten.out) - 1]);
     return (node_id) {(size_t) (it - Vector_data(&ctx->flatten.out))};
 }
 
-const node_t *node_deref(const ctx_t *ctx, const node_t *it) {
+const node_t *node_deref(const ctx_t *ctx, const node_t *it)
+{
     if (it->kind == NODE_REF) {
         const node_t *ret = node_get(ctx, it->u.ref.value);
         assert(ret->kind != NODE_REF && "no double refs");
@@ -92,7 +97,8 @@ const node_t *node_deref(const ctx_t *ctx, const node_t *it) {
 
 // AST
 
-size_t ast_parse_push(ctx_t *ctx) {
+size_t ast_parse_push(ctx_t *ctx)
+{
     Vector(node_t) *out = &ctx->parse.out;
     const size_t thisIdx = Vector_size(out);
     const size_t parentIdx = ctx->parse.list_parent_idx;
@@ -109,7 +115,8 @@ size_t ast_parse_push(ctx_t *ctx) {
     return parentIdx;
 }
 
-void ast_push(ctx_t *ctx, node_t it) {
+void ast_push(ctx_t *ctx, node_t it)
+{
     Vector(node_t) *out = &ctx->parse.out;
     const size_t thisIdx = Vector_size(out);
     const size_t parentIdx = ctx->parse.list_parent_idx;
@@ -122,7 +129,8 @@ void ast_push(ctx_t *ctx, node_t it) {
     Vector_push(out, it);
 }
 
-void ast_parse_pop(ctx_t *ctx, size_t tok) {
+void ast_parse_pop(ctx_t *ctx, size_t tok)
+{
     Vector(node_t) *out = &ctx->parse.out;
     ctx->parse.list_parent_idx = tok;
     node_t it = (node_t) {
@@ -133,12 +141,14 @@ void ast_parse_pop(ctx_t *ctx, size_t tok) {
 
 // Types
 
-type_id type_new(ctx_t *ctx, type_t it) {
+type_id type_new(ctx_t *ctx, type_t it)
+{
     Vector_push(&ctx->state.types.all, it);
     return (type_id) {Vector_size(&ctx->state.types.all) - 1};
 }
 
-type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n) {
+type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n)
+{
     size_t i = n - 1;
     type_id ret = argv[i];
     while (i-- > 0) {
@@ -152,7 +162,8 @@ type_id type_func_new(ctx_t *ctx, type_id *argv, size_t n) {
     return ret;
 }
 
-type_id type_func_ret(const ctx_t *ctx, const type_t *T) {
+type_id type_func_ret(const ctx_t *ctx, const type_t *T)
+{
     type_id ret = {.value = 0};
     for (const type_t *it = T; it->kind == TYPE_FUNCTION; it = type_lookup(ctx, it->u.func.out)) {
         ret = it->u.func.out;
@@ -160,7 +171,8 @@ type_id type_func_ret(const ctx_t *ctx, const type_t *T) {
     return ret;
 }
 
-size_t type_func_argc(const ctx_t *ctx, const type_t *T) {
+size_t type_func_argc(const ctx_t *ctx, const type_t *T)
+{
     size_t argc = 0;
     for (const type_t *it = T; it->kind == TYPE_FUNCTION; it = type_lookup(ctx, it->u.func.out)) {
         ++argc;
@@ -168,13 +180,15 @@ size_t type_func_argc(const ctx_t *ctx, const type_t *T) {
     return argc;
 }
 
-const type_t *type_lookup(const ctx_t *ctx, type_id id) {
+const type_t *type_lookup(const ctx_t *ctx, type_id id)
+{
     return &Vector_data(&ctx->state.types.all)[id.value];
 }
 
 // Values
 
-value_t value_from(const ctx_t *ctx, const node_t *n) {
+value_t value_from(const ctx_t *ctx, const node_t *n)
+{
     switch (n->kind) {
         case NODE_ATOM: {
             const String ident = n->u.atom.value;
@@ -206,38 +220,45 @@ value_t value_from(const ctx_t *ctx, const node_t *n) {
 
 // Symbols
 
-static sym_scope_t sym_trie_new(size_t parent) {
-    sym_scope_t self = (sym_scope_t) { .parent = parent };
+static sym_scope_t sym_trie_new(size_t parent)
+{
+    sym_scope_t self = (sym_scope_t) {.parent = parent};
     Trie_new(sym_t, &self.t);
     return self;
 }
 
-static void sym_trie_delete(sym_scope_t *self) {
+static void sym_trie_delete(sym_scope_t *self)
+{
     Vector_delete(&self->t.nodes);
     Vector_delete(&self->t.entries);
 }
 
-static bool sym_trie_get(sym_scope_t *self, String ident, sym_t *out) {
+static bool sym_trie_get(sym_scope_t *self, String ident, sym_t *out)
+{
     return Trie_get((void *) &self->t, ident.bytes, out);
 }
 
-static void sym_trie_set(sym_scope_t *self, String ident, sym_t val) {
+static void sym_trie_set(sym_scope_t *self, String ident, sym_t val)
+{
     Trie_set((void *) &self->t, ident.bytes, &val, sizeof(TrieNode(sym_t)));
 }
 
-void sym_push(ctx_t *ctx, size_t parent) {
+void sym_push(ctx_t *ctx, size_t parent)
+{
     symbols_t *symbols = &ctx->state.symbols;
     sym_scope_t newscope = sym_trie_new(parent);
     Vector_push(&symbols->scopes, newscope);
 }
 
-void sym_pop(ctx_t *ctx) {
+void sym_pop(ctx_t *ctx)
+{
     symbols_t *symbols = &ctx->state.symbols;
     sym_trie_delete(&Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1]);
     Vector_pop(&symbols->scopes);
 }
 
-bool sym_lookup(const ctx_t *ctx, String ident, sym_t *out) {
+bool sym_lookup(const ctx_t *ctx, String ident, sym_t *out)
+{
     const symbols_t *symbols = &ctx->state.symbols;
     size_t i = Vector_size(&symbols->scopes) - 1;
     for (;;) {
@@ -253,7 +274,8 @@ bool sym_lookup(const ctx_t *ctx, String ident, sym_t *out) {
     }
 }
 
-void sym_def(ctx_t *ctx, String ident, sym_t sym) {
+void sym_def(ctx_t *ctx, String ident, sym_t sym)
+{
     symbols_t *symbols = &ctx->state.symbols;
     sym_scope_t *top = &Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1];
     sym_trie_set(top, ident, sym);
@@ -261,7 +283,8 @@ void sym_def(ctx_t *ctx, String ident, sym_t sym) {
 
 // Intrinsics
 
-void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func) {
+void ctx_init_intrinsic(ctx_t *self, String name, type_id T, intrinsic_t func)
+{
     sym_def(self, name, (sym_t) {
             .type = T,
             .value.type = T,

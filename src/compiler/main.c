@@ -21,7 +21,9 @@ MAIN(main)
 #define OUTPUT_BUFFER 0
 #endif
 
-size_t main(Vector(String) args) {
+size_t main(Vector(String)
+                    args)
+{
     struct {
         bool run : 1;
         bool print_parse : 1;
@@ -43,7 +45,7 @@ size_t main(Vector(String) args) {
     FILE *file = fopen(String_begin(Vector_data(&args)[1]), "r");
     fseek(file, 0, SEEK_END);
     const native_long_t ret = ftell(file);
-    if (ret < 0) return 1;
+    if (ret < 0) { return 1; }
     const size_t len = (size_t) ret;
     fseek(file, 0, SEEK_SET);
     uint8_t buf[len + 1];
@@ -78,7 +80,7 @@ size_t main(Vector(String) args) {
     if (flags.print_flatten) {
         print_state_t state = {0};
         Slice_loop(&Vector_toSlice(node_t, &ctx->flatten.out), i) {
-            if (i < 1) continue;
+            if (i < 1) { continue; }
             const node_t *it = node_get(ctx, (node_id) {i});
             if (it->kind == NODE_LIST_BEGIN) {
                 fprintf_s(stdout, STR(";; var_"));

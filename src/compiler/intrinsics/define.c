@@ -7,7 +7,8 @@
 INTRINSIC_IMPL(define, "define", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr,
         ctx->state.types.t_unit,
-})) {
+}))
+{
     const value_t *arg_name = &argv[0];
     const value_t *arg_val = &argv[1];
 

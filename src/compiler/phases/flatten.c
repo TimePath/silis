@@ -3,7 +3,8 @@
 
 static size_t do_flatten_rec(ctx_t *ctx, Vector(node_t) *stack, const node_t *begin);
 
-void do_flatten(ctx_t *ctx) {
+void do_flatten(ctx_t *ctx)
+{
     {
         // make usable ids start from 1
         Vector(node_t) *out = &ctx->flatten.out;
@@ -24,7 +25,8 @@ void do_flatten(ctx_t *ctx) {
     }
 }
 
-static size_t do_flatten_rec(ctx_t *ctx, Vector(node_t) *stack, const node_t *begin) {
+static size_t do_flatten_rec(ctx_t *ctx, Vector(node_t) *stack, const node_t *begin)
+{
     const node_t *it = begin;
     if (it->kind != NODE_LIST_BEGIN) {
         Vector_push(stack, *it);

@@ -55,17 +55,20 @@ static char_rule_e parse_chars[] = {
 #undef CASE
 };
 
-char_rule_e parse_char(size_t c) {
+char_rule_e parse_char(size_t c)
+{
     return c < ARRAY_LEN(parse_chars)
            ? parse_chars[c]
            : CHAR_INVALID;
 }
 
-static bool parse_is_space(size_t c) {
+static bool parse_is_space(size_t c)
+{
     return parse_char(c) == CHAR_WS;
 }
 
-static size_t parse_atom(ctx_t *ctx, String prog) {
+static size_t parse_atom(ctx_t *ctx, String prog)
+{
     const StringEncoding *enc = prog.encoding;
     bool number = true;
     Slice(uint8_t) it = prog.bytes;
@@ -94,7 +97,8 @@ static size_t parse_atom(ctx_t *ctx, String prog) {
     return String_sizeUnits(atom);
 }
 
-static size_t parse_string(ctx_t *ctx, String prog) {
+static size_t parse_string(ctx_t *ctx, String prog)
+{
     const StringEncoding *enc = prog.encoding;
     const uint8_t *begin = String_begin(prog);
     // mutation, but only decreases size
@@ -134,7 +138,8 @@ static size_t parse_string(ctx_t *ctx, String prog) {
     return 1 + enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}) + 1;
 }
 
-size_t parse_list(ctx_t *ctx, String prog) {
+size_t parse_list(ctx_t *ctx, String prog)
+{
     const StringEncoding *enc = prog.encoding;
     const size_t tok = ast_parse_push(ctx);
     const uint8_t *begin = String_begin(prog);

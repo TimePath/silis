@@ -3,14 +3,16 @@
 
 #include "../intrinsics/func.h"
 
-void do_eval(ctx_t *ctx) {
+void do_eval(ctx_t *ctx)
+{
     const node_t *it = node_get(ctx, (node_id) {Vector_size(&ctx->flatten.out) - 1});
     assert(it->kind == NODE_LIST_END);
-    while ((--it)->kind != NODE_LIST_BEGIN);
+    while ((--it)->kind != NODE_LIST_BEGIN) {}
     eval_list_block(ctx, it);
 }
 
-value_t eval_list_block(ctx_t *ctx, const node_t *it) {
+value_t eval_list_block(ctx_t *ctx, const node_t *it)
+{
     assert(it->kind == NODE_LIST_BEGIN);
     const size_t n = it->u.list.size;
     const node_t *children = node_list_children(it);
@@ -21,7 +23,8 @@ value_t eval_list_block(ctx_t *ctx, const node_t *it) {
     return ret;
 }
 
-value_t eval_node(ctx_t *ctx, const node_t *it) {
+value_t eval_node(ctx_t *ctx, const node_t *it)
+{
     it = node_deref(ctx, it);
     if (it->kind != NODE_LIST_BEGIN) {
         return value_from(ctx, it);

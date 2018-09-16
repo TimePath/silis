@@ -9,7 +9,8 @@ static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id
 INTRINSIC_IMPL(func, "func", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr,
         ctx->state.types.t_unit,
-})) {
+}))
+{
     const value_t *arg_args = &argv[0];
     const value_t *arg_body = &argv[1];
 
@@ -28,7 +29,8 @@ INTRINSIC_IMPL(func, "func", ((type_id[]) {
     };
 }
 
-static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[VLA_LEN(argc)]) {
+static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[VLA_LEN(argc)])
+{
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(ctx, &args[i]);
         assert(it->kind == NODE_LIST_BEGIN);
@@ -52,7 +54,8 @@ static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id
     }
 }
 
-void func_args_names(const ctx_t *ctx, const node_t *args, size_t argc, String out[VLA_LEN(argc)]) {
+void func_args_names(const ctx_t *ctx, const node_t *args, size_t argc, String out[VLA_LEN(argc)])
+{
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(ctx, &args[i]);
         assert(it->kind == NODE_LIST_BEGIN);
@@ -70,7 +73,8 @@ void func_args_names(const ctx_t *ctx, const node_t *args, size_t argc, String o
 
 static void func_args_load(ctx_t *ctx, const node_t *arglist, const value_t *argv);
 
-value_t func_call(ctx_t *ctx, value_t func, const value_t *argv) {
+value_t func_call(ctx_t *ctx, value_t func, const value_t *argv)
+{
     if (func.type.value <= ctx->state.types.end_intrinsics) {
         return func.u.intrinsic.value(ctx, argv);
     }
@@ -83,7 +87,8 @@ value_t func_call(ctx_t *ctx, value_t func, const value_t *argv) {
     return ret;
 }
 
-static void func_args_load(ctx_t *ctx, const node_t *arglist, const value_t *argv) {
+static void func_args_load(ctx_t *ctx, const node_t *arglist, const value_t *argv)
+{
     assert(arglist->kind == NODE_LIST_BEGIN);
     const size_t argc = arglist->u.list.size;
     const node_t *args = node_list_children(arglist);

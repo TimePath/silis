@@ -9,7 +9,8 @@ static void types_func_args_types(ctx_t *ctx, const node_t *args, size_t argc, t
 INTRINSIC_IMPL(types_func, "types/func", ((type_id[]) {
         ctx->state.types.t_expr,
         ctx->state.types.t_unit,
-})) {
+}))
+{
     const value_t *arg_args = &argv[0];
 
     const node_t *args = node_get(ctx, arg_args->u.expr.value);
@@ -26,7 +27,8 @@ INTRINSIC_IMPL(types_func, "types/func", ((type_id[]) {
     };
 }
 
-static void types_func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id *out) {
+static void types_func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id *out)
+{
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(ctx, &args[i]);
         const value_t type = eval_node(ctx, it);

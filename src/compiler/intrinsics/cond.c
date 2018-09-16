@@ -7,7 +7,8 @@
 INTRINSIC_IMPL(cond, "cond", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr, ctx->state.types.t_expr,
         ctx->state.types.t_unit,
-})) {
+}))
+{
     const value_t *arg_predicate = &argv[0];
     const value_t *arg_true = &argv[1];
     const value_t *arg_false = &argv[2];

@@ -6,6 +6,7 @@
 
 typedef struct {
     void (*load)(ctx_t *ctx);
+
     value_t (*call)(ctx_t *ctx, const value_t *argv);
 } Intrinsic;
 
