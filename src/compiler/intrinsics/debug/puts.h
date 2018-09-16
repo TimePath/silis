@@ -1,4 +1,4 @@
-#include <system.h>
+#pragma once
 
 #include "../_.h"
 
