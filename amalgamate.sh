@@ -7,6 +7,6 @@ done > silis.inc
     echo '#ifdef __cplusplus'
     echo '#define _Bool bool'
     echo '#endif'
-    $CC -x c -E -P silis.inc | perl -pe 's(\Q((void *) 0))(NULL)'
+    $CC -x c -E -P -I $PWD/src silis.inc | perl -pe 's(\Q((void *) 0))(NULL)'
 } > silis.c
 rm silis.inc
