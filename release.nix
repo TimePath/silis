@@ -16,12 +16,14 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
         default = identity;
 
         gcc = pkg: pkg.override { stdenv = overrideCC stdenv gcc; };
+        gcc5 = pkg: pkg.override { stdenv = overrideCC stdenv gcc5; };
         gcc6 = pkg: pkg.override { stdenv = overrideCC stdenv gcc6; };
         gcc7 = pkg: pkg.override { stdenv = overrideCC stdenv gcc7; };
 
         clang = pkg: pkg.override { stdenv = overrideCC stdenv clang; };
         clang4 = pkg: pkg.override { stdenv = overrideCC stdenv clang_4; };
         clang5 = pkg: pkg.override { stdenv = overrideCC stdenv clang_5; };
+        clang6 = pkg: pkg.override { stdenv = overrideCC stdenv clang_6; };
     };
     libc = {
         default = pkg: pkg.overrideAttrs (oldAttrs: {

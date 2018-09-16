@@ -21,3 +21,13 @@
 #define DIAG_IGNORE(rule)
 #define DIAG_POP
 #endif
+
+#if defined(__has_warning)
+#if __has_warning("-Wredundant-parens")
+#define DIAG_IGNORE_REDUNDANT_PARENS DIAG_IGNORE("-Wredundant-parens")
+#endif
+#endif
+
+#ifndef DIAG_IGNORE_REDUNDANT_PARENS
+#define DIAG_IGNORE_REDUNDANT_PARENS
+#endif
