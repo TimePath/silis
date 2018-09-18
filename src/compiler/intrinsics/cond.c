@@ -2,7 +2,7 @@
 #include "cond.h"
 
 #include "_.h"
-#include "../phases/eval.h"
+#include "../phases/03-eval/eval.h"
 
 INTRINSIC_IMPL(cond, "cond", ((type_id[]) {
         ctx->state.types.t_expr, ctx->state.types.t_expr, ctx->state.types.t_expr,

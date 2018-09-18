@@ -2,7 +2,7 @@
 #include "func.h"
 
 #include "_.h"
-#include "../phases/eval.h"
+#include "../phases/03-eval/eval.h"
 
 static void func_args_types(ctx_t *ctx, const node_t *args, size_t argc, type_id out[VLA_LEN(argc)]);
 

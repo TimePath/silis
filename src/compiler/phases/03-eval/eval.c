@@ -1,7 +1,7 @@
 #include <system.h>
 #include "eval.h"
 
-#include "../intrinsics/func.h"
+#include "../../intrinsics/func.h"
 
 void do_eval(ctx_t *ctx)
 {

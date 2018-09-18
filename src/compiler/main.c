@@ -4,11 +4,11 @@
 #include <lib/string.h>
 
 #include "ctx.h"
-#include "phases/parse.h"
-#include "phases/flatten.h"
+#include "phases/01-parse/parse.h"
+#include "phases/02-flatten/flatten.h"
+#include "phases/03-eval/eval.h"
+#include "phases/04-compile/compile.h"
 #include "phases/print.h"
-#include "phases/eval.h"
-#include "phases/compile/compile.h"
 #include "intrinsics/func.h"
 
 Vector_instantiate(String);

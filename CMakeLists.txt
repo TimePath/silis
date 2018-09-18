@@ -47,11 +47,11 @@ set(SOURCE_FILES
         src/compiler/ctx.c
         src/compiler/main.c
 
-        src/compiler/phases/parse.c src/compiler/phases/parse.inc.h
-        src/compiler/phases/flatten.c
+        src/compiler/phases/01-parse/parse.c src/compiler/phases/01-parse/parse.inc.h
+        src/compiler/phases/02-flatten/flatten.c
+        src/compiler/phases/03-eval/eval.c
+        src/compiler/phases/04-compile/compile.c
         src/compiler/phases/print.c
-        src/compiler/phases/eval.c
-        src/compiler/phases/compile/compile.c
 
         src/compiler/intrinsics/_.h
         src/compiler/intrinsics/debug/puti.c

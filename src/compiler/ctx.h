@@ -4,7 +4,7 @@
 #include <lib/string.h>
 #include <lib/trie.h>
 
-#include "phases/parse.inc.h"
+#include "phases/01-parse/parse.inc.h"
 
 typedef struct ctx_s ctx_t;
 

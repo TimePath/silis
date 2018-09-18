@@ -4,7 +4,7 @@
 #include <lib/string.h>
 #include <lib/slice.h>
 
-#include "phases/parse.h"
+#include "phases/01-parse/parse.h"
 
 #include <compiler/intrinsics/debug/puti.h>
 #include <compiler/intrinsics/debug/puts.h>
