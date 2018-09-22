@@ -6,6 +6,12 @@ typedef struct {
     Vector(node_t) out;
 } parse_ctx_t;
 
+#define parse_ctx_new() (parse_ctx_t) { \
+    .list_parent_idx = 0, \
+    .out = Vector_new(), \
+} \
+/**/
+
 typedef struct {
     size_t idx;
 } ctx_list_memo;
@@ -23,7 +29,7 @@ static size_t parse_list(parse_ctx_t *ctx, String prog);
 
 parse_output do_parse(parse_input in)
 {
-    parse_ctx_t ctx = {0};
+    parse_ctx_t ctx = parse_ctx_new();
     parse_list(&ctx, in.source);
     return (parse_output) {.tokens = ctx.out};
 }
@@ -43,7 +49,7 @@ static ctx_list_memo ctx_list_push(parse_ctx_t *ctx)
             .kind = NODE_LIST_BEGIN,
     };
     Vector_push(out, it);
-    return (ctx_list_memo) {parentIdx};
+    return (ctx_list_memo) {.idx = parentIdx};
 }
 
 static void ctx_list_add(parse_ctx_t *ctx, node_t it)
@@ -224,7 +230,7 @@ static size_t parse_atom(parse_ctx_t *ctx, String prog)
             number = false;
         }
     }
-    const String atom = String_fromSlice((Slice(uint8_t)) {String_begin(prog), Slice_begin(&it)}, enc);
+    const String atom = String_fromSlice((Slice(uint8_t)) {._begin = String_begin(prog), ._end = Slice_begin(&it)}, enc);
     if (number) {
         ctx_list_add(ctx, (node_t) {
                 .kind = NODE_INTEGRAL,
@@ -272,12 +278,12 @@ static size_t parse_string(parse_ctx_t *ctx, String prog)
         }
     }
     done:;
-    const String value = String_fromSlice((Slice(uint8_t)) {begin, (const uint8_t *) out}, enc);
+    const String value = String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = (const uint8_t *) out}, enc);
     ctx_list_add(ctx, (node_t) {
             .kind = NODE_STRING,
             .u.string.value = value,
     });
-    return 1 + enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}) + 1;
+    return 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
 }
 
 static size_t parse_list(parse_ctx_t *ctx, String prog)
@@ -308,7 +314,7 @@ static size_t parse_list(parse_ctx_t *ctx, String prog)
                 break;
             case ')':
             case ']': // sugar
-                ret = 1 + enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}) + 1;
+                ret = 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
                 goto done;
             case '"':
                 next = enc->skip_units(it, parse_string(ctx, String_fromSlice(next, enc)));
@@ -318,7 +324,7 @@ static size_t parse_list(parse_ctx_t *ctx, String prog)
                 break;
         }
     }
-    ret = enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}); // EOF
+    ret = enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}); // EOF
     done:;
     ctx_list_pop(ctx, memo);
     return ret;

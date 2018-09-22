@@ -5,11 +5,16 @@ typedef struct {
     Vector(node_t) nodes;
 } flatten_ctx_t;
 
+#define flatten_ctx_new() (flatten_ctx_t) { \
+    .nodes = Vector_new(), \
+} \
+/**/
+
 static size_t do_flatten_rec(flatten_ctx_t *ctx, Vector(node_t) *stack, const node_t *begin);
 
 flatten_output do_flatten(flatten_input in)
 {
-    flatten_ctx_t ctx = {{0}};
+    flatten_ctx_t ctx = flatten_ctx_new();
     {
         // make usable ids start from 1
         Vector(node_t) *nodes = &ctx.nodes;
@@ -21,7 +26,7 @@ flatten_output do_flatten(flatten_input in)
     const Vector(node_t) *read = &in.tokens;
     const node_t *begin = &Vector_data(read)[0];
     const node_t *end = &Vector_data(read)[Vector_size(read) - 1];
-    Vector(node_t) stack = {0};
+    Vector(node_t) stack = Vector_new();
     for (const node_t *it = begin; it < end;) {
         const size_t skip = do_flatten_rec(&ctx, &stack, it);
         Vector_pop(&stack); // ignore the final ref
@@ -50,7 +55,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, Vector(node_t) *stack, const no
     Vector(node_t) *out = &ctx->nodes;
     const size_t argv_end = Vector_size(stack) - 1;
     const size_t argc = argv_end - argv_begin + 1;
-    const node_id refIdx = (node_id) {Vector_size(out)};
+    const node_id refIdx = (node_id) {.val = Vector_size(out)};
     // just parsed a full expression
     {
         const node_t open = (node_t) {

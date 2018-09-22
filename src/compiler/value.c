@@ -32,5 +32,7 @@ value_t value_from(Env env, const node_t *n)
             break;
     }
     assert(false);
-    return (value_t) {{0}};
+    return (value_t) {
+            .type = {.value = 0}
+    };
 }

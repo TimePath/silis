@@ -125,15 +125,15 @@ extern void *memcpy(void *dest, const void *src, size_t n);
 
 typedef char native_char_t;
 typedef unsigned char native_uchar_t;
-#define char void
+#define char __DO_NOT_USE__
 
 typedef const native_char_t *native_string_t;
 
 typedef int native_int_t;
-#define int void
+#define int __DO_NOT_USE__
 
 typedef long native_long_t;
-#define long void
+#define long __DO_NOT_USE__
 
 #define main(...) _main(__VA_ARGS__)
 #define MAIN(impl) \
@@ -141,10 +141,10 @@ size_t main(Vector(String) args); \
 native_int_t (main)(native_int_t argc, native_string_t argv[]) \
 { \
     extern size_t strlen(native_string_t __s); \
-    Vector(String) args = {0}; \
+    Vector(String) args = Vector_new(); \
     for (size_t i = 0; i < (size_t) argc; ++i) { \
         native_string_t cstr = argv[i]; \
-        Slice(uint8_t) slice = {(const uint8_t *) cstr, (const uint8_t *) (cstr + strlen(cstr))}; \
+        Slice(uint8_t) slice = {._begin = (const uint8_t *) cstr, ._end = (const uint8_t *) (cstr + strlen(cstr))}; \
         String s = String_fromSlice(slice, ENCODING_SYSTEM); \
         Vector_push(&args, s); \
     } \

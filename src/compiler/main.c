@@ -63,7 +63,7 @@ size_t main(Vector(String)
     (void) read;
     buf[len] = 0;
     fclose(file);
-    String fileStr = String_fromSlice((Slice(uint8_t)) {buf, buf + len}, ENCODING_DEFAULT);
+    String fileStr = String_fromSlice((Slice(uint8_t)) {._begin = buf, ._end = buf + len}, ENCODING_DEFAULT);
 
     if (flags.print_parse) {
         fprintf_s(stdout, STR("PARSE:\n-----\n"));
@@ -72,7 +72,7 @@ size_t main(Vector(String)
             .source = fileStr,
     });
     if (flags.print_parse) {
-        print_state_t state = {0};
+        print_state_t state = print_state_new();
         Slice_loop(&Vector_toSlice(node_t, &parse.tokens), i) {
             const node_t *it = &Vector_data(&parse.tokens)[i];
             state = print(stdout, state, it);
@@ -87,7 +87,7 @@ size_t main(Vector(String)
             .tokens = parse.tokens,
     });
     if (flags.print_flatten) {
-        print_state_t state = {0};
+        print_state_t state = print_state_new();
         Slice_loop(&Vector_toSlice(node_t, &flatten.nodes), i) {
             if (i < 1) { continue; }
             const node_t *it = &Vector_data(&flatten.nodes)[i];
@@ -99,7 +99,7 @@ size_t main(Vector(String)
             state = print(stdout, state, it);
             if (it->kind == NODE_LIST_END) {
                 fprintf_s(stdout, STR("\n"));
-                state = (print_state_t) {0};
+                state = print_state_new();
             }
         }
         fprintf_s(stdout, STR("\n"));
@@ -107,16 +107,16 @@ size_t main(Vector(String)
 
     types_t types = types_new();
     symbols_t symbols = symbols_new(&types, Slice_of(InitialSymbol, (InitialSymbol[10]) {
-            {STR("#puti"),       intrin_debug_puti},
-            {STR("#puts"),       intrin_debug_puts},
-            {STR("#types/func"), intrin_types_func},
-            {STR("#cond"),       intrin_cond},
-            {STR("#define"),     intrin_define},
-            {STR("#do"),         intrin_do},
-            {STR("#extern"),     intrin_extern},
-            {STR("#func"),       intrin_func},
-            {STR("-"),           intrin_minus},
-            {STR("+"),           intrin_plus},
+            {.id = STR("#puti"),       .value = intrin_debug_puti},
+            {.id = STR("#puts"),       .value = intrin_debug_puts},
+            {.id = STR("#types/func"), .value = intrin_types_func},
+            {.id = STR("#cond"),       .value = intrin_cond},
+            {.id = STR("#define"),     .value = intrin_define},
+            {.id = STR("#do"),         .value = intrin_do},
+            {.id = STR("#extern"),     .value = intrin_extern},
+            {.id = STR("#func"),       .value = intrin_func},
+            {.id = STR("-"),           .value = intrin_minus},
+            {.id = STR("+"),           .value = intrin_plus},
     }));
 
     Env env = (Env) {

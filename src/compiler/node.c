@@ -6,7 +6,7 @@ Slice(node_t) node_list_children(const node_t *list)
     assert(list->kind == NODE_LIST_BEGIN);
     size_t n = list->u.list.size;
     const node_t *begin = list + 1;
-    return (Slice(node_t)) {begin, begin + n};
+    return (Slice(node_t)) {._begin = begin, ._end = begin + n};
 }
 
 const node_t *node_get(const Vector(node_t) *nodes, node_id ref)
@@ -18,7 +18,7 @@ node_id node_ref(const node_t *it, const Vector(node_t) *nodes)
 {
     assert(it >= Vector_data(nodes) &&
            it <= &Vector_data(nodes)[Vector_size(nodes) - 1]);
-    return (node_id) {(size_t) (it - Vector_data(nodes))};
+    return (node_id) {.val = (size_t) (it - Vector_data(nodes))};
 }
 
 const node_t *node_deref(const node_t *it, const Vector(node_t) *nodes)

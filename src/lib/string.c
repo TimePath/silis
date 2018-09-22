@@ -21,6 +21,6 @@ static native_char_t *spaces(size_t n)
 String String_indent(size_t n)
 {
     const uint8_t *p = (const uint8_t *) spaces(n);
-    Slice(uint8_t) slice = {p, p + n};
+    Slice(uint8_t) slice = {._begin = p, ._end = p + n};
     return String_fromSlice(slice, ENCODING_COMPILER);
 }

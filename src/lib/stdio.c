@@ -83,6 +83,6 @@ static String itoa(itoa_T val)
     *--p = itoa_lookup[index + 1];
     *--p = itoa_lookup[index];
     native_string_t begin = &p[val < 10];
-    Slice(uint8_t) slice = (Slice(uint8_t)) {(const uint8_t *) begin, (const uint8_t *) end};
+    Slice(uint8_t) slice = (Slice(uint8_t)) {._begin = (const uint8_t *) begin, ._end = (const uint8_t *) end};
     return String_fromSlice(slice, ENCODING_COMPILER);
 }

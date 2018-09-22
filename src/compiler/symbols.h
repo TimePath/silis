@@ -18,6 +18,10 @@ typedef struct symbols_s {
     Vector(sym_scope_t) scopes;
 } symbols_t;
 
+#define symbols_t_new() (symbols_t) { \
+    .scopes = Vector_new(), \
+} \
+/**/
 
 typedef struct {
     String id;

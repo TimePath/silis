@@ -3,7 +3,7 @@
 
 Vector_instantiate(void);
 
-void (Vector_push)(size_t sizeof_T, void *_self, size_t dataSize, const void *data)
+void _Vector_push(size_t sizeof_T, void *_self, size_t dataSize, const void *data)
 {
     Vector(void) *self = (Vector(void) *) _self;
     const size_t n = Vector_size(self);

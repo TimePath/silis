@@ -3,7 +3,15 @@
 
 types_t types_new(void)
 {
-    types_t _self = {{0}};
+    types_t _self = {
+            .all = Vector_new(),
+            .t_unit = {.value = 0},
+            .t_type = {.value = 0},
+            .t_expr = {.value = 0},
+            .t_string = {.value = 0},
+            .t_int = {.value = 0},
+            .end_intrinsics = 0,
+    };
     types_t *self = &_self;
     self->t_unit = type_new(self, (type_t) {
             .kind = TYPE_OPAQUE,
@@ -32,7 +40,7 @@ types_t types_new(void)
 type_id type_new(types_t *ctx, type_t it)
 {
     Vector_push(&ctx->all, it);
-    return (type_id) {Vector_size(&ctx->all) - 1};
+    return (type_id) {.value = Vector_size(&ctx->all) - 1};
 }
 
 type_id type_func_new(types_t *ctx, type_id *argv, size_t n)

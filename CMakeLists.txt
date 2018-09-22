@@ -21,12 +21,7 @@ try_flag(CMAKE_C_FLAGS "-Wextra")
 try_flag(CMAKE_C_FLAGS "-Weverything")
 
 # keep
-try_flag(CMAKE_C_FLAGS "-Wno-type-limits")
-try_flag(CMAKE_C_FLAGS "-Wno-unused-command-line-argument")
 try_flag(CMAKE_C_FLAGS "-Wno-keyword-macro")
-try_flag(CMAKE_C_FLAGS "-Wno-reserved-id-macro")
-try_flag(CMAKE_C_FLAGS "-Wno-disabled-macro-expansion")
-try_flag(CMAKE_C_FLAGS "-Wno-missing-field-initializers")
 
 include_directories(src)
 

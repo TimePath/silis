@@ -294,7 +294,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
     for (size_t i = 0; i < n; ++i) {
         _children[i] = node_deref(&Slice_data(&childrenRaw)[i], ctx->env.nodes);
     }
-    const Slice(node_t_ptr) children = (Slice(node_t_ptr)) { &_children[0], &_children[n] };
+    const Slice(node_t_ptr) children = (Slice(node_t_ptr)) { ._begin = &_children[0], ._end = &_children[n] };
     const node_t *first = Slice_data(&children)[0];
     if (n == 1) {
         visit_node(ctx, state, ret, first);
