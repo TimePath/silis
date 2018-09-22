@@ -3,13 +3,23 @@
 #include <lib/stdio.h>
 #include <lib/string.h>
 
-#include "ctx.h"
+#include "env.h"
 #include "phases/01-parse/parse.h"
 #include "phases/02-flatten/flatten.h"
 #include "phases/03-eval/eval.h"
 #include "phases/04-compile/compile.h"
 #include "phases/print.h"
+
+#include "intrinsics/debug/puti.h"
+#include "intrinsics/debug/puts.h"
+#include "intrinsics/types/func.h"
+#include "intrinsics/cond.h"
+#include "intrinsics/define.h"
+#include "intrinsics/do.h"
+#include "intrinsics/extern.h"
 #include "intrinsics/func.h"
+#include "intrinsics/minus.h"
+#include "intrinsics/plus.h"
 
 Vector_instantiate(String);
 
@@ -55,19 +65,16 @@ size_t main(Vector(String)
     fclose(file);
     String fileStr = String_fromSlice((Slice(uint8_t)) {buf, buf + len}, ENCODING_DEFAULT);
 
-    ctx_t ctx_ = (ctx_t) {0};
-    ctx_t *ctx = &ctx_;
-    ctx_init(ctx);
-
     if (flags.print_parse) {
         fprintf_s(stdout, STR("PARSE:\n-----\n"));
     }
-    parse_list(ctx, fileStr);
+    parse_output parse = do_parse((parse_input) {
+            .source = fileStr,
+    });
     if (flags.print_parse) {
         print_state_t state = {0};
-        const Vector(node_t) *out = &ctx->parse.out;
-        for (size_t i = 0; i < Vector_size(out); ++i) {
-            const node_t *it = &Vector_data(out)[i];
+        Slice_loop(&Vector_toSlice(node_t, &parse.tokens), i) {
+            const node_t *it = &Vector_data(&parse.tokens)[i];
             state = print(stdout, state, it);
         }
         fprintf_s(stdout, STR("\n\n"));
@@ -76,12 +83,14 @@ size_t main(Vector(String)
     if (flags.print_flatten) {
         fprintf_s(stdout, STR("FLATTEN:\n-------\n"));
     }
-    do_flatten(ctx);
+    flatten_output flatten = do_flatten((flatten_input) {
+            .tokens = parse.tokens,
+    });
     if (flags.print_flatten) {
         print_state_t state = {0};
-        Slice_loop(&Vector_toSlice(node_t, &ctx->flatten.out), i) {
+        Slice_loop(&Vector_toSlice(node_t, &flatten.nodes), i) {
             if (i < 1) { continue; }
-            const node_t *it = node_get(ctx, (node_id) {i});
+            const node_t *it = &Vector_data(&flatten.nodes)[i];
             if (it->kind == NODE_LIST_BEGIN) {
                 fprintf_s(stdout, STR(";; var_"));
                 fprintf_zu(stdout, i);
@@ -96,10 +105,32 @@ size_t main(Vector(String)
         fprintf_s(stdout, STR("\n"));
     }
 
+    types_t types = types_new();
+    symbols_t symbols = symbols_new(&types, Slice_of(InitialSymbol, (InitialSymbol[10]) {
+            {STR("#puti"),       intrin_debug_puti},
+            {STR("#puts"),       intrin_debug_puts},
+            {STR("#types/func"), intrin_types_func},
+            {STR("#cond"),       intrin_cond},
+            {STR("#define"),     intrin_define},
+            {STR("#do"),         intrin_do},
+            {STR("#extern"),     intrin_extern},
+            {STR("#func"),       intrin_func},
+            {STR("-"),           intrin_minus},
+            {STR("+"),           intrin_plus},
+    }));
+
+    Env env = (Env) {
+            .types = &types,
+            .symbols = &symbols,
+            .nodes = &flatten.nodes,
+    };
+
     if (flags.print_eval) {
         fprintf_s(stdout, STR("EVAL:\n----\n"));
     }
-    do_eval(ctx);
+    do_eval((eval_input) {
+            .env = env,
+    });
     if (flags.print_eval) {
         fprintf_s(stdout, STR("\n"));
     }
@@ -109,9 +140,9 @@ size_t main(Vector(String)
             fprintf_s(stdout, STR("RUN:\n---\n"));
         }
         sym_t entry;
-        sym_lookup(ctx, STR("main"), &entry);
-        assert(type_lookup(ctx, entry.type)->kind == TYPE_FUNCTION && "main is a function");
-        func_call(ctx, entry.value, NULL);
+        sym_lookup(&symbols, STR("main"), &entry);
+        assert(type_lookup(&types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
+        func_call(env, entry.value, NULL);
     } else {
         if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));
@@ -119,7 +150,7 @@ size_t main(Vector(String)
         FILE *out = stdout;
         Buffer outBuf;
         FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : out;
-        do_compile(ctx, f);
+        do_compile(env, f);
         if (flags.buffer) {
             fclose(f);
             fprintf_raw(out, Buffer_toSlice(&outBuf));

@@ -1,31 +1,37 @@
 #include <system.h>
 #include "flatten.h"
 
-static size_t do_flatten_rec(ctx_t *ctx, Vector(node_t) *stack, const node_t *begin);
+typedef struct {
+    Vector(node_t) nodes;
+} flatten_ctx_t;
 
-void do_flatten(ctx_t *ctx)
+static size_t do_flatten_rec(flatten_ctx_t *ctx, Vector(node_t) *stack, const node_t *begin);
+
+flatten_output do_flatten(flatten_input in)
 {
+    flatten_ctx_t ctx = {0};
     {
         // make usable ids start from 1
-        Vector(node_t) *out = &ctx->flatten.out;
+        Vector(node_t) *nodes = &ctx.nodes;
         const node_t dummy = (node_t) {.kind = NODE_INVALID};
-        Vector_push(out, dummy);
-        assert(Vector_size(out) == 1);
+        Vector_push(nodes, dummy);
+        assert(Vector_size(nodes) == 1);
     }
 
-    const Vector(node_t) *read = &ctx->parse.out;
+    const Vector(node_t) *read = &in.tokens;
     const node_t *begin = &Vector_data(read)[0];
     const node_t *end = &Vector_data(read)[Vector_size(read) - 1];
     Vector(node_t) stack = {0};
     for (const node_t *it = begin; it < end;) {
-        const size_t skip = do_flatten_rec(ctx, &stack, it);
+        const size_t skip = do_flatten_rec(&ctx, &stack, it);
         Vector_pop(&stack); // ignore the final ref
         assert(Vector_size(&stack) == 0);
         it += skip;
     }
+    return (flatten_output) {.nodes = ctx.nodes};
 }
 
-static size_t do_flatten_rec(ctx_t *ctx, Vector(node_t) *stack, const node_t *begin)
+static size_t do_flatten_rec(flatten_ctx_t *ctx, Vector(node_t) *stack, const node_t *begin)
 {
     const node_t *it = begin;
     if (it->kind != NODE_LIST_BEGIN) {
@@ -41,7 +47,7 @@ static size_t do_flatten_rec(ctx_t *ctx, Vector(node_t) *stack, const node_t *be
         }
         ++it; // skip end
     }
-    Vector(node_t) *out = &ctx->flatten.out;
+    Vector(node_t) *out = &ctx->nodes;
     const size_t argv_end = Vector_size(stack) - 1;
     const size_t argc = argv_end - argv_begin + 1;
     const node_id refIdx = (node_id) {Vector_size(out)};

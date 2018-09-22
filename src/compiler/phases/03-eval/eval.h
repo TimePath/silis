@@ -1,9 +1,18 @@
 #pragma once
 
-#include "../../ctx.h"
+#include <compiler/env.h>
+#include <compiler/symbols.h>
+#include "../../types.h"
+#include "../../node.h"
+#include "../../value.h"
 
-void do_eval(ctx_t *ctx);
+typedef struct {
+    Env env;
+} eval_input;
 
-value_t eval_list_block(ctx_t *ctx, const node_t *it);
+typedef void eval_output;
 
-value_t eval_node(ctx_t *ctx, const node_t *it);
+eval_output do_eval(eval_input in);
+
+value_t eval_node(Env env, const node_t *it);
+value_t eval_list_block(Env env, const node_t *it);

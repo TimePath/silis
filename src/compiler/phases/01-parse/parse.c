@@ -1,8 +1,74 @@
 #include <system.h>
 #include "parse.h"
 
-#include <lib/slice.h>
-#include <lib/string.h>
+typedef struct {
+    size_t list_parent_idx;
+    Vector(node_t) out;
+} parse_ctx_t;
+
+typedef struct {
+    size_t idx;
+} ctx_list_memo;
+
+/// begin a new list
+/// \param ctx compiler context
+/// \return memo for pop
+static ctx_list_memo ctx_list_push(parse_ctx_t *ctx);
+
+static void ctx_list_add(parse_ctx_t *ctx, node_t it);
+
+static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo);
+
+static size_t parse_list(parse_ctx_t *ctx, String prog);
+
+parse_output do_parse(parse_input in)
+{
+    parse_ctx_t ctx = {0};
+    parse_list(&ctx, in.source);
+    return (parse_output) {.tokens = ctx.out};
+}
+
+static ctx_list_memo ctx_list_push(parse_ctx_t *ctx)
+{
+    Vector(node_t) *out = &ctx->out;
+    const size_t thisIdx = Vector_size(out);
+    const size_t parentIdx = ctx->list_parent_idx;
+    ctx->list_parent_idx = thisIdx;
+    if (parentIdx) {
+        node_t *parent = &Vector_data(out)[parentIdx];
+        parent->u.list.end = thisIdx;
+        parent->u.list.size += 1;
+    }
+    node_t it = (node_t) {
+            .kind = NODE_LIST_BEGIN,
+    };
+    Vector_push(out, it);
+    return (ctx_list_memo) {parentIdx};
+}
+
+static void ctx_list_add(parse_ctx_t *ctx, node_t it)
+{
+    Vector(node_t) *out = &ctx->out;
+    const size_t thisIdx = Vector_size(out);
+    const size_t parentIdx = ctx->list_parent_idx;
+    node_t *parent = &Vector_data(out)[parentIdx];
+    if (!parent->u.list.begin) {
+        parent->u.list.begin = thisIdx;
+    }
+    parent->u.list.end = thisIdx;
+    parent->u.list.size += 1;
+    Vector_push(out, it);
+}
+
+static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
+{
+    Vector(node_t) *out = &ctx->out;
+    ctx->list_parent_idx = memo.idx;
+    node_t it = (node_t) {
+            .kind = NODE_LIST_END,
+    };
+    Vector_push(out, it);
+}
 
 /*
 
@@ -37,7 +103,88 @@
 
 */
 
-static char_rule_e parse_chars[] = {
+#define PARSE_WS(_) \
+    _('\t') \
+    _('\n') \
+    _(' ') \
+    /**/
+
+#define PARSE_SPECIAL(_) \
+    _('_') \
+    _('$') \
+    _('#') \
+    _('?') \
+    /**/
+
+#define PARSE_SYM(_) \
+    _('@') \
+    _('+') \
+    _('-') \
+    _('!') \
+    _('~') \
+    _('*') \
+    _('/') \
+    _('%') \
+    _('<') \
+    _('>') \
+    _('&') \
+    _('^') \
+    _('|') \
+    _('=') \
+    /**/
+
+#define PARSE_DIGIT(_) \
+    _('0') \
+    _('1') \
+    _('2') \
+    _('3') \
+    _('4') \
+    _('5') \
+    _('6') \
+    _('7') \
+    _('8') \
+    _('9') \
+    /**/
+
+#define PARSE_ALPHA(_) \
+    _('a') _('A') \
+    _('b') _('B') \
+    _('c') _('C') \
+    _('d') _('D') \
+    _('e') _('E') \
+    _('f') _('F') \
+    _('g') _('G') \
+    _('h') _('H') \
+    _('i') _('I') \
+    _('j') _('J') \
+    _('k') _('K') \
+    _('l') _('L') \
+    _('m') _('M') \
+    _('n') _('N') \
+    _('o') _('O') \
+    _('p') _('P') \
+    _('q') _('Q') \
+    _('r') _('R') \
+    _('s') _('S') \
+    _('t') _('T') \
+    _('u') _('U') \
+    _('v') _('V') \
+    _('w') _('W') \
+    _('x') _('X') \
+    _('y') _('Y') \
+    _('z') _('Z') \
+    /**/
+
+typedef enum {
+    CHAR_INVALID,
+    CHAR_WS,
+    CHAR_SPECIAL,
+    CHAR_SYM,
+    CHAR_DIGIT,
+    CHAR_ALPHA,
+} parse_char_rule_e;
+
+static parse_char_rule_e parse_chars[] = {
 #define CASE(_) [_] = CHAR_WS,
         PARSE_WS(CASE)
 #undef CASE
@@ -55,26 +202,21 @@ static char_rule_e parse_chars[] = {
 #undef CASE
 };
 
-char_rule_e parse_char(size_t c)
+static parse_char_rule_e parse_char(size_t c)
 {
     return c < ARRAY_LEN(parse_chars)
            ? parse_chars[c]
            : CHAR_INVALID;
 }
 
-static bool parse_is_space(size_t c)
-{
-    return parse_char(c) == CHAR_WS;
-}
-
-static size_t parse_atom(ctx_t *ctx, String prog)
+static size_t parse_atom(parse_ctx_t *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
     bool number = true;
     Slice(uint8_t) it = prog.bytes;
     for (; Slice_begin(&it) != Slice_end(&it); it = enc->next(it)) {
         const size_t c = enc->get(it);
-        const char_rule_e r = parse_char(c);
+        const parse_char_rule_e r = parse_char(c);
         if (r <= CHAR_WS) {
             break;
         }
@@ -84,12 +226,12 @@ static size_t parse_atom(ctx_t *ctx, String prog)
     }
     const String atom = String_fromSlice((Slice(uint8_t)) {String_begin(prog), Slice_begin(&it)}, enc);
     if (number) {
-        ast_push(ctx, (node_t) {
+        ctx_list_add(ctx, (node_t) {
                 .kind = NODE_INTEGRAL,
                 .u.integral.value = strtoul(String_begin(atom), NULL, 10),
         });
     } else {
-        ast_push(ctx, (node_t) {
+        ctx_list_add(ctx, (node_t) {
                 .kind = NODE_ATOM,
                 .u.atom.value = atom,
         });
@@ -97,12 +239,12 @@ static size_t parse_atom(ctx_t *ctx, String prog)
     return String_sizeUnits(atom);
 }
 
-static size_t parse_string(ctx_t *ctx, String prog)
+static size_t parse_string(parse_ctx_t *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
     const uint8_t *begin = String_begin(prog);
     // mutation, but only decreases size
-    /* XXX */ uint8_t *out = ((union { const uint8_t *from; uint8_t *to; }) {.from=begin}.to);
+    /* XXX */ uint8_t *out = CAST(uint8_t *, const uint8_t *, begin);
     Slice(uint8_t) it = prog.bytes;
     for (; Slice_begin(&it) != Slice_end(&it); it = enc->next(it)) {
         size_t c = enc->get(it);
@@ -131,23 +273,23 @@ static size_t parse_string(ctx_t *ctx, String prog)
     }
     done:;
     const String value = String_fromSlice((Slice(uint8_t)) {begin, (const uint8_t *) out}, enc);
-    ast_push(ctx, (node_t) {
+    ctx_list_add(ctx, (node_t) {
             .kind = NODE_STRING,
             .u.string.value = value,
     });
     return 1 + enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}) + 1;
 }
 
-size_t parse_list(ctx_t *ctx, String prog)
+static size_t parse_list(parse_ctx_t *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
-    const size_t tok = ast_parse_push(ctx);
+    const ctx_list_memo memo = ctx_list_push(ctx);
     const uint8_t *begin = String_begin(prog);
     size_t ret;
     Slice(uint8_t) it = prog.bytes;
     for (Slice(uint8_t) next; (void) (next = enc->next(it)), Slice_begin(&it) != Slice_end(&it); it = next) {
         size_t c = enc->get(it);
-        if (parse_is_space(c)) {
+        if (parse_char(c) == CHAR_WS) {
             continue;
         }
         switch (c) {
@@ -178,6 +320,6 @@ size_t parse_list(ctx_t *ctx, String prog)
     }
     ret = enc->count_units((Slice(uint8_t)) {begin, Slice_begin(&it)}); // EOF
     done:;
-    ast_parse_pop(ctx, tok);
+    ctx_list_pop(ctx, memo);
     return ret;
 }

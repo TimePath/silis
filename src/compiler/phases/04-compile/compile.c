@@ -4,9 +4,10 @@
 #include <lib/stdio.h>
 
 #include "../../intrinsics/func.h"
+#include <compiler/symbols.h>
 
 typedef struct {
-    const ctx_t *ctx;
+    Env env;
     FILE *out;
 } compile_ctx_t;
 
@@ -40,17 +41,17 @@ typedef struct {
 
 static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it);
 
-void do_compile(const ctx_t *g_ctx, FILE *out)
+void do_compile(Env env, FILE *out)
 {
-    const compile_ctx_t ctx_ = {.ctx = g_ctx, .out = out};
+    const compile_ctx_t ctx_ = {.env = env, .out = out};
     const compile_ctx_t *ctx = &ctx_;
 
     sym_t entry;
-    sym_lookup(ctx->ctx, STR("main"), &entry);
+    sym_lookup(ctx->env.symbols, STR("main"), &entry);
     (void) entry;
-    assert(type_lookup(ctx->ctx, entry.value.type)->kind == TYPE_FUNCTION);
+    assert(type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION);
 
-    const sym_scope_t *globals = &Vector_data(&ctx->ctx->state.symbols.scopes)[0];
+    const sym_scope_t *globals = &Vector_data(&ctx->env.symbols->scopes)[0];
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
         const TrieNode(sym_t) *nod = &Vector_data(&globals->t.nodes)[e->value];
@@ -64,7 +65,7 @@ void do_compile(const ctx_t *g_ctx, FILE *out)
         if (sym->flags.native) {
             fprintf_s(ctx->out, STR("extern "));
         }
-        if (type_lookup(ctx->ctx, type)->kind == TYPE_FUNCTION) {
+        if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
             print_function(ctx, type, ident, NULL);
         } else {
             print_declaration(ctx, type, ident);
@@ -85,18 +86,18 @@ void do_compile(const ctx_t *g_ctx, FILE *out)
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
         const type_id type = sym->type;
-        if (type_lookup(ctx->ctx, type)->kind == TYPE_FUNCTION) {
+        if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
             fprintf_s(ctx->out, STR("\n"));
             const node_id args = nod->value.value.u.func.arglist;
-            const node_t *argv = node_get(ctx->ctx, args);
+            const node_t *argv = node_get(ctx->env.nodes, args);
             const size_t argc = argv->u.list.size;
             String argnames[argc];
-            func_args_names(ctx->ctx, node_list_children(argv), argc, argnames);
+            func_args_names(ctx->env, node_list_children(argv), argc, argnames);
             print_function(ctx, type, ident, argnames);
             fprintf_s(ctx->out, STR("\n{\n"));
 
             const node_id impl = nod->value.value.u.func.value;
-            visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, node_get(ctx->ctx, impl));
+            visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, node_get(ctx->env.nodes, impl));
 
             fprintf_s(ctx->out, STR("\n}\n"));
         }
@@ -105,7 +106,7 @@ void do_compile(const ctx_t *g_ctx, FILE *out)
 
 static String type_name(const compile_ctx_t *ctx, type_id id)
 {
-#define CASE(T) if (id.value == ctx->ctx->state.types.T.value)
+#define CASE(T) if (id.value == ctx->env.types->T.value)
     CASE(t_unit) { return STR("void"); }
     CASE(t_int) { return STR("int"); }
     CASE(t_string) { return STR("const char*"); }
@@ -127,7 +128,7 @@ static void print_function(const compile_ctx_t *ctx, type_id id, String ident, c
 
 static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident)
 {
-    const type_t *T = type_lookup(ctx->ctx, id);
+    const type_t *T = type_lookup(ctx->env.types, id);
     if (T->kind == TYPE_FUNCTION) {
         print_function_ret(ctx, id);
         fprintf_s(ctx->out, STR("(*"));
@@ -147,8 +148,8 @@ static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident
 
 static void print_function_ret(const compile_ctx_t *ctx, type_id id)
 {
-    const type_t *T = type_lookup(ctx->ctx, id);
-    const type_id ret = type_func_ret(ctx->ctx, T);
+    const type_t *T = type_lookup(ctx->env.types, id);
+    const type_id ret = type_func_ret(ctx->env.types, T);
     fprintf_s(ctx->out, type_name(ctx, ret));
     fprintf_s(ctx->out, STR(" "));
 }
@@ -156,14 +157,14 @@ static void print_function_ret(const compile_ctx_t *ctx, type_id id)
 static void print_function_args(const compile_ctx_t *ctx, type_id id, const String idents[])
 {
     fprintf_s(ctx->out, STR("("));
-    const type_t *T = type_lookup(ctx->ctx, id);
+    const type_t *T = type_lookup(ctx->env.types, id);
     const type_t *argp = T;
     size_t i = 0;
     while (true) {
         const type_id arg = argp->u.func.in;
         const String s = idents ? idents[i++] : STR("");
         print_declaration(ctx, arg, s);
-        const type_t *next = type_lookup(ctx->ctx, argp->u.func.out);
+        const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
         if (next->kind != TYPE_FUNCTION) {
             break;
         }
@@ -290,7 +291,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
     const size_t n = it->u.list.size;
     const node_t *children[n];
     for (size_t i = 0; i < n; ++i) {
-        children[i] = node_deref(ctx->ctx, &childrenRaw[i]);
+        children[i] = node_deref(&childrenRaw[i], ctx->env.nodes);
     }
     const node_t *first = children[0];
     if (n == 1) {
@@ -311,7 +312,7 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 
     for (size_t i = 0; i < n; ++i) {
         const node_t *it = children[i];
-        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, it)};
+        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(it, ctx->env.nodes)};
         TAB();
         return_declare(ctx, state, out, it);
         fprintf_s(ctx->out, STR("\n"));
@@ -322,12 +323,12 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
     TAB();
     return_assign(ctx, state, ret);
     fprintf_s(ctx->out, STR("_"));
-    fprintf_zu(ctx->out, node_ref(ctx->ctx, func).val);
+    fprintf_zu(ctx->out, node_ref(func, ctx->env.nodes).val);
     fprintf_s(ctx->out, STR("("));
     for (size_t i = 1; i < n; ++i) {
         const bool last = i == n - 1;
         fprintf_s(ctx->out, STR("_"));
-        fprintf_zu(ctx->out, node_ref(ctx->ctx, children[i]).val);
+        fprintf_zu(ctx->out, node_ref(children[i], ctx->env.nodes).val);
         if (!last) {
             fprintf_s(ctx->out, STR(", "));
         }
@@ -354,10 +355,10 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         const node_t *bodyChildren = node_list_children(bodyNode);
         for (size_t i = 0; i < n; ++i) {
             const bool last = i == n - 1;
-            const node_t *it = node_deref(ctx->ctx, &bodyChildren[i]);
+            const node_t *it = node_deref(&bodyChildren[i], ctx->env.nodes);
             const return_t out = last ? ret : (return_t) {
                     .kind = RETURN_TEMPORARY,
-                    .u.temporary.val = node_ref(ctx->ctx, it)
+                    .u.temporary.val = node_ref(it, ctx->env.nodes)
             };
             if (!last) {
                 TAB();
@@ -373,7 +374,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     } else if (String_equals(func->u.atom.value, STR("#if"))) {
         const node_t *predNode = children[1];
         const node_t *bodyNode = children[2];
-        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, predNode)};
+        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(predNode, ctx->env.nodes)};
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);
         fprintf_s(ctx->out, STR("\n"));
@@ -385,7 +386,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         TAB();
         fprintf_s(ctx->out, STR("if ("));
         fprintf_s(ctx->out, STR("_"));
-        fprintf_zu(ctx->out, node_ref(ctx->ctx, predNode).val);
+        fprintf_zu(ctx->out, node_ref(predNode, ctx->env.nodes).val);
         fprintf_s(ctx->out, STR(") {\n"));
         {
             state.depth++;
@@ -399,7 +400,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     } else if (String_equals(func->u.atom.value, STR("#while"))) {
         const node_t *predNode = children[1];
         const node_t *bodyNode = children[2];
-        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(ctx->ctx, predNode)};
+        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(predNode, ctx->env.nodes)};
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);
         fprintf_s(ctx->out, STR("\n"));
@@ -411,7 +412,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         TAB();
         fprintf_s(ctx->out, STR("while ("));
         fprintf_s(ctx->out, STR("_"));
-        fprintf_zu(ctx->out, node_ref(ctx->ctx, predNode).val);
+        fprintf_zu(ctx->out, node_ref(predNode, ctx->env.nodes).val);
         fprintf_s(ctx->out, STR(") {\n"));
         {
             state.depth++;

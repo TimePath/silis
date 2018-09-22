@@ -7,6 +7,8 @@
 
 #define ARRAY_LEN(x) ((sizeof(x) / sizeof((x)[0])))
 
+#define CAST(T, U, it) ((union { U from; T to; }) { .from = (it) }.to)
+
 #define CAT2(_0, _1) _0 ## _1
 #define CAT3(_0, _1, _2) _0 ## _1 ## _2
 

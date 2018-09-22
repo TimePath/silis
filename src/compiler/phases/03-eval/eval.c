@@ -3,46 +3,66 @@
 
 #include "../../intrinsics/func.h"
 
-void do_eval(ctx_t *ctx)
+typedef struct {
+    Env env;
+    Vector(value_t) stack;
+} eval_ctx_t;
+
+static value_t do_eval_list_block(eval_ctx_t *ctx, const node_t *it);
+
+static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it);
+
+eval_output do_eval(eval_input in)
 {
-    const node_t *it = node_get(ctx, (node_id) {Vector_size(&ctx->flatten.out) - 1});
+    eval_ctx_t ctx = {.env = in.env};
+    const node_t *it = &Vector_data(ctx.env.nodes)[Vector_size(ctx.env.nodes) - 1];
     assert(it->kind == NODE_LIST_END);
     while ((--it)->kind != NODE_LIST_BEGIN) {}
-    eval_list_block(ctx, it);
+    do_eval_list_block(&ctx, it);
 }
 
-value_t eval_list_block(ctx_t *ctx, const node_t *it)
+value_t eval_node(Env env, const node_t *it)
+{
+    return do_eval_node(&(eval_ctx_t) {.env = env}, it);
+}
+
+value_t eval_list_block(Env env, const node_t *it)
+{
+    return do_eval_node(&(eval_ctx_t) {.env = env}, it);
+}
+
+static value_t do_eval_list_block(eval_ctx_t *ctx, const node_t *it)
 {
     assert(it->kind == NODE_LIST_BEGIN);
     const size_t n = it->u.list.size;
     const node_t *children = node_list_children(it);
-    value_t ret = (value_t) {.type = ctx->state.types.t_unit};
+    value_t ret = (value_t) {.type = ctx->env.types->t_unit};
     for (size_t i = 0; i < n; ++i) {
-        ret = eval_node(ctx, &children[i]);
+        ret = do_eval_node(ctx, &children[i]);
     }
     return ret;
 }
 
-value_t eval_node(ctx_t *ctx, const node_t *it)
+static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
 {
-    it = node_deref(ctx, it);
+    it = node_deref(it, ctx->env.nodes);
     if (it->kind != NODE_LIST_BEGIN) {
-        return value_from(ctx, it);
+        return value_from(ctx->env, it);
     }
     const size_t n = it->u.list.size;
     if (!n) {
-        return (value_t) {.type = ctx->state.types.t_unit};
+        return (value_t) {.type = ctx->env.types->t_unit};
     }
     const node_t *children = node_list_children(it);
     if (n == 1) {
-        return eval_node(ctx, &children[0]);
+        return do_eval_node(ctx, &children[0]);
     }
-    const value_t func = eval_node(ctx, &children[0]);
-    const type_t *T = type_lookup(ctx, func.type);
+    const value_t func = do_eval_node(ctx, &children[0]);
+    const type_t *T = type_lookup(ctx->env.types, func.type);
     assert(T->kind == TYPE_FUNCTION);
 
-    const size_t ofs = Vector_size(&ctx->eval.stack);
-    const type_id expr_t = ctx->state.types.t_expr;
+    const size_t ofs = Vector_size(&ctx->stack);
+    const type_id expr_t = ctx->env.types->t_expr;
     size_t T_argc = 0;
     // holds return value after this loop
     const type_t *link = T;
@@ -53,22 +73,22 @@ value_t eval_node(ctx_t *ctx, const node_t *it)
         if (arg_t.value == expr_t.value) {
             value_t v = (value_t) {
                     .type = expr_t,
-                    .u.expr.value = node_ref(ctx, node_deref(ctx, arg)),
+                    .u.expr.value = node_ref(node_deref(arg, ctx->env.nodes), ctx->env.nodes),
             };
-            Vector_push(&ctx->eval.stack, v);
+            Vector_push(&ctx->stack, v);
         } else {
-            value_t v = eval_node(ctx, arg);
+            value_t v = do_eval_node(ctx, arg);
             assert(v.type.value == arg_t.value);
-            Vector_push(&ctx->eval.stack, v);
+            Vector_push(&ctx->stack, v);
         }
-        link = type_lookup(ctx, link->u.func.out);
+        link = type_lookup(ctx->env.types, link->u.func.out);
     }
     assert((n - 1) == T_argc && "argument overflow");
 
-    const value_t *argv = &Vector_data(&ctx->eval.stack)[ofs];
-    value_t ret = func_call(ctx, func, argv);
+    const value_t *argv = &Vector_data(&ctx->stack)[ofs];
+    value_t ret = func_call(ctx->env, func, argv);
     for (size_t i = 1; i < n; ++i) {
-        Vector_pop(&ctx->eval.stack);
+        Vector_pop(&ctx->stack);
     }
     return ret;
 }

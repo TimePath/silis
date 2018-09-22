@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../ctx.h"
+#include "../node.h"
 
 typedef struct {
     size_t depth;

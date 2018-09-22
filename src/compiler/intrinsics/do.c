@@ -4,13 +4,13 @@
 #include "_.h"
 #include "../phases/03-eval/eval.h"
 
-INTRINSIC_IMPL(do, "do", ((type_id[]) {
-        ctx->state.types.t_expr,
-        ctx->state.types.t_unit,
+INTRINSIC_IMPL(do, ((type_id[]) {
+        types->t_expr,
+        types->t_unit,
 }))
 {
     const value_t *arg_body = &argv[0];
 
-    const node_t *body = node_get(ctx, arg_body->u.expr.value);
-    return eval_list_block(ctx, body);
+    const node_t *body = node_get(env.nodes, arg_body->u.expr.value);
+    return eval_list_block(env, body);
 }

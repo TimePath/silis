@@ -24,3 +24,11 @@ DIAG_IGNORE_REDUNDANT_PARENS \
 for (size_t __n = Slice_size(self), (i) = 0; (i) < __n; ++(i)) \
 DIAG_POP \
 /**/
+
+Slice_instantiate(void);
+#define Slice_of(T, ...) CAST(Slice(T), Slice(void), _Slice_of((__VA_ARGS__), sizeof(__VA_ARGS__)))
+
+INLINE Slice(void) _Slice_of(void *begin, size_t length)
+{
+    return (Slice(void)) {begin, (uint8_t *) begin + length};
+}

@@ -2,17 +2,14 @@
 
 #include <lib/string.h>
 
-#include "../../ctx.h"
+#include "../../node.h"
 
-size_t parse_list(ctx_t *ctx, String prog);
+typedef struct {
+    const String source;
+} parse_input;
 
-typedef enum {
-    CHAR_INVALID,
-    CHAR_WS,
-    CHAR_SPECIAL,
-    CHAR_SYM,
-    CHAR_DIGIT,
-    CHAR_ALPHA,
-} char_rule_e;
+typedef struct {
+    const Vector(node_t) tokens;
+} parse_output;
 
-char_rule_e parse_char(size_t c);
+parse_output do_parse(parse_input in);

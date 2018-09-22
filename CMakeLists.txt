@@ -33,6 +33,8 @@ try_flag(CMAKE_C_FLAGS "-Wno-missing-field-initializers")
 include_directories(src)
 
 set(SOURCE_FILES
+        src/compiler/main.c
+
         src/system.h
 
         src/lib/encoding/ascii.c
@@ -44,10 +46,16 @@ set(SOURCE_FILES
         src/lib/trie.c
         src/lib/vector.c
 
-        src/compiler/ctx.c
-        src/compiler/main.c
+        src/compiler/env.c
+        src/compiler/intrinsic.c
+        src/compiler/node.c
+        src/compiler/symbol.c
+        src/compiler/symbols.c
+        src/compiler/type.c
+        src/compiler/types.c
+        src/compiler/value.c
 
-        src/compiler/phases/01-parse/parse.c src/compiler/phases/01-parse/parse.inc.h
+        src/compiler/phases/01-parse/parse.c
         src/compiler/phases/02-flatten/flatten.c
         src/compiler/phases/03-eval/eval.c
         src/compiler/phases/04-compile/compile.c

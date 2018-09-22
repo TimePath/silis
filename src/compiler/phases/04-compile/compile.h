@@ -1,5 +1,5 @@
 #pragma once
 
-#include "../../ctx.h"
+#include <compiler/env.h>
 
-void do_compile(const ctx_t *ctx, FILE *out);
+void do_compile(Env env, FILE *out);
