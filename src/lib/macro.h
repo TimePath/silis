@@ -14,12 +14,6 @@
 
 #define STRINGIFY(self) #self
 
-#if !defined(__TINYC__)
-#define VLA_LEN(n) (n)
-#else
-#define VLA_LEN(n)
-#endif
-
 #if defined(__clang__)
 #define DIAG_PUSH         _Pragma("GCC diagnostic push")
 #define DIAG_IGNORE(rule) _Pragma(STRINGIFY(GCC diagnostic ignored rule))

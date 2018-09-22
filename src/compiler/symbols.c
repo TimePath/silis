@@ -6,7 +6,7 @@
 
 symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init)
 {
-    symbols_t ret = {0};
+    symbols_t ret = {{0}};
     symbols_t *self = &ret;
 
     sym_push(self, 0);

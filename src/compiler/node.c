@@ -1,6 +1,14 @@
 #include <system.h>
 #include "node.h"
 
+Slice(node_t) node_list_children(const node_t *list)
+{
+    assert(list->kind == NODE_LIST_BEGIN);
+    size_t n = list->u.list.size;
+    const node_t *begin = list + 1;
+    return (Slice(node_t)) {begin, begin + n};
+}
+
 const node_t *node_get(const Vector(node_t) *nodes, node_id ref)
 {
     return &Vector_data(nodes)[ref.val];

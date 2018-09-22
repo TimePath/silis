@@ -9,7 +9,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, Vector(node_t) *stack, const no
 
 flatten_output do_flatten(flatten_input in)
 {
-    flatten_ctx_t ctx = {0};
+    flatten_ctx_t ctx = {{0}};
     {
         // make usable ids start from 1
         Vector(node_t) *nodes = &ctx.nodes;

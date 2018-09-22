@@ -58,7 +58,7 @@ size_t main(Vector(String)
     if (ret < 0) { return 1; }
     const size_t len = (size_t) ret;
     fseek(file, 0, SEEK_SET);
-    uint8_t buf[len + 1];
+    uint8_t *buf = realloc(NULL, len + 1);
     size_t read = fread(buf, len, 1, file);
     (void) read;
     buf[len] = 0;

@@ -90,10 +90,12 @@ void do_compile(Env env, FILE *out)
             fprintf_s(ctx->out, STR("\n"));
             const node_id args = nod->value.value.u.func.arglist;
             const node_t *argv = node_get(ctx->env.nodes, args);
-            const size_t argc = argv->u.list.size;
-            String argnames[argc];
-            func_args_names(ctx->env, node_list_children(argv), argc, argnames);
+            Slice(node_t) children = node_list_children(argv);
+            size_t argc = Slice_size(&children);
+            String *argnames = realloc(NULL, sizeof(String) * argc);
+            func_args_names(ctx->env, children, argnames);
             print_function(ctx, type, ident, argnames);
+            free(argnames);
             fprintf_s(ctx->out, STR("\n{\n"));
 
             const node_id impl = nod->value.value.u.func.value;
@@ -279,39 +281,41 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
 }
 
 static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                             const node_t *func, size_t _n, const node_t *children[VLA_LEN(_n)]);
+                             const node_t *func, Slice(node_t_ptr) children);
 
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                            const node_t *func, size_t n, const node_t *children[VLA_LEN(n)]);
+                            const node_t *func, Slice(node_t_ptr) children);
 
 static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it)
 {
-    assert(it->kind == NODE_LIST_BEGIN);
-    const node_t *childrenRaw = node_list_children(it);
-    const size_t n = it->u.list.size;
-    const node_t *children[n];
+    const Slice(node_t) childrenRaw = node_list_children(it);
+    const size_t n = Slice_size(&childrenRaw);
+    const node_t **_children = realloc(NULL, sizeof(node_t *) * n);
     for (size_t i = 0; i < n; ++i) {
-        children[i] = node_deref(&childrenRaw[i], ctx->env.nodes);
+        _children[i] = node_deref(&Slice_data(&childrenRaw)[i], ctx->env.nodes);
     }
-    const node_t *first = children[0];
+    const Slice(node_t_ptr) children = (Slice(node_t_ptr)) { &_children[0], &_children[n] };
+    const node_t *first = Slice_data(&children)[0];
     if (n == 1) {
         visit_node(ctx, state, ret, first);
         return;
     }
-    if (visit_node_macro(ctx, state, ret, first, n, children)) {
+    if (visit_node_macro(ctx, state, ret, first, children)) {
         return;
     }
-    visit_node_expr(ctx, state, ret, first, n, children);
+    visit_node_expr(ctx, state, ret, first, children);
+    free(_children);
 }
 
 static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                            const node_t *func, size_t n, const node_t *children[VLA_LEN(n)])
+                            const node_t *func, Slice(node_t_ptr) children)
 {
+    const size_t n = Slice_size(&children);
     fprintf_s(ctx->out, STR("{\n"));
     state.depth++;
 
     for (size_t i = 0; i < n; ++i) {
-        const node_t *it = children[i];
+        const node_t *it = Slice_data(&children)[i];
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(it, ctx->env.nodes)};
         TAB();
         return_declare(ctx, state, out, it);
@@ -328,7 +332,7 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
     for (size_t i = 1; i < n; ++i) {
         const bool last = i == n - 1;
         fprintf_s(ctx->out, STR("_"));
-        fprintf_zu(ctx->out, node_ref(children[i], ctx->env.nodes).val);
+        fprintf_zu(ctx->out, node_ref(Slice_data(&children)[i], ctx->env.nodes).val);
         if (!last) {
             fprintf_s(ctx->out, STR(", "));
         }
@@ -342,20 +346,19 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 
 // fixme: check the value, not the name
 static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
-                             const node_t *func, size_t _n, const node_t *children[VLA_LEN(_n)])
+                             const node_t *func, Slice(node_t_ptr) children)
 {
     if (func->kind != NODE_ATOM) {
         return false;
     }
     if (String_equals(func->u.atom.value, STR("#do"))) {
         // todo: extract
-        const node_t *bodyNode = children[1];
-        assert(bodyNode->kind == NODE_LIST_BEGIN);
-        const size_t n = bodyNode->u.list.size;
-        const node_t *bodyChildren = node_list_children(bodyNode);
+        const node_t *bodyNode = Slice_data(&children)[1];
+        const Slice(node_t) bodyChildren = node_list_children(bodyNode);
+        const size_t n = Slice_size(&bodyChildren);
         for (size_t i = 0; i < n; ++i) {
             const bool last = i == n - 1;
-            const node_t *it = node_deref(&bodyChildren[i], ctx->env.nodes);
+            const node_t *it = node_deref(&Slice_data(&bodyChildren)[i], ctx->env.nodes);
             const return_t out = last ? ret : (return_t) {
                     .kind = RETURN_TEMPORARY,
                     .u.temporary.val = node_ref(it, ctx->env.nodes)
@@ -372,8 +375,8 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
             }
         }
     } else if (String_equals(func->u.atom.value, STR("#if"))) {
-        const node_t *predNode = children[1];
-        const node_t *bodyNode = children[2];
+        const node_t *predNode = Slice_data(&children)[1];
+        const node_t *bodyNode = Slice_data(&children)[2];
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(predNode, ctx->env.nodes)};
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);
@@ -398,8 +401,8 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         TAB();
         fprintf_s(ctx->out, STR("}"));
     } else if (String_equals(func->u.atom.value, STR("#while"))) {
-        const node_t *predNode = children[1];
-        const node_t *bodyNode = children[2];
+        const node_t *predNode = Slice_data(&children)[1];
+        const node_t *bodyNode = Slice_data(&children)[2];
         const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(predNode, ctx->env.nodes)};
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);

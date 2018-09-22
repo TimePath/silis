@@ -1,9 +1,9 @@
 #include <system.h>
 #include "types.h"
 
-types_t types_new()
+types_t types_new(void)
 {
-    types_t _self = {0};
+    types_t _self = {{0}};
     types_t *self = &_self;
     self->t_unit = type_new(self, (type_t) {
             .kind = TYPE_OPAQUE,

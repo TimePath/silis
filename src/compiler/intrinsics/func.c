@@ -4,8 +4,6 @@
 #include "_.h"
 #include "../phases/03-eval/eval.h"
 
-static void func_args_types(Env env, const node_t *args, size_t argc, type_id out[VLA_LEN(argc)]);
-
 INTRINSIC_IMPL(func, ((type_id[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
@@ -15,36 +13,36 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     const value_t *arg_body = &argv[1];
 
     const node_t *args = node_get(env.nodes, arg_args->u.expr.value);
-    assert(args->kind == NODE_LIST_BEGIN);
-    const size_t argc = args->u.list.size;
+    Slice(node_t) children = node_list_children(args);
+    const size_t argc = Slice_size(&children);
     assert(argc >= 2 && "has enough arguments");
-
-    type_id Ts[argc];
-    func_args_types(env, node_list_children(args), argc, Ts);
-
+    type_id *Ts = realloc(NULL, sizeof(type_id) * argc);
+    func_args_types(env, children, Ts);
+    type_id T = type_func_new(env.types, Ts, argc);
+    free(Ts);
     return (value_t) {
-            .type = type_func_new(env.types, Ts, argc),
+            .type = T,
             .u.func.value = arg_body->u.expr.value,
             .u.func.arglist = arg_args->u.expr.value,
     };
 }
 
-static void func_args_types(Env env, const node_t *args, size_t argc, type_id out[VLA_LEN(argc)])
+void func_args_types(Env env, const Slice(node_t) args, type_id out[])
 {
+    size_t argc = Slice_size(&args);
     for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(&args[i], env.nodes);
-        assert(it->kind == NODE_LIST_BEGIN);
-        const size_t n = it->u.list.size;
+        const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
+        const Slice(node_t) children = node_list_children(it);
+        const size_t n = Slice_size(&children);
         if (n == 0) {
             out[i] = env.types->t_unit;
         } else if (n <= 2) {
-            const node_t *children = node_list_children(it);
-            const node_t *node_type = &children[0];
+            const node_t *node_type = &Slice_data(&children)[0];
             const value_t type = eval_node(env, node_type);
             assert(type.type.value == env.types->t_type.value);
             out[i] = type.u.type.value;
             if (n == 2) {
-                const node_t *node_id = &children[1];
+                const node_t *node_id = &Slice_data(&children)[1];
                 assert(node_id->kind == NODE_ATOM);
                 (void) (node_id);
             }
@@ -54,17 +52,17 @@ static void func_args_types(Env env, const node_t *args, size_t argc, type_id ou
     }
 }
 
-void func_args_names(Env env, const node_t *args, size_t argc, String out[VLA_LEN(argc)])
+void func_args_names(Env env, const Slice(node_t) args, String out[])
 {
+    size_t argc = Slice_size(&args);
     for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(&args[i], env.nodes);
-        assert(it->kind == NODE_LIST_BEGIN);
-        const size_t n = it->u.list.size;
+        const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
+        const Slice(node_t) children = node_list_children(it);
+        const size_t n = Slice_size(&children);
         if (n != 2) {
             out[i] = STR("");
         } else {
-            const node_t *children = node_list_children(it);
-            const node_t *node_id = &children[1];
+            const node_t *node_id = &Slice_data(&children)[1];
             assert(node_id->kind == NODE_ATOM);
             out[i] = node_id->u.atom.value;
         }
@@ -89,16 +87,14 @@ value_t func_call(Env env, value_t func, const value_t *argv)
 
 static void func_args_load(Env env, const node_t *arglist, const value_t *argv)
 {
-    assert(arglist->kind == NODE_LIST_BEGIN);
-    const size_t argc = arglist->u.list.size;
-    const node_t *args = node_list_children(arglist);
+    const Slice(node_t) args = node_list_children(arglist);
+    const size_t argc = Slice_size(&args);
     for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(&args[i], env.nodes);
-        assert(it->kind == NODE_LIST_BEGIN);
-        const size_t n = it->u.list.size;
+        const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
+        const Slice(node_t) children = node_list_children(it);
+        const size_t n = Slice_size(&children);
         if (n == 2) {
-            const node_t *children = node_list_children(it);
-            const node_t *node_id = &children[1];
+            const node_t *node_id = &Slice_data(&children)[1];
             assert(node_id->kind == NODE_ATOM);
 
             const value_t *v = &argv[i];

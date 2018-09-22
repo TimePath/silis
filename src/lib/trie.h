@@ -61,7 +61,7 @@ struct { \
 
 #define Trie_new(T, self) \
 MACRO_BEGIN \
-const TrieNode(T) root = (TrieNode(T)) {0}; \
+const TrieNode(T) root = (TrieNode(T)) {{0}}; \
 (self)->t_size = sizeof (T); \
 Vector_push(&(self)->nodes, root); \
 MACRO_END

@@ -24,7 +24,7 @@ typedef struct types_s {
     size_t end_intrinsics;
 } types_t;
 
-types_t types_new();
+types_t types_new(void);
 
 type_id type_new(types_t *ctx, type_t it);
 

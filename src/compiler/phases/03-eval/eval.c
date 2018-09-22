@@ -33,12 +33,11 @@ value_t eval_list_block(Env env, const node_t *it)
 
 static value_t do_eval_list_block(eval_ctx_t *ctx, const node_t *it)
 {
-    assert(it->kind == NODE_LIST_BEGIN);
-    const size_t n = it->u.list.size;
-    const node_t *children = node_list_children(it);
+    const Slice(node_t) children = node_list_children(it);
+    const size_t n = Slice_size(&children);
     value_t ret = (value_t) {.type = ctx->env.types->t_unit};
     for (size_t i = 0; i < n; ++i) {
-        ret = do_eval_node(ctx, &children[i]);
+        ret = do_eval_node(ctx, &Slice_data(&children)[i]);
     }
     return ret;
 }
@@ -49,15 +48,15 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     if (it->kind != NODE_LIST_BEGIN) {
         return value_from(ctx->env, it);
     }
-    const size_t n = it->u.list.size;
+    const Slice(node_t) children = node_list_children(it);
+    const size_t n = Slice_size(&children);
     if (!n) {
         return (value_t) {.type = ctx->env.types->t_unit};
     }
-    const node_t *children = node_list_children(it);
     if (n == 1) {
-        return do_eval_node(ctx, &children[0]);
+        return do_eval_node(ctx, &Slice_data(&children)[0]);
     }
-    const value_t func = do_eval_node(ctx, &children[0]);
+    const value_t func = do_eval_node(ctx, &Slice_data(&children)[0]);
     const type_t *T = type_lookup(ctx->env.types, func.type);
     assert(T->kind == TYPE_FUNCTION);
 
@@ -68,7 +67,7 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     const type_t *link = T;
     for (; link->kind == TYPE_FUNCTION; ++T_argc) {
         assert((n - 1) > T_argc && "argument underflow");
-        const node_t *arg = &children[T_argc + 1];
+        const node_t *arg = &Slice_data(&children)[T_argc + 1];
         const type_id arg_t = link->u.func.in;
         if (arg_t.value == expr_t.value) {
             value_t v = (value_t) {
