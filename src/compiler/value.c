@@ -10,9 +10,9 @@ value_t value_from(Env env, const node_t *n)
         case NODE_ATOM: {
             const String ident = n->u.atom.value;
             sym_t symbol;
-            bool status = sym_lookup(env.symbols, ident, &symbol);
-            (void) status;
-            assert(status && "symbol is defined");
+            bool defined = sym_lookup(env.symbols, ident, &symbol);
+            (void) defined;
+            assert(defined && "symbol is defined");
             return symbol.value;
         }
         case NODE_INTEGRAL:

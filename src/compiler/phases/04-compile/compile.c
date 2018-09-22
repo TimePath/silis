@@ -47,9 +47,10 @@ void do_compile(Env env, FILE *out)
     const compile_ctx_t *ctx = &ctx_;
 
     sym_t entry;
-    sym_lookup(ctx->env.symbols, STR("main"), &entry);
+    bool hasMain = sym_lookup(ctx->env.symbols, STR("main"), &entry);
     (void) entry;
-    assert(type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION);
+    (void) hasMain;
+    assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION);
 
     const sym_scope_t *globals = &Vector_data(&ctx->env.symbols->scopes)[0];
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {

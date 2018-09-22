@@ -140,8 +140,9 @@ size_t main(Vector(String)
             fprintf_s(stdout, STR("RUN:\n---\n"));
         }
         sym_t entry;
-        sym_lookup(&symbols, STR("main"), &entry);
-        assert(type_lookup(&types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
+        bool hasMain = sym_lookup(&symbols, STR("main"), &entry);
+        (void) hasMain;
+        assert(hasMain && type_lookup(&types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
         func_call(env, entry.value, NULL);
     } else {
         if (flags.print_compile) {
