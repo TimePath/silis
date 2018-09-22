@@ -28,6 +28,7 @@ typedef struct {
     Intrinsic value;
 } InitialSymbol;
 Slice_instantiate(InitialSymbol);
+
 symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init);
 
 void sym_push(symbols_t *symbols, size_t parent);

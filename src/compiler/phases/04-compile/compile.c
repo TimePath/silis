@@ -99,7 +99,8 @@ void do_compile(Env env, FILE *out)
             fprintf_s(ctx->out, STR("\n{\n"));
 
             const node_id impl = nod->value.value.u.func.value;
-            visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, node_get(ctx->env.nodes, impl));
+            visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC},
+                       node_get(ctx->env.nodes, impl));
 
             fprintf_s(ctx->out, STR("\n}\n"));
         }
@@ -294,7 +295,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
     for (size_t i = 0; i < n; ++i) {
         _children[i] = node_deref(&Slice_data(&childrenRaw)[i], ctx->env.nodes);
     }
-    const Slice(node_t_ptr) children = (Slice(node_t_ptr)) { ._begin = &_children[0], ._end = &_children[n] };
+    const Slice(node_t_ptr) children = (Slice(node_t_ptr)) {._begin = &_children[0], ._end = &_children[n]};
     const node_t *first = Slice_data(&children)[0];
     if (n == 1) {
         visit_node(ctx, state, ret, first);
@@ -377,7 +378,10 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     } else if (String_equals(func->u.atom.value, STR("#if"))) {
         const node_t *predNode = Slice_data(&children)[1];
         const node_t *bodyNode = Slice_data(&children)[2];
-        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(predNode, ctx->env.nodes)};
+        const return_t out = (return_t) {
+                .kind = RETURN_TEMPORARY,
+                .u.temporary.val = node_ref(predNode, ctx->env.nodes),
+        };
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);
         fprintf_s(ctx->out, STR("\n"));
@@ -403,7 +407,10 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     } else if (String_equals(func->u.atom.value, STR("#while"))) {
         const node_t *predNode = Slice_data(&children)[1];
         const node_t *bodyNode = Slice_data(&children)[2];
-        const return_t out = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = node_ref(predNode, ctx->env.nodes)};
+        const return_t out = (return_t) {
+                .kind = RETURN_TEMPORARY,
+                .u.temporary.val = node_ref(predNode, ctx->env.nodes),
+        };
         // don't need first TAB()
         return_declare(ctx, state, out, predNode);
         fprintf_s(ctx->out, STR("\n"));

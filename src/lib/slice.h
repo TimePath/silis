@@ -31,7 +31,7 @@ Slice_instantiate(void);
 INLINE Slice(void) _Slice_of(void *begin, size_t length)
 {
     return (Slice(void)) {
-        ._begin = begin,
-        ._end = (uint8_t *) begin + length,
+            ._begin = begin,
+            ._end = (uint8_t *) begin + length,
     };
 }

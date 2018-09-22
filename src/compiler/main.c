@@ -107,16 +107,16 @@ size_t main(Vector(String)
 
     types_t types = types_new();
     symbols_t symbols = symbols_new(&types, Slice_of(InitialSymbol, (InitialSymbol[10]) {
-            {.id = STR("#puti"),       .value = intrin_debug_puti},
-            {.id = STR("#puts"),       .value = intrin_debug_puts},
+            {.id = STR("#puti"), .value = intrin_debug_puti},
+            {.id = STR("#puts"), .value = intrin_debug_puts},
             {.id = STR("#types/func"), .value = intrin_types_func},
-            {.id = STR("#cond"),       .value = intrin_cond},
-            {.id = STR("#define"),     .value = intrin_define},
-            {.id = STR("#do"),         .value = intrin_do},
-            {.id = STR("#extern"),     .value = intrin_extern},
-            {.id = STR("#func"),       .value = intrin_func},
-            {.id = STR("-"),           .value = intrin_minus},
-            {.id = STR("+"),           .value = intrin_plus},
+            {.id = STR("#cond"), .value = intrin_cond},
+            {.id = STR("#define"), .value = intrin_define},
+            {.id = STR("#do"), .value = intrin_do},
+            {.id = STR("#extern"), .value = intrin_extern},
+            {.id = STR("#func"), .value = intrin_func},
+            {.id = STR("-"), .value = intrin_minus},
+            {.id = STR("+"), .value = intrin_plus},
     }));
 
     Env env = (Env) {

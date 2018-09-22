@@ -230,7 +230,13 @@ static size_t parse_atom(parse_ctx_t *ctx, String prog)
             number = false;
         }
     }
-    const String atom = String_fromSlice((Slice(uint8_t)) {._begin = String_begin(prog), ._end = Slice_begin(&it)}, enc);
+    const String atom = String_fromSlice(
+            (Slice(uint8_t)) {
+                    ._begin = String_begin(prog),
+                    ._end = Slice_begin(&it),
+            },
+            enc
+    );
     if (number) {
         ctx_list_add(ctx, (node_t) {
                 .kind = NODE_INTEGRAL,
