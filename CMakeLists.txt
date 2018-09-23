@@ -70,3 +70,37 @@ set(SOURCE_FILES
         src/compiler/intrinsics/types/func.c
         )
 add_executable(silis ${SOURCE_FILES})
+
+enable_testing()
+set(tests ${CMAKE_CURRENT_SOURCE_DIR}/test.sh)
+function(add_tests)
+    add_custom_target(
+            tests
+            ALL
+            DEPENDS ${CMAKE_BINARY_DIR}/tested
+    )
+    add_custom_command(
+            OUTPUT ${CMAKE_BINARY_DIR}/tested
+            DEPENDS silis ${tests}
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> --output-on-failures
+            COMMAND touch ${CMAKE_BINARY_DIR}/tested
+    )
+endfunction()
+
+find_program(BASH bash REQUIRED)
+function(test file)
+    set(pwd ${CMAKE_CURRENT_SOURCE_DIR})
+    get_filename_component(name ${file} NAME)
+    set(name test-${name})
+    add_test(
+            NAME ${name}
+            COMMAND ${BASH} ${pwd}/test.sh $<TARGET_FILE:silis> ${pwd}/${file}
+    )
+    list(APPEND tests ${pwd}/${file})
+    set(tests ${tests} PARENT_SCOPE)
+endfunction()
+
+test(tests/01-simple.sil)
+
+add_tests()

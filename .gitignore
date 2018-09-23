@@ -2,4 +2,8 @@
 cmake-*
 result
 result-*
+silis.inc
 silis.c
+
+tests/*.c
+tests/*.exe

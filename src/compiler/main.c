@@ -67,6 +67,8 @@ size_t main(Vector(String)
     fclose(file);
     String fileStr = String_fromSlice((Slice(uint8_t)) {._begin = buf, ._end = buf + len}, ENCODING_DEFAULT);
 
+    FILE *out = Vector_size(&args) >= 3 ? fopen(String_begin(Vector_data(&args)[2]), "w") : stdout;
+
     if (flags.print_parse) {
         fprintf_s(stdout, STR("PARSE:\n-----\n"));
     }
@@ -152,7 +154,6 @@ size_t main(Vector(String)
         if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));
         }
-        FILE *out = stdout;
         Buffer outBuf;
         FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : out;
         do_compile((compile_input) {
