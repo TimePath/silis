@@ -10,7 +10,6 @@ types_t types_new(void)
             .t_expr = {.value = 0},
             .t_string = {.value = 0},
             .t_int = {.value = 0},
-            .end_intrinsics = 0,
     };
     types_t *self = &_self;
     self->t_unit = type_new(self, (type_t) {

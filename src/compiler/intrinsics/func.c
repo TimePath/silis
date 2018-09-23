@@ -9,8 +9,8 @@ INTRINSIC_IMPL(func, ((type_id[]) {
         types->t_unit,
 }))
 {
-    const value_t *arg_args = &argv[0];
-    const value_t *arg_body = &argv[1];
+    const value_t *arg_args = &Slice_data(&argv)[0];
+    const value_t *arg_body = &Slice_data(&argv)[1];
 
     const node_t *args = node_get(env.nodes, arg_args->u.expr.value);
     Slice(node_t) children = node_list_children(args);
@@ -39,11 +39,11 @@ void func_args_types(Env env, const Slice(node_t) args, type_id out[])
         } else if (n <= 2) {
             const node_t *node_type = &Slice_data(&children)[0];
             const value_t type = eval_node(env, node_type);
-            assert(type.type.value == env.types->t_type.value);
+            assert(type.type.value == env.types->t_type.value && "argument is a type");
             out[i] = type.u.type.value;
             if (n == 2) {
                 const node_t *node_id = &Slice_data(&children)[1];
-                assert(node_id->kind == NODE_ATOM);
+                assert(node_id->kind == NODE_ATOM && "argument is a name");
                 (void) (node_id);
             }
         } else {
@@ -63,18 +63,18 @@ void func_args_names(Env env, const Slice(node_t) args, String out[])
             out[i] = STR("");
         } else {
             const node_t *node_id = &Slice_data(&children)[1];
-            assert(node_id->kind == NODE_ATOM);
+            assert(node_id->kind == NODE_ATOM && "argument is a name");
             out[i] = node_id->u.atom.value;
         }
     }
 }
 
-static void func_args_load(Env env, const node_t *arglist, const value_t *argv);
+static void func_args_load(Env env, const node_t *arglist, Slice(value_t) argv);
 
-value_t func_call(Env env, value_t func, const value_t *argv)
+value_t func_call(Env env, value_t func, const Slice(value_t) argv)
 {
-    if (func.type.value <= env.types->end_intrinsics) {
-        return func.u.intrinsic.value(env, argv);
+    if (func.flags.intrinsic) {
+        return func.u.intrinsic.value->call(env, argv);
     }
     sym_push(env.symbols, 0);
     const node_t *body = node_get(env.nodes, func.u.func.value);
@@ -85,7 +85,7 @@ value_t func_call(Env env, value_t func, const value_t *argv)
     return ret;
 }
 
-static void func_args_load(Env env, const node_t *arglist, const value_t *argv)
+static void func_args_load(Env env, const node_t *arglist, const Slice(value_t) argv)
 {
     const Slice(node_t) args = node_list_children(arglist);
     const size_t argc = Slice_size(&args);
@@ -95,9 +95,9 @@ static void func_args_load(Env env, const node_t *arglist, const value_t *argv)
         const size_t n = Slice_size(&children);
         if (n == 2) {
             const node_t *node_id = &Slice_data(&children)[1];
-            assert(node_id->kind == NODE_ATOM);
+            assert(node_id->kind == NODE_ATOM && "argument is a name");
 
-            const value_t *v = &argv[i];
+            const value_t *v = &Slice_data(&argv)[i];
             sym_def(env.symbols, node_id->u.atom.value, (sym_t) {
                     .type = v->type,
                     .value = *v,

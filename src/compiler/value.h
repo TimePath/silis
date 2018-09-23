@@ -6,11 +6,7 @@
 #include "node.h"
 #include "type.h"
 
-typedef struct value_s value_t;
-
-typedef value_t (*intrinsic_t)(Env env, const value_t *value);
-
-struct value_s {
+typedef struct {
     type_id type;
     union {
         struct {
@@ -26,7 +22,7 @@ struct value_s {
         } string;
 
         struct {
-            intrinsic_t value;
+            struct Intrinsic_s *value;
         } intrinsic;
 
         struct {
@@ -42,8 +38,17 @@ struct value_s {
             node_id arglist;
         } func;
     } u;
-};
+    struct {
+        /// intrinsic, can't be compiled as-is
+        bool intrinsic : 1;
+        /// native declaration (libc function, or other external symbol)
+        bool native : 1;
+        uint8_t padding : 6;
+    } flags;
+    uint8_t padding[7];
+} value_t;
 
 Vector_instantiate(value_t);
+Slice_instantiate(value_t);
 
 value_t value_from(Env env, const node_t *n);

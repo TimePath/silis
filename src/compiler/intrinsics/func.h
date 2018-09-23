@@ -4,7 +4,7 @@
 
 INTRINSIC(func);
 
-value_t func_call(Env env, value_t func, const value_t *argv);
+value_t func_call(Env env, value_t func, Slice(value_t) argv);
 
 void func_args_types(Env env, Slice(node_t) args, type_id out[]);
 

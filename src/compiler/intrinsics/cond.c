@@ -9,9 +9,9 @@ INTRINSIC_IMPL(cond, ((type_id[]) {
         types->t_unit,
 }))
 {
-    const value_t *arg_predicate = &argv[0];
-    const value_t *arg_true = &argv[1];
-    const value_t *arg_false = &argv[2];
+    const value_t *arg_predicate = &Slice_data(&argv)[0];
+    const value_t *arg_true = &Slice_data(&argv)[1];
+    const value_t *arg_false = &Slice_data(&argv)[2];
 
     const node_t *predicate = node_get(env.nodes, arg_predicate->u.expr.value);
     const node_t *node_true = node_get(env.nodes, arg_true->u.expr.value);

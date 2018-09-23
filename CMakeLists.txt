@@ -62,8 +62,10 @@ set(SOURCE_FILES
         src/compiler/intrinsics/do.c
         src/compiler/intrinsics/extern.c
         src/compiler/intrinsics/func.c
+        src/compiler/intrinsics/if.c
         src/compiler/intrinsics/minus.c
         src/compiler/intrinsics/plus.c
+        src/compiler/intrinsics/while.c
 
         src/compiler/intrinsics/types/func.c
         )

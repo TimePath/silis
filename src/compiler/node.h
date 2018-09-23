@@ -64,10 +64,10 @@ typedef struct {
     } u;
 } node_t;
 
-typedef const node_t *node_t_ptr;
-
 Vector_instantiate(node_t);
 Slice_instantiate(node_t);
+
+typedef const node_t *node_t_ptr;
 Slice_instantiate(node_t_ptr);
 
 Slice(node_t) node_list_children(const node_t *list);

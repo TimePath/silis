@@ -3,13 +3,21 @@
 
 #include <lib/stdio.h>
 
-#include "../../intrinsics/func.h"
 #include <compiler/symbols.h>
+#include <compiler/value.h>
+#include <compiler/intrinsics/do.h>
+#include <compiler/intrinsics/func.h>
+#include <compiler/intrinsics/if.h>
+#include <compiler/intrinsics/while.h>
 
 typedef struct {
     Env env;
     FILE *out;
 } compile_ctx_t;
+
+static void print_node(const compile_ctx_t *ctx, const node_t *it);
+
+static void print_value(const compile_ctx_t *ctx, const value_t *it);
 
 static void print_function(const compile_ctx_t *ctx, type_id id, String ident, const String idents[]);
 
@@ -41,71 +49,110 @@ typedef struct {
 
 static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it);
 
-void do_compile(Env env, FILE *out)
+compile_output do_compile(compile_input in)
 {
-    const compile_ctx_t ctx_ = {.env = env, .out = out};
-    const compile_ctx_t *ctx = &ctx_;
+    compile_ctx_t _ctx = {.env = in.env, .out = in.out};
+    compile_ctx_t *ctx = &_ctx;
 
     sym_t entry;
     bool hasMain = sym_lookup(ctx->env.symbols, STR("main"), &entry);
     (void) entry;
     (void) hasMain;
-    assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION);
+    assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION && "main is a function");
 
     const sym_scope_t *globals = &Vector_data(&ctx->env.symbols->scopes)[0];
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
-        const TrieNode(sym_t) *nod = &Vector_data(&globals->t.nodes)[e->value];
-        const sym_t sym_ = nod->value;
-        const sym_t *sym = &sym_;
-        if (sym->flags.intrinsic) {
+        const TrieNode(sym_t) *n = &Vector_data(&globals->t.nodes)[e->value];
+        const sym_t _it = n->value;
+        const sym_t *it = &_it;
+        if (it->value.flags.intrinsic) {
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const type_id type = sym->type;
-        if (sym->flags.native) {
+        const type_id type = it->type;
+        if (it->value.flags.native) {
             fprintf_s(ctx->out, STR("extern "));
         }
         if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
             print_function(ctx, type, ident, NULL);
         } else {
             print_declaration(ctx, type, ident);
-            if (!sym->flags.native) {
+            if (!it->value.flags.native) {
                 fprintf_s(ctx->out, STR(" = "));
-                // todo: sym->value
+                print_value(ctx, &it->value);
             }
         }
         fprintf_s(ctx->out, STR(";\n"));
     }
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
-        const TrieNode(sym_t) *nod = &Vector_data(&globals->t.nodes)[e->value];
-        const sym_t sym_ = nod->value;
-        const sym_t *sym = &sym_;
-        if (sym->flags.intrinsic || sym->flags.native) {
+        const TrieNode(sym_t) *n = &Vector_data(&globals->t.nodes)[e->value];
+        const sym_t _it = n->value;
+        const sym_t *it = &_it;
+        if (it->value.flags.intrinsic || it->value.flags.native) {
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const type_id type = sym->type;
-        if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
-            fprintf_s(ctx->out, STR("\n"));
-            const node_id args = nod->value.value.u.func.arglist;
-            const node_t *argv = node_get(ctx->env.nodes, args);
-            Slice(node_t) children = node_list_children(argv);
-            size_t argc = Slice_size(&children);
-            String *argnames = realloc(NULL, sizeof(String) * argc);
-            func_args_names(ctx->env, children, argnames);
-            print_function(ctx, type, ident, argnames);
-            free(argnames);
-            fprintf_s(ctx->out, STR("\n{\n"));
-
-            const node_id impl = nod->value.value.u.func.value;
-            visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC},
-                       node_get(ctx->env.nodes, impl));
-
-            fprintf_s(ctx->out, STR("\n}\n"));
+        const type_id type = it->type;
+        if (type_lookup(ctx->env.types, type)->kind != TYPE_FUNCTION) {
+            continue;
         }
+        fprintf_s(ctx->out, STR("\n"));
+        const node_id args = it->value.u.func.arglist;
+        const node_t *argv = node_get(ctx->env.nodes, args);
+        Slice(node_t) children = node_list_children(argv);
+        size_t argc = Slice_size(&children);
+        String *argnames = realloc(NULL, sizeof(String) * argc);
+        func_args_names(ctx->env, children, argnames);
+        print_function(ctx, type, ident, argnames);
+        free(argnames);
+        fprintf_s(ctx->out, STR("\n{\n"));
+
+        const node_id impl = it->value.u.func.value;
+        visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, node_get(ctx->env.nodes, impl));
+
+        fprintf_s(ctx->out, STR("\n}\n"));
     }
+}
+
+static void print_node(const compile_ctx_t *ctx, const node_t *it)
+{
+    switch (it->kind) {
+        case NODE_INVALID:
+        case NODE_LIST_BEGIN:
+        case NODE_LIST_END:
+        case NODE_REF:
+            assert(false);
+        case NODE_ATOM:
+            fprintf_s(ctx->out, it->u.atom.value);
+            break;
+        case NODE_INTEGRAL:
+            fprintf_zu(ctx->out, it->u.integral.value);
+            break;
+        case NODE_STRING:
+            fprintf_s(ctx->out, STR("\""));
+            // todo: escape
+            fprintf_s(ctx->out, it->u.string.value);
+            fprintf_s(ctx->out, STR("\""));
+            break;
+    }
+}
+
+static void print_value(const compile_ctx_t *ctx, const value_t *it)
+{
+    if (it->type.value == ctx->env.types->t_int.value) {
+        fprintf_zu(ctx->out, it->u.integral.value);
+        return;
+    }
+    if (it->type.value == ctx->env.types->t_string.value) {
+        fprintf_s(ctx->out, STR("\""));
+        // todo: escape
+        fprintf_s(ctx->out, it->u.string.value);
+        fprintf_s(ctx->out, STR("\""));
+        return;
+    }
+    assert(false);
 }
 
 static String type_name(const compile_ctx_t *ctx, type_id id)
@@ -178,6 +225,12 @@ static void print_function_args(const compile_ctx_t *ctx, type_id id, const Stri
     fprintf_s(ctx->out, STR(")"));
 }
 
+static void print_ref(const compile_ctx_t *ctx, node_id val)
+{
+    fprintf_s(ctx->out, STR("_"));
+    fprintf_zu(ctx->out, val.val);
+}
+
 #define TAB() fprintf_s(ctx->out, String_indent(state.depth * 4))
 
 static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t ret)
@@ -185,8 +238,7 @@ static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t r
     (void) state;
     switch (ret.kind) {
         case RETURN_TEMPORARY:
-            fprintf_s(ctx->out, STR("_"));
-            fprintf_zu(ctx->out, ret.u.temporary.val.val);
+            print_ref(ctx, ret.u.temporary.val);
             return;
         case RETURN_NAMED:
             assert(false); // todo
@@ -204,7 +256,8 @@ static void return_declare(const compile_ctx_t *ctx, visit_state_t state, return
     switch (ret.kind) {
         case RETURN_TEMPORARY:
         case RETURN_NAMED:
-            fprintf_s(ctx->out, STR("auto "));
+            fprintf_s(ctx->out, STR("auto"));
+            fprintf_s(ctx->out, STR(" "));
             return_ref(ctx, state, ret);
             fprintf_s(ctx->out, STR(";"));
             return;
@@ -250,19 +303,10 @@ static bool visit_node_primary(const compile_ctx_t *ctx, visit_state_t state, re
 {
     switch (it->kind) {
         case NODE_ATOM:
-            return_assign(ctx, state, ret);
-            fprintf_s(ctx->out, it->u.atom.value);
-            return true;
         case NODE_INTEGRAL:
-            return_assign(ctx, state, ret);
-            fprintf_zu(ctx->out, it->u.integral.value);
-            return true;
         case NODE_STRING:
             return_assign(ctx, state, ret);
-            fprintf_s(ctx->out, STR("\""));
-            // todo: escape
-            fprintf_s(ctx->out, it->u.string.value);
-            fprintf_s(ctx->out, STR("\""));
+            print_node(ctx, it);
             return true;
         case NODE_LIST_BEGIN: {
             const size_t n = it->u.list.size;
@@ -290,22 +334,26 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 
 static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, const node_t *it)
 {
+    assert(it->kind == NODE_LIST_BEGIN && "it is list");
     const Slice(node_t) childrenRaw = node_list_children(it);
     const size_t n = Slice_size(&childrenRaw);
-    const node_t **_children = realloc(NULL, sizeof(node_t *) * n);
-    for (size_t i = 0; i < n; ++i) {
-        _children[i] = node_deref(&Slice_data(&childrenRaw)[i], ctx->env.nodes);
-    }
-    const Slice(node_t_ptr) children = (Slice(node_t_ptr)) {._begin = &_children[0], ._end = &_children[n]};
-    const node_t *first = Slice_data(&children)[0];
+    const node_t *first = node_deref(&Slice_data(&childrenRaw)[0], ctx->env.nodes);
     if (n == 1) {
         visit_node(ctx, state, ret, first);
         return;
     }
-    if (visit_node_macro(ctx, state, ret, first, children)) {
-        return;
+    const node_t **_children = realloc(NULL, sizeof(node_t *) * n);
+    _children[0] = first;
+    for (size_t i = 1; i < n; ++i) {
+        _children[i] = node_deref(&Slice_data(&childrenRaw)[i], ctx->env.nodes);
     }
-    visit_node_expr(ctx, state, ret, first, children);
+    const Slice(node_t_ptr) children = (Slice(node_t_ptr)) {._begin = &_children[0], ._end = &_children[n]};
+    do {
+        if (visit_node_macro(ctx, state, ret, first, children)) {
+            break;
+        }
+        visit_node_expr(ctx, state, ret, first, children);
+    } while (false);
     free(_children);
 }
 
@@ -328,13 +376,11 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
     }
     TAB();
     return_assign(ctx, state, ret);
-    fprintf_s(ctx->out, STR("_"));
-    fprintf_zu(ctx->out, node_ref(func, ctx->env.nodes).val);
+    print_ref(ctx, node_ref(func, ctx->env.nodes));
     fprintf_s(ctx->out, STR("("));
     for (size_t i = 1; i < n; ++i) {
         const bool last = i == n - 1;
-        fprintf_s(ctx->out, STR("_"));
-        fprintf_zu(ctx->out, node_ref(Slice_data(&children)[i], ctx->env.nodes).val);
+        print_ref(ctx, node_ref(Slice_data(&children)[i], ctx->env.nodes));
         if (!last) {
             fprintf_s(ctx->out, STR(", "));
         }
@@ -346,14 +392,23 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
     fprintf_s(ctx->out, STR("}"));
 }
 
-// fixme: check the value, not the name
 static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, return_t ret,
                              const node_t *func, Slice(node_t_ptr) children)
 {
     if (func->kind != NODE_ATOM) {
         return false;
     }
-    if (String_equals(func->u.atom.value, STR("#do"))) {
+    sym_t entry;
+    bool found = sym_lookup(ctx->env.symbols, func->u.atom.value, &entry);
+    if (!found) {
+        return false;
+    }
+    if (!entry.value.flags.intrinsic) {
+        return false;
+    }
+    struct Intrinsic_s *intrin = entry.value.u.intrinsic.value;
+
+    if (intrin == &intrin_do) {
         // todo: extract
         const node_t *bodyNode = Slice_data(&children)[1];
         const Slice(node_t) bodyChildren = node_list_children(bodyNode);
@@ -376,7 +431,9 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
                 fprintf_s(ctx->out, STR("\n"));
             }
         }
-    } else if (String_equals(func->u.atom.value, STR("#if"))) {
+        return true;
+    }
+    if (intrin == &intrin_if) {
         const node_t *predNode = Slice_data(&children)[1];
         const node_t *bodyNode = Slice_data(&children)[2];
         const return_t out = (return_t) {
@@ -393,8 +450,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
 
         TAB();
         fprintf_s(ctx->out, STR("if ("));
-        fprintf_s(ctx->out, STR("_"));
-        fprintf_zu(ctx->out, node_ref(predNode, ctx->env.nodes).val);
+        print_ref(ctx, node_ref(predNode, ctx->env.nodes));
         fprintf_s(ctx->out, STR(") {\n"));
         {
             state.depth++;
@@ -405,7 +461,9 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         }
         TAB();
         fprintf_s(ctx->out, STR("}"));
-    } else if (String_equals(func->u.atom.value, STR("#while"))) {
+        return true;
+    }
+    if (intrin == &intrin_while) {
         const node_t *predNode = Slice_data(&children)[1];
         const node_t *bodyNode = Slice_data(&children)[2];
         const return_t out = (return_t) {
@@ -422,8 +480,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
 
         TAB();
         fprintf_s(ctx->out, STR("while ("));
-        fprintf_s(ctx->out, STR("_"));
-        fprintf_zu(ctx->out, node_ref(predNode, ctx->env.nodes).val);
+        print_ref(ctx, node_ref(predNode, ctx->env.nodes));
         fprintf_s(ctx->out, STR(") {\n"));
         {
             state.depth++;
@@ -439,8 +496,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         }
         TAB();
         fprintf_s(ctx->out, STR("}"));
-    } else {
-        return false;
+        return true;
     }
-    return true;
+    return false;
 }

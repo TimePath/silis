@@ -4,14 +4,14 @@
 #include "../_.h"
 #include "../../phases/03-eval/eval.h"
 
-static void types_func_args_types(Env env, Slice(node_t) args, size_t argc, type_id *out);
+static void types_func_args_types(Env env, Slice(node_t) args, size_t argc, type_id out[]);
 
 INTRINSIC_IMPL(types_func, ((type_id[]) {
         types->t_expr,
         types->t_unit,
 }))
 {
-    const value_t *arg_args = &argv[0];
+    const value_t *arg_args = &Slice_data(&argv)[0];
 
     const node_t *args = node_get(env.nodes, arg_args->u.expr.value);
     const Slice(node_t) children = node_list_children(args);
@@ -27,7 +27,7 @@ INTRINSIC_IMPL(types_func, ((type_id[]) {
     };
 }
 
-static void types_func_args_types(Env env, const Slice(node_t) args, size_t argc, type_id *out)
+static void types_func_args_types(Env env, const Slice(node_t) args, size_t argc, type_id out[])
 {
     for (size_t i = 0; i < argc; ++i) {
         const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
@@ -36,7 +36,7 @@ static void types_func_args_types(Env env, const Slice(node_t) args, size_t argc
             out[i] = env.types->t_unit;
             continue;
         }
-        assert(type.type.value == env.types->t_type.value);
+        assert(type.type.value == env.types->t_type.value && "argument is a type");
         out[i] = type.u.type.value;
     }
 }

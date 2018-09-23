@@ -2,4 +2,11 @@
 
 #include <compiler/env.h>
 
-void do_compile(Env env, FILE *out);
+typedef struct {
+    Env env;
+    FILE *out;
+} compile_input;
+
+typedef void compile_output;
+
+compile_output do_compile(compile_input in);

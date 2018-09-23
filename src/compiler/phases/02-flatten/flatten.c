@@ -16,11 +16,10 @@ flatten_output do_flatten(flatten_input in)
 {
     flatten_ctx_t ctx = flatten_ctx_new();
     {
-        // make usable ids start from 1
         Vector(node_t) *nodes = &ctx.nodes;
         const node_t dummy = (node_t) {.kind = NODE_INVALID};
         Vector_push(nodes, dummy);
-        assert(Vector_size(nodes) == 1);
+        assert(Vector_size(nodes) == 1 && "node ids start from 1");
     }
 
     const Vector(node_t) *read = &in.tokens;
@@ -30,7 +29,7 @@ flatten_output do_flatten(flatten_input in)
     for (const node_t *it = begin; it < end;) {
         const size_t skip = do_flatten_rec(&ctx, &stack, it);
         Vector_pop(&stack); // ignore the final ref
-        assert(Vector_size(&stack) == 0);
+        assert(Vector_size(&stack) == 0 && "stack is empty");
         it += skip;
     }
     return (flatten_output) {.nodes = ctx.nodes};

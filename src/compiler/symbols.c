@@ -14,34 +14,31 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init)
             .type = types->t_type,
             .value = {
                     .type = types->t_type,
-                    .u.type.value = types->t_string
+                    .u.type.value = types->t_string,
+                    .flags.intrinsic = true,
             },
-            .flags.intrinsic = true,
     });
     sym_def(self, STR("#types/int"), (sym_t) {
             .type = types->t_type,
             .value = {
                     .type = types->t_type,
                     .u.type.value = types->t_int,
+                    .flags.intrinsic = true,
             },
-            .flags.intrinsic = true,
     });
 
     Slice_loop(&init, i) {
         InitialSymbol it = Slice_data(&init)[i];
-        type_id T = it.value.load(types);
+        type_id T = it.value->load(types);
         sym_def(self, it.id, (sym_t) {
                 .type = T,
                 .value = {
                         .type = T,
-                        .u.intrinsic.value = it.value.call,
+                        .u.intrinsic.value = it.value,
+                        .flags.intrinsic = true,
                 },
-                .flags.intrinsic = true,
         });
     }
-
-    types->end_intrinsics = Vector_size(&types->all) - 1;
-
     return ret;
 }
 

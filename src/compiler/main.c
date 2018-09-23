@@ -18,8 +18,10 @@
 #include "intrinsics/do.h"
 #include "intrinsics/extern.h"
 #include "intrinsics/func.h"
+#include "intrinsics/if.h"
 #include "intrinsics/minus.h"
 #include "intrinsics/plus.h"
+#include "intrinsics/while.h"
 
 Vector_instantiate(String);
 
@@ -106,17 +108,19 @@ size_t main(Vector(String)
     }
 
     types_t types = types_new();
-    symbols_t symbols = symbols_new(&types, Slice_of(InitialSymbol, (InitialSymbol[10]) {
-            {.id = STR("#puti"), .value = intrin_debug_puti},
-            {.id = STR("#puts"), .value = intrin_debug_puts},
-            {.id = STR("#types/func"), .value = intrin_types_func},
-            {.id = STR("#cond"), .value = intrin_cond},
-            {.id = STR("#define"), .value = intrin_define},
-            {.id = STR("#do"), .value = intrin_do},
-            {.id = STR("#extern"), .value = intrin_extern},
-            {.id = STR("#func"), .value = intrin_func},
-            {.id = STR("-"), .value = intrin_minus},
-            {.id = STR("+"), .value = intrin_plus},
+    symbols_t symbols = symbols_new(&types, Slice_of(InitialSymbol, (InitialSymbol[12]) {
+            {.id = STR("#puti"), .value = &intrin_debug_puti},
+            {.id = STR("#puts"), .value = &intrin_debug_puts},
+            {.id = STR("#types/func"), .value = &intrin_types_func},
+            {.id = STR("#cond"), .value = &intrin_cond},
+            {.id = STR("#define"), .value = &intrin_define},
+            {.id = STR("#do"), .value = &intrin_do},
+            {.id = STR("#extern"), .value = &intrin_extern},
+            {.id = STR("#func"), .value = &intrin_func},
+            {.id = STR("#if"), .value = &intrin_if},
+            {.id = STR("-"), .value = &intrin_minus},
+            {.id = STR("+"), .value = &intrin_plus},
+            {.id = STR("#while"), .value = &intrin_while},
     }));
 
     Env env = (Env) {
@@ -143,7 +147,7 @@ size_t main(Vector(String)
         bool hasMain = sym_lookup(&symbols, STR("main"), &entry);
         (void) hasMain;
         assert(hasMain && type_lookup(&types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
-        func_call(env, entry.value, NULL);
+        func_call(env, entry.value, (Slice(value_t)) { ._begin = NULL, ._end = NULL, });
     } else {
         if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));
@@ -151,7 +155,10 @@ size_t main(Vector(String)
         FILE *out = stdout;
         Buffer outBuf;
         FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : out;
-        do_compile(env, f);
+        do_compile((compile_input) {
+                .env = env,
+                .out = f,
+        });
         if (flags.buffer) {
             fclose(f);
             fprintf_raw(out, Buffer_toSlice(&outBuf));

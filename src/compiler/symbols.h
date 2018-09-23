@@ -25,7 +25,7 @@ typedef struct symbols_s {
 
 typedef struct {
     String id;
-    Intrinsic value;
+    Intrinsic *value;
 } InitialSymbol;
 Slice_instantiate(InitialSymbol);
 

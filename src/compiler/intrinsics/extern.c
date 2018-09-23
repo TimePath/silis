@@ -9,18 +9,19 @@ INTRINSIC_IMPL(extern, ((type_id[]) {
         types->t_unit,
 }))
 {
-    const value_t *arg_name = &argv[0];
-    const value_t *arg_val = &argv[1];
+    const value_t *arg_name = &Slice_data(&argv)[0];
+    const value_t *arg_val = &Slice_data(&argv)[1];
 
     const node_t *name = node_get(env.nodes, arg_name->u.expr.value);
     assert(name->kind == NODE_ATOM);
     const node_t *val = node_get(env.nodes, arg_val->u.expr.value);
 
     const value_t v = eval_node(env, val);
-    assert(v.type.value == env.types->t_type.value);
+    assert(v.type.value == env.types->t_type.value && "argument is a type");
+    type_id T = v.u.type.value;
     sym_def(env.symbols, name->u.atom.value, (sym_t) {
-            .type = v.u.type.value,
-            .flags.native = true,
+            .type = T,
+            .value = { .type = T, .flags.native = true, },
     });
     return (value_t) {.type = env.types->t_unit};
 }

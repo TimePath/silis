@@ -51,14 +51,18 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     const Slice(node_t) children = node_list_children(it);
     const size_t n = Slice_size(&children);
     if (!n) {
+        // ()
         return (value_t) {.type = ctx->env.types->t_unit};
     }
     if (n == 1) {
+        // (expr)
         return do_eval_node(ctx, &Slice_data(&children)[0]);
     }
+    // (f args...)
     const value_t func = do_eval_node(ctx, &Slice_data(&children)[0]);
     const type_t *T = type_lookup(ctx->env.types, func.type);
-    assert(T->kind == TYPE_FUNCTION);
+    assert(T->kind == TYPE_FUNCTION && "function is function");
+    assert(!func.flags.native && "function is not native");
 
     const size_t ofs = Vector_size(&ctx->stack);
     const type_id expr_t = ctx->env.types->t_expr;
@@ -77,7 +81,7 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
             Vector_push(&ctx->stack, v);
         } else {
             value_t v = do_eval_node(ctx, arg);
-            assert(v.type.value == arg_t.value);
+            assert(v.type.value == arg_t.value && "argument matches declared type");
             Vector_push(&ctx->stack, v);
         }
         link = type_lookup(ctx->env.types, link->u.func.out);
@@ -85,8 +89,8 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     assert((n - 1) == T_argc && "argument overflow");
 
     const value_t *argv = &Vector_data(&ctx->stack)[ofs];
-    value_t ret = func_call(ctx->env, func, argv);
-    for (size_t i = 1; i < n; ++i) {
+    value_t ret = func_call(ctx->env, func, (Slice(value_t)) { ._begin = argv, ._end = argv + n, });
+    for (size_t i = 0; i < n - 1; ++i) {
         Vector_pop(&ctx->stack);
     }
     return ret;

@@ -20,8 +20,6 @@ typedef struct types_s {
     type_id t_string;
     /// integers
     type_id t_int;
-    /// index of last intrinsic type
-    size_t end_intrinsics;
 } types_t;
 
 types_t types_new(void);

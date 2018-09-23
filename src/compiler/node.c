@@ -23,10 +23,10 @@ node_id node_ref(const node_t *it, const Vector(node_t) *nodes)
 
 const node_t *node_deref(const node_t *it, const Vector(node_t) *nodes)
 {
-    if (it->kind == NODE_REF) {
-        const node_t *ret = node_get(nodes, it->u.ref.value);
-        assert(ret->kind != NODE_REF && "no double refs");
-        return ret;
+    if (it->kind != NODE_REF) {
+        return it;
     }
-    return it;
+    const node_t *ret = node_get(nodes, it->u.ref.value);
+    assert(ret->kind != NODE_REF && "no double refs");
+    return ret;
 }
