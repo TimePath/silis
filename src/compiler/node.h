@@ -3,18 +3,20 @@
 #include <lib/string.h>
 #include <lib/vector.h>
 
+#include <compiler/token.h>
+
 typedef enum {
     NODE_INVALID,
+    /**
+     * Generated at runtime
+     * Index to address of expression in flat AST
+     */ NODE_REF,
     /**
      * (
      */ NODE_LIST_BEGIN,
     /**
      * )
      */ NODE_LIST_END,
-    /**
-     * Generated at runtime
-     * Index to address of expression in flat AST
-     */ NODE_REF,
     /**
      * A word
      */ NODE_ATOM,
@@ -33,6 +35,7 @@ typedef struct {
 typedef struct {
     node_e kind;
     uint8_t padding[4];
+    const token_t *token;
     union {
         /// NODE_LIST_BEGIN
         struct {
@@ -77,3 +80,5 @@ const node_t *node_get(const Vector(node_t) *nodes, node_id ref);
 node_id node_ref(const node_t *it, const Vector(node_t) *nodes);
 
 const node_t *node_deref(const node_t *it, const Vector(node_t) *nodes);
+
+void node_print(FILE *f, Slice(node_t) nodes);

@@ -8,6 +8,7 @@
 
 typedef struct {
     Env env;
+    const node_t *entry;
 } eval_input;
 
 typedef void eval_output;

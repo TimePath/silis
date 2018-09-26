@@ -8,7 +8,6 @@
 #include "phases/02-flatten/flatten.h"
 #include "phases/03-eval/eval.h"
 #include "phases/04-compile/compile.h"
-#include "phases/print.h"
 
 #include "intrinsics/debug/puti.h"
 #include "intrinsics/debug/puts.h"
@@ -47,9 +46,9 @@ size_t main(Vector(String)
         uint8_t padding : 1;
     } flags = {
             .run = false,
-            .print_parse = false,
+            .print_parse = true,
             .print_flatten = true,
-            .print_eval = false,
+            .print_eval = true,
             .print_compile = true,
             .print_run = true,
             .buffer = OUTPUT_BUFFER,
@@ -76,11 +75,7 @@ size_t main(Vector(String)
             .source = fileStr,
     });
     if (flags.print_parse) {
-        print_state_t state = print_state_new();
-        Slice_loop(&Vector_toSlice(node_t, &parse.tokens), i) {
-            const node_t *it = &Vector_data(&parse.tokens)[i];
-            state = print(stdout, state, it);
-        }
+        token_print(stdout, Vector_toSlice(token_t, &parse.tokens));
         fprintf_s(stdout, STR("\n\n"));
     }
 
@@ -91,21 +86,7 @@ size_t main(Vector(String)
             .tokens = parse.tokens,
     });
     if (flags.print_flatten) {
-        print_state_t state = print_state_new();
-        Slice_loop(&Vector_toSlice(node_t, &flatten.nodes), i) {
-            if (i < 1) { continue; }
-            const node_t *it = &Vector_data(&flatten.nodes)[i];
-            if (it->kind == NODE_LIST_BEGIN) {
-                fprintf_s(stdout, STR(";; var_"));
-                fprintf_zu(stdout, i);
-                fprintf_s(stdout, STR("\n"));
-            }
-            state = print(stdout, state, it);
-            if (it->kind == NODE_LIST_END) {
-                fprintf_s(stdout, STR("\n"));
-                state = print_state_new();
-            }
-        }
+        node_print(stdout, Vector_toSlice(node_t, &flatten.nodes));
         fprintf_s(stdout, STR("\n"));
     }
 
@@ -136,6 +117,7 @@ size_t main(Vector(String)
     }
     do_eval((eval_input) {
             .env = env,
+            .entry = flatten.entry,
     });
     if (flags.print_eval) {
         fprintf_s(stdout, STR("\n"));
@@ -154,7 +136,7 @@ size_t main(Vector(String)
         if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));
         }
-        Buffer outBuf;
+        Buffer outBuf = Vector_new();
         FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : out;
         do_compile((compile_input) {
                 .env = env,

@@ -7,6 +7,12 @@
 value_t value_from(Env env, const node_t *n)
 {
     switch (n->kind) {
+        case NODE_INVALID:
+        case NODE_REF:
+        case NODE_LIST_BEGIN:
+        case NODE_LIST_END:
+            assert(false);
+            break;
         case NODE_ATOM: {
             const String ident = n->u.atom.value;
             sym_t symbol;
@@ -25,14 +31,6 @@ value_t value_from(Env env, const node_t *n)
                     .type = env.types->t_string,
                     .u.string.value = n->u.string.value,
             };
-        case NODE_INVALID:
-        case NODE_LIST_BEGIN:
-        case NODE_LIST_END:
-        case NODE_REF:
-            break;
     }
-    assert(false);
-    return (value_t) {
-            .type = {.value = 0}
-    };
+    return (value_t) {.type = {.value = 0}};
 }

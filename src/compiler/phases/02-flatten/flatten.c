@@ -2,81 +2,118 @@
 #include "flatten.h"
 
 typedef struct {
+    Vector(token_t) tokens;
     Vector(node_t) nodes;
+    Vector(node_t) stack;
 } flatten_ctx_t;
 
-#define flatten_ctx_new() (flatten_ctx_t) { \
-    .nodes = Vector_new(), \
-} \
-/**/
-
-static size_t do_flatten_rec(flatten_ctx_t *ctx, Vector(node_t) *stack, const node_t *begin);
+static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it);
 
 flatten_output do_flatten(flatten_input in)
 {
-    flatten_ctx_t ctx = flatten_ctx_new();
-    {
-        Vector(node_t) *nodes = &ctx.nodes;
-        const node_t dummy = (node_t) {.kind = NODE_INVALID};
-        Vector_push(nodes, dummy);
-        assert(Vector_size(nodes) == 1 && "node ids start from 1");
+    flatten_ctx_t ctx = (flatten_ctx_t) {
+            .tokens = in.tokens,
+            .nodes = Vector_new(),
+            .stack = Vector_new(),
+    };
+    const node_t dummy = (node_t) {.kind = NODE_INVALID};
+    Vector_push(&ctx.nodes, dummy); // make node ids start at 1
+    Slice_loop(&Vector_toSlice(token_t, &ctx.tokens), i) {
+        const token_t *it = &Vector_data(&ctx.tokens)[i];
+        const size_t skip = do_flatten_rec(&ctx, it);
+        Vector_pop(&ctx.stack); // ignore the final ref
+        assert(Vector_size(&ctx.stack) == 0 && "stack is empty");
+        i += skip;
     }
-
-    const Vector(node_t) *read = &in.tokens;
-    const node_t *begin = &Vector_data(read)[0];
-    const node_t *end = &Vector_data(read)[Vector_size(read) - 1];
-    Vector(node_t) stack = Vector_new();
-    for (const node_t *it = begin; it < end;) {
-        const size_t skip = do_flatten_rec(&ctx, &stack, it);
-        Vector_pop(&stack); // ignore the final ref
-        assert(Vector_size(&stack) == 0 && "stack is empty");
-        it += skip;
-    }
-    return (flatten_output) {.nodes = ctx.nodes};
+    const node_t *it = &Vector_data(&ctx.nodes)[Vector_size(&ctx.nodes) - 1];
+    assert(it->kind == NODE_LIST_END);
+    while ((--it)->kind != NODE_LIST_BEGIN) {}
+    return (flatten_output) {.nodes = ctx.nodes, .entry = it};
 }
 
-static size_t do_flatten_rec(flatten_ctx_t *ctx, Vector(node_t) *stack, const node_t *begin)
+static node_t convert(const token_t *it);
+
+// depth-first search
+static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
 {
-    const node_t *it = begin;
-    if (it->kind != NODE_LIST_BEGIN) {
-        Vector_push(stack, *it);
+    const token_t *begin = it;
+    if (it->kind != TOKEN_LIST_BEGIN) {
+        node_t n = convert(it);
+        Vector_push(&ctx->stack, n);
         return 1;
     }
-    const size_t argv_begin = Vector_size(stack);
-    // depth-first flatten
+    const size_t argv_begin = Vector_size(&ctx->stack);
     {
         ++it; // skip begin
-        while (it->kind != NODE_LIST_END) {
-            it += do_flatten_rec(ctx, stack, it);
+        while (it->kind != TOKEN_LIST_END) {
+            it += do_flatten_rec(ctx, it);
         }
         ++it; // skip end
     }
-    Vector(node_t) *out = &ctx->nodes;
-    const size_t argv_end = Vector_size(stack) - 1;
-    const size_t argc = argv_end - argv_begin + 1;
-    const node_id refIdx = (node_id) {.val = Vector_size(out)};
     // just parsed a full expression
+    const size_t argc = Vector_size(&ctx->stack) - argv_begin;
+    size_t autoid = Vector_size(&ctx->nodes);
     {
-        const node_t open = (node_t) {
+        const node_t header = (node_t) {
                 .kind = NODE_LIST_BEGIN,
-                .u.list.begin = !argc ? 0 : Vector_size(out) + 1,
-                .u.list.end = !argc ? 0 : Vector_size(out) + argc,
+                .token = begin,
+                .u.list.begin = !argc ? 0 : autoid + 1,
+                .u.list.end = !argc ? 0 : autoid + argc,
                 .u.list.size = argc,
         };
-        Vector_push(out, open);
+        Vector_push(&ctx->nodes, header);
         for (size_t i = 0; i < argc; ++i) {
-            Vector_push(out, Vector_data(stack)[argv_begin + i]);
+            Vector_push(&ctx->nodes, Vector_data(&ctx->stack)[argv_begin + i]);
         }
         for (size_t i = 0; i < argc; ++i) {
-            Vector_pop(stack);
+            Vector_pop(&ctx->stack);
         }
-        const node_t close = (node_t) {.kind = NODE_LIST_END};
-        Vector_push(out, close);
+        const node_t footer = (node_t) {.kind = NODE_LIST_END};
+        Vector_push(&ctx->nodes, footer);
     }
     const node_t ret = (node_t) {
             .kind = NODE_REF,
-            .u.ref.value = refIdx,
+            .u.ref.value = (node_id) {.val = autoid},
     };
-    Vector_push(stack, ret);
+    Vector_push(&ctx->stack, ret);
     return (size_t) (it - begin);
+}
+
+static node_t convert(const token_t *it)
+{
+    switch (it->kind) {
+        case TOKEN_INVALID:
+        case TOKEN_LIST_BEGIN:
+        case TOKEN_LIST_END:
+            assert(false);
+            break;
+        case TOKEN_ATOM:
+            return (node_t) {
+                    .kind = NODE_ATOM,
+                    .token = it,
+                    .u.atom = {
+                            .value = it->u.atom.value,
+                    },
+            };
+        case TOKEN_INTEGRAL:
+            return (node_t) {
+                    .kind = NODE_INTEGRAL,
+                    .token = it,
+                    .u.integral = {
+                            .value = it->u.integral.value,
+                    },
+            };
+        case TOKEN_STRING:
+            return (node_t) {
+                    .kind = NODE_STRING,
+                    .token = it,
+                    .u.string = {
+                            .value = it->u.string.value,
+                    },
+            };
+    }
+    return (node_t) {
+            .kind = NODE_INVALID,
+            .token = it,
+    };
 }

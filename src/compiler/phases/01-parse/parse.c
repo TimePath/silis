@@ -3,12 +3,12 @@
 
 typedef struct {
     size_t list_parent_idx;
-    Vector(node_t) out;
+    Vector(token_t) tokens;
 } parse_ctx_t;
 
 #define parse_ctx_new() (parse_ctx_t) { \
     .list_parent_idx = 0, \
-    .out = Vector_new(), \
+    .tokens = Vector_new(), \
 } \
 /**/
 
@@ -21,7 +21,7 @@ typedef struct {
 /// \return memo for pop
 static ctx_list_memo ctx_list_push(parse_ctx_t *ctx);
 
-static void ctx_list_add(parse_ctx_t *ctx, node_t it);
+static void ctx_list_add(parse_ctx_t *ctx, token_t it);
 
 static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo);
 
@@ -31,49 +31,35 @@ parse_output do_parse(parse_input in)
 {
     parse_ctx_t ctx = parse_ctx_new();
     parse_list(&ctx, in.source);
-    return (parse_output) {.tokens = ctx.out};
+    return (parse_output) {.tokens = ctx.tokens};
 }
 
 static ctx_list_memo ctx_list_push(parse_ctx_t *ctx)
 {
-    Vector(node_t) *out = &ctx->out;
-    const size_t thisIdx = Vector_size(out);
     const size_t parentIdx = ctx->list_parent_idx;
-    ctx->list_parent_idx = thisIdx;
-    if (parentIdx) {
-        node_t *parent = &Vector_data(out)[parentIdx];
-        parent->u.list.end = thisIdx;
-        parent->u.list.size += 1;
-    }
-    node_t it = (node_t) {
-            .kind = NODE_LIST_BEGIN,
+    Vector(token_t) *tokens = &ctx->tokens;
+    ctx->list_parent_idx = Vector_size(tokens);
+    token_t it = (token_t) {
+            .kind = TOKEN_LIST_BEGIN,
     };
-    Vector_push(out, it);
+    Vector_push(tokens, it);
     return (ctx_list_memo) {.idx = parentIdx};
 }
 
-static void ctx_list_add(parse_ctx_t *ctx, node_t it)
+static void ctx_list_add(parse_ctx_t *ctx, token_t it)
 {
-    Vector(node_t) *out = &ctx->out;
-    const size_t thisIdx = Vector_size(out);
-    const size_t parentIdx = ctx->list_parent_idx;
-    node_t *parent = &Vector_data(out)[parentIdx];
-    if (!parent->u.list.begin) {
-        parent->u.list.begin = thisIdx;
-    }
-    parent->u.list.end = thisIdx;
-    parent->u.list.size += 1;
-    Vector_push(out, it);
+    Vector(token_t) *tokens = &ctx->tokens;
+    Vector_push(tokens, it);
 }
 
 static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
 {
-    Vector(node_t) *out = &ctx->out;
+    Vector(token_t) *tokens = &ctx->tokens;
     ctx->list_parent_idx = memo.idx;
-    node_t it = (node_t) {
-            .kind = NODE_LIST_END,
+    token_t it = (token_t) {
+            .kind = TOKEN_LIST_END,
     };
-    Vector_push(out, it);
+    Vector_push(tokens, it);
 }
 
 /*
@@ -238,13 +224,13 @@ static size_t parse_atom(parse_ctx_t *ctx, String prog)
             enc
     );
     if (number) {
-        ctx_list_add(ctx, (node_t) {
-                .kind = NODE_INTEGRAL,
+        ctx_list_add(ctx, (token_t) {
+                .kind = TOKEN_INTEGRAL,
                 .u.integral.value = strtoul(String_begin(atom), NULL, 10),
         });
     } else {
-        ctx_list_add(ctx, (node_t) {
-                .kind = NODE_ATOM,
+        ctx_list_add(ctx, (token_t) {
+                .kind = TOKEN_ATOM,
                 .u.atom.value = atom,
         });
     }
@@ -285,8 +271,8 @@ static size_t parse_string(parse_ctx_t *ctx, String prog)
     }
     done:;
     const String value = String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = (const uint8_t *) out}, enc);
-    ctx_list_add(ctx, (node_t) {
-            .kind = NODE_STRING,
+    ctx_list_add(ctx, (token_t) {
+            .kind = TOKEN_STRING,
             .u.string.value = value,
     });
     return 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;

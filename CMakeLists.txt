@@ -44,6 +44,7 @@ set(SOURCE_FILES
         src/compiler/node.c
         src/compiler/symbol.c
         src/compiler/symbols.c
+        src/compiler/token.c
         src/compiler/type.c
         src/compiler/types.c
         src/compiler/value.c
@@ -52,7 +53,6 @@ set(SOURCE_FILES
         src/compiler/phases/02-flatten/flatten.c
         src/compiler/phases/03-eval/eval.c
         src/compiler/phases/04-compile/compile.c
-        src/compiler/phases/print.c
 
         src/compiler/intrinsics/_.h
         src/compiler/intrinsics/debug/puti.c
