@@ -13,6 +13,7 @@ INTRINSIC_IMPL(plus, ((type_id[]) {
     const size_t c = a + b;
     return (value_t) {
             .type = env.types->t_int,
+            .node = self,
             .u.integral.value = c,
     };
 }

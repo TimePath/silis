@@ -23,6 +23,7 @@ INTRINSIC_IMPL(types_func, ((type_id[]) {
     free(Ts);
     return (value_t) {
             .type = env.types->t_type,
+            .node = self,
             .u.type.value = T,
     };
 }

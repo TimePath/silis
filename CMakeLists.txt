@@ -102,5 +102,6 @@ function(test file)
 endfunction()
 
 test(tests/01-simple.sil)
+test(tests/02-extern.sil)
 
 add_tests()

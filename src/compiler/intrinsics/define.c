@@ -21,5 +21,5 @@ INTRINSIC_IMPL(define, ((type_id[]) {
             .type = v.type,
             .value = v,
     });
-    return (value_t) {.type = env.types->t_unit};
+    return (value_t) {.type = env.types->t_unit, .node = self};
 }

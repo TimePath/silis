@@ -8,6 +8,7 @@
 
 typedef struct {
     type_id type;
+    const node_t *node;
     union {
         struct {
             void *value;
@@ -39,11 +40,13 @@ typedef struct {
         } func;
     } u;
     struct {
+        /// unknown value
+        bool abstract : 1;
         /// intrinsic, can't be compiled as-is
         bool intrinsic : 1;
         /// native declaration (libc function, or other external symbol)
         bool native : 1;
-        uint8_t padding : 6;
+        uint8_t padding : 5;
     } flags;
     uint8_t padding[7];
 } value_t;

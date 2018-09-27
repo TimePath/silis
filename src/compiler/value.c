@@ -24,11 +24,13 @@ value_t value_from(Env env, const node_t *n)
         case NODE_INTEGRAL:
             return (value_t) {
                     .type = env.types->t_int,
+                    .node = n,
                     .u.integral.value = n->u.integral.value,
             };
         case NODE_STRING:
             return (value_t) {
                     .type = env.types->t_string,
+                    .node = n,
                     .u.string.value = n->u.string.value,
             };
     }

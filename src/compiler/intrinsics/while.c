@@ -11,5 +11,5 @@ INTRINSIC_IMPL(while, ((type_id[]) {
     (void) env;
     (void) argv;
     assert(false);
-    return (value_t) {.type = env.types->t_unit};
+    return (value_t) {.type = env.types->t_unit, .node = self};
 }

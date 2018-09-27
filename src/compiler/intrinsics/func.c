@@ -22,6 +22,7 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     free(Ts);
     return (value_t) {
             .type = T,
+            .node = self,
             .u.func.value = arg_body->u.expr.value,
             .u.func.arglist = arg_args->u.expr.value,
     };
@@ -71,10 +72,10 @@ void func_args_names(Env env, const Slice(node_t) args, String out[])
 
 static void func_args_load(Env env, const node_t *arglist, Slice(value_t) argv);
 
-value_t func_call(Env env, value_t func, const Slice(value_t) argv)
+value_t func_call(Env env, value_t func, const Slice(value_t) argv, const node_t *self)
 {
     if (func.flags.intrinsic) {
-        return func.u.intrinsic.value->call(env, argv);
+        return func.u.intrinsic.value->call(env, self, argv);
     }
     sym_push(env.symbols, 0);
     const node_t *body = node_get(env.nodes, func.u.func.value);

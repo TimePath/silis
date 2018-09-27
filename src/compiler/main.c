@@ -131,7 +131,7 @@ size_t main(Vector(String)
         bool hasMain = sym_lookup(&symbols, STR("main"), &entry);
         (void) hasMain;
         assert(hasMain && type_lookup(&types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
-        func_call(env, entry.value, (Slice(value_t)) { ._begin = NULL, ._end = NULL, });
+        func_call(env, entry.value, (Slice(value_t)) { ._begin = NULL, ._end = NULL, }, NULL);
     } else {
         if (flags.print_compile) {
             fprintf_s(stdout, STR("COMPILE:\n-------\n"));

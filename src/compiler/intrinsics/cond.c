@@ -9,6 +9,7 @@ INTRINSIC_IMPL(cond, ((type_id[]) {
         types->t_unit,
 }))
 {
+    (void) self;
     const value_t *arg_predicate = &Slice_data(&argv)[0];
     const value_t *arg_true = &Slice_data(&argv)[1];
     const value_t *arg_false = &Slice_data(&argv)[2];
