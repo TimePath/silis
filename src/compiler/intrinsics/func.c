@@ -12,8 +12,7 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     const value_t *arg_args = &Slice_data(&argv)[0];
     const value_t *arg_body = &Slice_data(&argv)[1];
 
-    const node_t *args = node_get(env.nodes, arg_args->u.expr.value);
-    Slice(node_t) children = node_list_children(args);
+    Slice(node_t) children = node_list_children(node_get(env.nodes, arg_args->u.expr.value));
     const size_t argc = Slice_size(&children);
     assert(argc >= 2 && "has enough arguments");
     type_id *Ts = realloc(NULL, sizeof(type_id) * argc);
