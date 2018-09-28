@@ -84,8 +84,8 @@ compile_output do_compile(compile_input in)
                 fprintf_s(ctx->out, STR(" = "));
                 print_value(ctx, &it->value);
             }
+            fprintf_s(ctx->out, STR(";\n"));
         }
-        fprintf_s(ctx->out, STR(";\n"));
     }
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];

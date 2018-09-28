@@ -55,6 +55,7 @@ set(SOURCE_FILES
         src/compiler/phases/04-compile/compile.c
 
         src/compiler/targets/c.c
+        src/compiler/targets/js.c
 
         src/compiler/intrinsics/_.h
         src/compiler/intrinsics/debug/puti.c
