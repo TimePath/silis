@@ -54,6 +54,8 @@ set(SOURCE_FILES
         src/compiler/phases/03-eval/eval.c
         src/compiler/phases/04-compile/compile.c
 
+        src/compiler/targets/c.c
+
         src/compiler/intrinsics/_.h
         src/compiler/intrinsics/debug/puti.c
         src/compiler/intrinsics/debug/puts.c

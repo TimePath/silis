@@ -2,6 +2,7 @@
 
 #include <lib/stdio.h>
 #include <lib/string.h>
+#include <compiler/targets/c.h>
 
 #include "env.h"
 #include "phases/01-parse/parse.h"
@@ -140,8 +141,9 @@ size_t main(Vector(String)
         Buffer outBuf = Vector_new();
         FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : o;
         do_compile((compile_input) {
-                .env = env,
                 .out = f,
+                .target = &target_c,
+                .env = env,
         });
         if (flags.buffer) {
             fclose(f);

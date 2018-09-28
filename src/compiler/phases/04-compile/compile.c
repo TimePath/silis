@@ -10,19 +10,11 @@
 #include <compiler/intrinsics/if.h>
 #include <compiler/intrinsics/while.h>
 #include <compiler/phases/03-eval/eval.h>
-
-typedef struct {
-    Env env;
-    FILE *out;
-} compile_ctx_t;
+#include <compiler/targets/_.h>
 
 static void print_node(const compile_ctx_t *ctx, const node_t *it);
 
 static void print_value(const compile_ctx_t *ctx, const value_t *it);
-
-static void print_function(const compile_ctx_t *ctx, type_id id, String ident, const String idents[]);
-
-static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident);
 
 typedef enum {
     RETURN_NO,
@@ -53,7 +45,11 @@ static void visit_node(const compile_ctx_t *ctx, visit_state_t state, return_t r
 
 compile_output do_compile(compile_input in)
 {
-    compile_ctx_t _ctx = {.env = in.env, .out = in.out};
+    compile_ctx_t _ctx = {
+            .out = in.out,
+            .target = in.target,
+            .env = in.env,
+    };
     compile_ctx_t *ctx = &_ctx;
 
     sym_t entry;
@@ -61,6 +57,8 @@ compile_output do_compile(compile_input in)
     (void) entry;
     (void) hasMain;
     assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION && "main is a function");
+
+    ctx->target->file_begin(ctx);
 
     const sym_scope_t *globals = &Vector_data(&ctx->env.symbols->scopes)[0];
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
@@ -77,9 +75,11 @@ compile_output do_compile(compile_input in)
             fprintf_s(ctx->out, STR("extern "));
         }
         if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
-            print_function(ctx, type, ident, NULL);
+            ctx->target->func_forward(ctx, type, ident);
         } else {
-            print_declaration(ctx, type, ident);
+            ctx->target->var_begin(ctx, type);
+            fprintf_s(ctx->out, ident);
+            ctx->target->var_end(ctx, type);
             if (!it->value.flags.native) {
                 fprintf_s(ctx->out, STR(" = "));
                 print_value(ctx, &it->value);
@@ -107,7 +107,7 @@ compile_output do_compile(compile_input in)
         size_t argc = Slice_size(&children);
         String *argnames = realloc(NULL, sizeof(String) * argc);
         func_args_names(ctx->env, children, argnames);
-        print_function(ctx, type, ident, argnames);
+        ctx->target->func_declare(ctx, type, ident, argnames);
         free(argnames);
         fprintf_s(ctx->out, STR("\n{\n"));
 
@@ -116,6 +116,8 @@ compile_output do_compile(compile_input in)
 
         fprintf_s(ctx->out, STR("\n}\n"));
     }
+
+    ctx->target->file_end(ctx);
 }
 
 static void print_node(const compile_ctx_t *ctx, const node_t *it)
@@ -157,102 +159,6 @@ static void print_value(const compile_ctx_t *ctx, const value_t *it)
     assert(false);
 }
 
-typedef struct {
-    bool local;
-    bool anonymous;
-} print_decl_opts;
-
-static void print_decl_pre(const compile_ctx_t *ctx, type_id id, print_decl_opts opts)
-{
-    const type_t *T = type_lookup(ctx->env.types, id);
-    if (T->kind != TYPE_FUNCTION) {
-#define CASE(T) if (id.value == ctx->env.types->T.value)
-        CASE(t_unit) {
-            fprintf_s(ctx->out, !opts.anonymous ? STR("void ") : STR("void"));
-            return;
-        }
-        CASE(t_int) {
-            fprintf_s(ctx->out, !opts.anonymous ? STR("int ") : STR("int"));
-            return;
-        }
-        CASE(t_string) {
-            fprintf_s(ctx->out, STR("const char *"));
-            return;
-        }
-#undef CASE
-        fprintf_s(ctx->out, STR("type<"));
-        fprintf_zu(ctx->out, id.value);
-        fprintf_s(ctx->out, !opts.anonymous ? STR("> ") : STR(">"));
-        return;
-    }
-    print_declaration(ctx, type_func_ret(ctx->env.types, T), STR(""));
-    if (!opts.anonymous) {
-        fprintf_s(ctx->out, STR(" "));
-    }
-    if (opts.local) {
-        fprintf_s(ctx->out, STR("(*"));
-    }
-}
-
-static void print_decl_post(const compile_ctx_t *ctx, type_id id, const String idents[], print_decl_opts opts)
-{
-    const type_t *T = type_lookup(ctx->env.types, id);
-    if (T->kind != TYPE_FUNCTION) {
-        return;
-    }
-    if (opts.local) {
-        fprintf_s(ctx->out, STR(")"));
-    }
-    fprintf_s(ctx->out, STR("("));
-    const type_t *argp = T;
-    size_t i = 0;
-    while (true) {
-        const type_id arg = argp->u.func.in;
-        const String s = idents ? idents[i++] : STR("");
-        print_declaration(ctx, arg, s);
-        const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
-        if (next->kind != TYPE_FUNCTION) {
-            break;
-        }
-        argp = next;
-        fprintf_s(ctx->out, STR(", "));
-    }
-    fprintf_s(ctx->out, STR(")"));
-}
-
-static void print_declaration(const compile_ctx_t *ctx, type_id id, String ident)
-{
-    print_decl_opts opts = {
-            .local = true,
-            .anonymous = !String_sizeBytes(ident),
-    };
-    const type_t *T = type_lookup(ctx->env.types, id);
-    if (T->kind != TYPE_FUNCTION) {
-        print_decl_pre(ctx, id, opts);
-        if (!opts.anonymous) {
-            fprintf_s(ctx->out, ident);
-        }
-        print_decl_post(ctx, id, NULL, opts);
-        return;
-    }
-    print_decl_pre(ctx, id, opts);
-    if (!opts.anonymous) {
-        fprintf_s(ctx->out, ident);
-    }
-    print_decl_post(ctx, id, NULL, opts);
-}
-
-static void print_function(const compile_ctx_t *ctx, type_id id, String ident, const String idents[])
-{
-    print_decl_opts opts = {
-            .local = false,
-            .anonymous = !String_sizeBytes(ident),
-    };
-    print_decl_pre(ctx, id, opts);
-    fprintf_s(ctx->out, ident);
-    print_decl_post(ctx, id, idents, opts);
-}
-
 static void print_ref(const compile_ctx_t *ctx, node_id val)
 {
     fprintf_s(ctx->out, STR("_"));
@@ -283,13 +189,9 @@ static void return_declare(const compile_ctx_t *ctx, visit_state_t state, type_i
     switch (ret.kind) {
         case RETURN_TEMPORARY:
         case RETURN_NAMED: {
-            print_decl_opts opts = {
-                    .local = true,
-                    .anonymous = false,
-            };
-            print_decl_pre(ctx, T, opts);
+            ctx->target->var_begin(ctx, T);
             return_ref(ctx, state, ret);
-            print_decl_post(ctx, T, NULL, opts);
+            ctx->target->var_end(ctx, T);
             fprintf_s(ctx->out, STR(";"));
             return;
         }

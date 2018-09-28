@@ -3,8 +3,9 @@
 #include <compiler/env.h>
 
 typedef struct {
-    Env env;
     FILE *out;
+    struct Target_s *target;
+    Env env;
 } compile_input;
 
 typedef void compile_output;
