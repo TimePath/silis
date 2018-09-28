@@ -66,28 +66,29 @@ size_t main(Vector(String)
     fclose(file);
     String fileStr = String_fromSlice((Slice(uint8_t)) {._begin = buf, ._end = buf + len}, ENCODING_DEFAULT);
 
-    FILE *out = Vector_size(&args) >= 3 ? fopen(String_begin(Vector_data(&args)[2]), "w") : stdout;
+    FILE *out = stdout;
+    FILE *o = Vector_size(&args) >= 3 ? fopen(String_begin(Vector_data(&args)[2]), "w") : out;
 
     if (flags.print_parse) {
-        fprintf_s(stdout, STR("PARSE:\n-----\n"));
+        fprintf_s(out, STR("PARSE:\n-----\n"));
     }
     parse_output parse = do_parse((parse_input) {
             .source = fileStr,
     });
     if (flags.print_parse) {
-        token_print(stdout, Vector_toSlice(token_t, &parse.tokens));
-        fprintf_s(stdout, STR("\n\n"));
+        token_print(out, Vector_toSlice(token_t, &parse.tokens));
+        fprintf_s(out, STR("\n\n"));
     }
 
     if (flags.print_flatten) {
-        fprintf_s(stdout, STR("FLATTEN:\n-------\n"));
+        fprintf_s(out, STR("FLATTEN:\n-------\n"));
     }
     flatten_output flatten = do_flatten((flatten_input) {
             .tokens = parse.tokens,
     });
     if (flags.print_flatten) {
-        node_print(stdout, Vector_toSlice(node_t, &flatten.nodes));
-        fprintf_s(stdout, STR("\n"));
+        node_print(out, Vector_toSlice(node_t, &flatten.nodes));
+        fprintf_s(out, STR("\n"));
     }
 
     types_t types = types_new();
@@ -113,19 +114,19 @@ size_t main(Vector(String)
     };
 
     if (flags.print_eval) {
-        fprintf_s(stdout, STR("EVAL:\n----\n"));
+        fprintf_s(out, STR("EVAL:\n----\n"));
     }
     do_eval((eval_input) {
             .env = env,
             .entry = flatten.entry,
     });
     if (flags.print_eval) {
-        fprintf_s(stdout, STR("\n"));
+        fprintf_s(out, STR("\n"));
     }
 
     if (flags.run) {
         if (flags.print_run) {
-            fprintf_s(stdout, STR("RUN:\n---\n"));
+            fprintf_s(out, STR("RUN:\n---\n"));
         }
         sym_t entry;
         bool hasMain = sym_lookup(&symbols, STR("main"), &entry);
@@ -134,23 +135,23 @@ size_t main(Vector(String)
         func_call(env, entry.value, (Slice(value_t)) { ._begin = NULL, ._end = NULL, }, NULL);
     } else {
         if (flags.print_compile) {
-            fprintf_s(stdout, STR("COMPILE:\n-------\n"));
+            fprintf_s(out, STR("COMPILE:\n-------\n"));
         }
         Buffer outBuf = Vector_new();
-        FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : out;
+        FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : o;
         do_compile((compile_input) {
                 .env = env,
                 .out = f,
         });
         if (flags.buffer) {
             fclose(f);
-            fprintf_raw(out, Buffer_toSlice(&outBuf));
+            fprintf_raw(o, Buffer_toSlice(&outBuf));
         }
-        if (out != stdout) {
-            fclose(out);
+        if (o != out) {
+            fclose(o);
         }
     }
 
-    fprintf_s(stdout, STR("\n"));
+    fprintf_s(out, STR("\n"));
     return EXIT_SUCCESS;
 }
