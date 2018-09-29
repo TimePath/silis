@@ -30,6 +30,7 @@ typedef struct {
         bool abstract : 1;
         uint8_t padding : 7;
     } flags;
+    uint8_t padding[7];
 } InitialSymbol;
 Slice_instantiate(InitialSymbol);
 
