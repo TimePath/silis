@@ -53,7 +53,8 @@ compile_output do_compile(compile_input in)
     compile_ctx_t *ctx = &_ctx;
 
     sym_t entry;
-    bool hasMain = sym_lookup(ctx->env.symbols, STR("main"), &entry);
+    bool hasMain = sym_lookup(ctx->env.symbols, STR("main"),
+    &entry);
     (void) entry;
     (void) hasMain;
     assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION && "main is a function");
@@ -101,18 +102,16 @@ compile_output do_compile(compile_input in)
             continue;
         }
         fprintf_s(ctx->out, STR("\n"));
-        const node_id args = it->value.u.func.arglist;
-        const node_t *argv = node_get(ctx->env.nodes, args);
-        Slice(node_t) children = node_list_children(argv);
-        size_t argc = Slice_size(&children);
+        Slice(node_t) argv = node_list_children(node_get(ctx->env.nodes, it->value.u.func.arglist));
+        size_t argc = Slice_size(&argv);
         String *argnames = realloc(NULL, sizeof(String) * argc);
-        func_args_names(ctx->env, children, argnames);
+        func_args_names(ctx->env, argv, argnames);
         ctx->target->func_declare(ctx, type, ident, argnames);
         free(argnames);
         fprintf_s(ctx->out, STR("\n{\n"));
 
-        const node_id impl = it->value.u.func.value;
-        visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, node_get(ctx->env.nodes, impl));
+        const node_t *body = node_get(ctx->env.nodes, it->value.u.func.value);
+        visit_node(ctx, (visit_state_t) {.depth = 1}, (return_t) {.kind = RETURN_FUNC}, body);
 
         fprintf_s(ctx->out, STR("\n}\n"));
     }
@@ -171,15 +170,15 @@ static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t r
 {
     (void) state;
     switch (ret.kind) {
+        case RETURN_NO:
+        case RETURN_FUNC:
+            return;
         case RETURN_TEMPORARY:
             print_ref(ctx, ret.u.temporary.val);
             return;
         case RETURN_NAMED:
             assert(false); // todo
             return;
-        case RETURN_NO:
-        case RETURN_FUNC:
-            break;
     }
     assert(false);
 }
@@ -187,6 +186,9 @@ static void return_ref(const compile_ctx_t *ctx, visit_state_t state, return_t r
 static void return_declare(const compile_ctx_t *ctx, visit_state_t state, type_id T, return_t ret)
 {
     switch (ret.kind) {
+        case RETURN_NO:
+        case RETURN_FUNC:
+            return;
         case RETURN_TEMPORARY:
         case RETURN_NAMED: {
             ctx->target->var_begin(ctx, T);
@@ -195,9 +197,6 @@ static void return_declare(const compile_ctx_t *ctx, visit_state_t state, type_i
             fprintf_s(ctx->out, STR(";"));
             return;
         }
-        case RETURN_NO:
-        case RETURN_FUNC:
-            break;
     }
     assert(false);
 }
@@ -206,6 +205,8 @@ static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_
 {
     (void) state;
     switch (ret.kind) {
+        case RETURN_NO:
+            return;
         case RETURN_FUNC:
             fprintf_s(ctx->out, STR("return "));
             return;
@@ -214,8 +215,6 @@ static void return_assign(const compile_ctx_t *ctx, visit_state_t state, return_
             return_ref(ctx, state, ret);
             fprintf_s(ctx->out, STR(" = "));
             return;
-        case RETURN_NO:
-            break;
     }
     assert(false);
 }
@@ -378,7 +377,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
                 .u.temporary.val = node_ref(predNode, ctx->env.nodes),
         };
         // don't need first TAB()
-        return_declare(ctx, state, ctx->env.types->t_unit, out);
+        return_declare(ctx, state, ctx->env.types->t_int, out);
         fprintf_s(ctx->out, STR("\n"));
 
         TAB();
@@ -392,7 +391,9 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         {
             state.depth++;
             // todo: same as #do
-            visit_node(ctx, state, ret, bodyNode);
+            visit_node(ctx, state, (return_t) {
+                    .kind = RETURN_NO,
+            }, bodyNode);
             fprintf_s(ctx->out, STR("\n"));
             state.depth--;
         }

@@ -106,5 +106,6 @@ endfunction()
 
 test(tests/01-simple.sil)
 test(tests/02-extern.sil)
+test(tests/03-if.sil)
 
 add_tests()

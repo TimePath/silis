@@ -112,6 +112,7 @@ size_t main(Vector(String)
             .types = &types,
             .symbols = &symbols,
             .nodes = &flatten.nodes,
+            .stdout = out,
     };
 
     if (flags.print_eval) {
