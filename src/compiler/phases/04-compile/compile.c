@@ -409,25 +409,27 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
                 .u.temporary.val = node_ref(predNode, ctx->env.nodes),
         };
         // don't need first TAB()
-        return_declare(ctx, state, ctx->env.types->t_unit, out);
-        fprintf_s(ctx->out, STR("\n"));
-
-        TAB();
-        visit_node(ctx, state, out, predNode);
-        fprintf_s(ctx->out, STR("\n"));
-
-        TAB();
-        fprintf_s(ctx->out, STR("while ("));
-        print_ref(ctx, node_ref(predNode, ctx->env.nodes));
-        fprintf_s(ctx->out, STR(") {\n"));
+        fprintf_s(ctx->out, STR("for (;;) {\n"));
         {
             state.depth++;
-            // todo: same as #do
-            visit_node(ctx, state, ret, bodyNode);
+
+            TAB();
+            return_declare(ctx, state, ctx->env.types->t_int, out);
             fprintf_s(ctx->out, STR("\n"));
 
             TAB();
             visit_node(ctx, state, out, predNode);
+            fprintf_s(ctx->out, STR("\n"));
+
+            TAB();
+            fprintf_s(ctx->out, STR("if (!"));
+            print_ref(ctx, node_ref(predNode, ctx->env.nodes));
+            fprintf_s(ctx->out, STR(") break;\n"));
+
+            // todo: same as #do
+            visit_node(ctx, state, (return_t) {
+                    .kind = RETURN_NO,
+            }, bodyNode);
             fprintf_s(ctx->out, STR("\n"));
 
             state.depth--;
