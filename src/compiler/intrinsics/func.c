@@ -76,7 +76,7 @@ value_t func_call(Env env, value_t func, const Slice(value_t) argv, const node_t
     if (func.flags.intrinsic) {
         return func.u.intrinsic.value->call(env, self, argv);
     }
-    sym_push(env.symbols, 0);
+    sym_push(env.symbols);
     const node_t *body = node_get(env.nodes, func.u.func.value);
     const node_t *arglist = node_get(env.nodes, func.u.func.arglist);
     func_args_load(env, arglist, argv);

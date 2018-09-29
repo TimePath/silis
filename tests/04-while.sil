@@ -1,8 +1,16 @@
 (#extern puts (#types/func [#types/string #types/int]))
 
 (#define main (#func [() (#types/int)] (#do [
-    (#while 0 (#do [
-        (puts "TEST")
-    ]))
+    (#define x 0)
+    (#while
+        (#do [
+            (#define y x)
+            (#set x 1)
+            y
+        ])
+        (#do [
+            (puts "TEST")
+        ])
+    )
     0
 ])))

@@ -31,7 +31,7 @@ Slice_instantiate(InitialSymbol);
 
 symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init);
 
-void sym_push(symbols_t *symbols, size_t parent);
+void sym_push(symbols_t *symbols);
 
 void sym_pop(symbols_t *symbols);
 

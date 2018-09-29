@@ -1,4 +1,5 @@
 #include <system.h>
+#include <lib/stdio.h>
 #include "symbols.h"
 
 #include "types.h"
@@ -9,7 +10,7 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init)
     symbols_t ret = symbols_t_new();
     symbols_t *self = &ret;
 
-    sym_push(self, 0);
+    sym_push(self);
     sym_def(self, STR("#types/string"), (sym_t) {
             .type = types->t_type,
             .value = {
@@ -65,8 +66,10 @@ static void sym_trie_set(sym_scope_t *self, String ident, sym_t val)
     Trie_set((void *) &self->t, ident.bytes, &val, sizeof(TrieNode(sym_t)));
 }
 
-void sym_push(symbols_t *symbols, size_t parent)
+void sym_push(symbols_t *symbols)
 {
+    size_t size = Vector_size(&symbols->scopes);
+    size_t parent = !size ? 0 : size - 1;
     sym_scope_t newscope = sym_trie_new(parent);
     Vector_push(&symbols->scopes, newscope);
 }

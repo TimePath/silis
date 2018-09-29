@@ -21,6 +21,7 @@
 #include "intrinsics/if.h"
 #include "intrinsics/minus.h"
 #include "intrinsics/plus.h"
+#include "intrinsics/set.h"
 #include "intrinsics/while.h"
 
 Vector_instantiate(String);
@@ -93,7 +94,7 @@ size_t main(Vector(String)
     }
 
     types_t types = types_new();
-    symbols_t symbols = symbols_new(&types, Slice_of(InitialSymbol, (InitialSymbol[12]) {
+    symbols_t symbols = symbols_new(&types, Slice_of(InitialSymbol, (InitialSymbol[13]) {
             {.id = STR("#puti"), .value = &intrin_debug_puti},
             {.id = STR("#puts"), .value = &intrin_debug_puts},
             {.id = STR("#types/func"), .value = &intrin_types_func},
@@ -105,6 +106,7 @@ size_t main(Vector(String)
             {.id = STR("#if"), .value = &intrin_if},
             {.id = STR("-"), .value = &intrin_minus},
             {.id = STR("+"), .value = &intrin_plus},
+            {.id = STR("#set"), .value = &intrin_set},
             {.id = STR("#while"), .value = &intrin_while},
     }));
 
