@@ -51,7 +51,7 @@ static void _file_end(const compile_ctx_t *ctx)
 static void _func_forward(const compile_ctx_t *ctx, type_id T, String name)
 {
     print_function(ctx, T, name, NULL);
-    fprintf_s(ctx->out, STR(";\n"));
+    fprintf_s(ctx->out, STR(";"));
 }
 
 static void _func_declare(const compile_ctx_t *ctx, type_id T, String name, const String argnames[])
