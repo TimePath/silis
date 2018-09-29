@@ -6,7 +6,7 @@
 
 INTRINSIC_IMPL(do, ((type_id[]) {
         types->t_expr,
-        types->t_unit,
+        types->t_unit, // fixme: return type depends on input
 }))
 {
     (void) self;

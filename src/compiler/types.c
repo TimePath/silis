@@ -5,6 +5,7 @@ types_t types_new(void)
 {
     types_t _self = {
             .all = Vector_new(),
+            .t_untyped = {.value = 0},
             .t_unit = {.value = 0},
             .t_type = {.value = 0},
             .t_expr = {.value = 0},
@@ -12,11 +13,15 @@ types_t types_new(void)
             .t_int = {.value = 0},
     };
     types_t *self = &_self;
+    self->t_untyped = type_new(self, (type_t) {
+            .kind = TYPE_OPAQUE,
+            .u.opaque.size = 0,
+    });
+    assert(self->t_untyped.value == 1 && "untyped has type id 1");
     self->t_unit = type_new(self, (type_t) {
             .kind = TYPE_OPAQUE,
             .u.opaque.size = 0,
     });
-    assert(self->t_unit.value == 0 && "unit has type id 0");
     self->t_expr = type_new(self, (type_t) {
             .kind = TYPE_OPAQUE,
             .u.opaque.size = 0,
@@ -39,7 +44,18 @@ types_t types_new(void)
 type_id type_new(types_t *ctx, type_t it)
 {
     Vector_push(&ctx->all, it);
-    return (type_id) {.value = Vector_size(&ctx->all) - 1};
+    return (type_id) {.value = Vector_size(&ctx->all)};
+}
+
+bool type_assignable_to(types_t *ctx, type_id self, type_id other)
+{
+    if (self.value == other.value) {
+        return true;
+    }
+    if (self.value == ctx->t_untyped.value) {
+        return true;
+    }
+    return false;
 }
 
 type_id type_func_new(types_t *ctx, type_id *argv, size_t n)
@@ -77,5 +93,5 @@ size_t type_func_argc(const types_t *ctx, const type_t *T)
 
 const type_t *type_lookup(const types_t *ctx, type_id id)
 {
-    return &Vector_data(&ctx->all)[id.value];
+    return &Vector_data(&ctx->all)[id.value - 1];
 }

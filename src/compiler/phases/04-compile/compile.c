@@ -10,6 +10,7 @@
 #include <compiler/intrinsics/func.h>
 #include <compiler/intrinsics/if.h>
 #include <compiler/intrinsics/set.h>
+#include <compiler/intrinsics/untyped.h>
 #include <compiler/intrinsics/while.h>
 #include <compiler/phases/03-eval/eval.h>
 #include <compiler/targets/_.h>
@@ -104,7 +105,6 @@ compile_output do_compile(compile_input in)
         }
         LINE();
     }
-    LINE();
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
         const TrieNode(sym_t) *n = &Vector_data(&globals->t.nodes)[e->value];
@@ -118,6 +118,7 @@ compile_output do_compile(compile_input in)
         if (type_lookup(ctx->env.types, type)->kind != TYPE_FUNCTION) {
             continue;
         }
+        LINE();
         Slice(node_t) argv = node_list_children(node_get(ctx->env.nodes, it->value.u.func.arglist));
         size_t argc = Slice_size(&argv);
         String *argnames = realloc(NULL, sizeof(String) * argc);
@@ -503,6 +504,12 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
         }
         LINE(-1);
         fprintf_s(ctx->out, STR("}"));
+        return true;
+    }
+    if (intrin == &intrin_untyped) {
+        const node_t *code = Slice_data(&children)[1];
+        assert(code->kind == NODE_STRING);
+        fprintf_s(ctx->out, code->u.string.value);
         return true;
     }
     if (intrin == &intrin_while) {

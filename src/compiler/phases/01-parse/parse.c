@@ -84,7 +84,7 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
 
  LETTER: 'a'..'z' | 'A'..'Z';
 
- SYMBOL: '@' | '_' | '$' | '#' | '?'
+ SYMBOL: '@' | '_' | '$' | '#' | '?' | '.'
     | '+' | '-'
     | '!' | '~'
     | '*' | '/' | '%'
@@ -106,6 +106,7 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
     _('$') \
     _('#') \
     _('?') \
+    _('.') \
     /**/
 
 #define PARSE_SYM(_) \
@@ -302,10 +303,12 @@ static size_t parse_list(parse_ctx_t *ctx, String prog)
                 break;
             case '(':
             case '[': // sugar
+            case '{': // sugar
                 next = enc->skip_units(it, parse_list(ctx, String_fromSlice(next, enc)));
                 break;
             case ')':
             case ']': // sugar
+            case '}': // sugar
                 ret = 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
                 goto done;
             case '"':

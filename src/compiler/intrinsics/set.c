@@ -22,7 +22,7 @@ INTRINSIC_IMPL(set, ((type_id[]) {
     bool found = sym_lookup(env.symbols, name->u.atom.value, &entry);
     (void) found;
     assert(found && "symbol is declared");
-    assert(entry.type.value == v.type.value && "is assignable");
+    assert(type_assignable_to(env.types, v.type, entry.type) && "is assignable");
     entry.value = v;
     sym_def(env.symbols, name->u.atom.value, entry);
     return (value_t) {.type = env.types->t_unit, .node = self};

@@ -6,6 +6,8 @@
 
 typedef struct types_s {
     Vector(type_t) all;
+    /// result of untyped, assignable to anything
+    type_id t_untyped;
     /// can be produced with `()`
     type_id t_unit;
     /// typedefs have this type
@@ -25,6 +27,8 @@ typedef struct types_s {
 types_t types_new(void);
 
 type_id type_new(types_t *ctx, type_t it);
+
+bool type_assignable_to(types_t *ctx, type_id self, type_id other);
 
 type_id type_func_new(types_t *ctx, type_id *argv, size_t n);
 

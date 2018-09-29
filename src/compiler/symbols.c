@@ -36,6 +36,7 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init)
                 .value = {
                         .type = T,
                         .u.intrinsic.value = it.value,
+                        .flags.abstract = it.flags.abstract,
                         .flags.intrinsic = true,
                 },
         });

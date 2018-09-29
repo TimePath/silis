@@ -69,6 +69,7 @@ set(SOURCE_FILES
         src/compiler/intrinsics/minus.c
         src/compiler/intrinsics/plus.c
         src/compiler/intrinsics/set.c
+        src/compiler/intrinsics/untyped.c
         src/compiler/intrinsics/while.c
 
         src/compiler/intrinsics/types/func.c

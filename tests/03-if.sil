@@ -1,8 +1,8 @@
 (#extern puts (#types/func [#types/string #types/int]))
 
-(#define main (#func [() (#types/int)] (#do [
-    (#if 1 (#do [
+(#define main (#func [() (#types/int)] (#do {
+    (#if 1 (#do {
         (puts "TEST\n")
-    ]))
+    }))
     0
-])))
+})))

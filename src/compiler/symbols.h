@@ -26,6 +26,10 @@ typedef struct symbols_s {
 typedef struct {
     String id;
     Intrinsic *value;
+    struct {
+        bool abstract : 1;
+        uint8_t padding : 7;
+    } flags;
 } InitialSymbol;
 Slice_instantiate(InitialSymbol);
 

@@ -81,7 +81,7 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
             };
         } else {
             v = do_eval_node(ctx, arg);
-            assert(v.type.value == arg_t.value && "argument matches declared type");
+            assert(type_assignable_to(ctx->env.types, v.type, arg_t) && "argument matches declared type");
             assert((func.flags.intrinsic ? !v.flags.abstract : true) && "argument is not abstract");
         }
         abstract = abstract || v.flags.abstract;

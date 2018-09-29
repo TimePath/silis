@@ -1,16 +1,20 @@
 (#extern puts (#types/func [#types/string #types/int]))
 
-(#define main (#func [() (#types/int)] (#do [
-    (#define x 0)
+(#define int_sub (#func [(#types/int self) (#types/int other) (#types/int)] {
+    (#untyped "return self - other;")
+}})
+
+(#define main (#func [() (#types/int)] (#do {
+    (#define x 10)
     (#while
-        (#do [
+        (#do {
             (#define y x)
-            (#set x 1)
+            (#set x (int_sub x 1))
             y
-        ])
-        (#do [
+        })
+        (#do {
             (puts "TEST\n")
-        ])
+        })
     )
     0
-])))
+})))
