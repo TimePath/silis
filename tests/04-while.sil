@@ -9,7 +9,7 @@
             y
         ])
         (#do [
-            (puts "TEST")
+            (puts "TEST\n")
         ])
     )
     0

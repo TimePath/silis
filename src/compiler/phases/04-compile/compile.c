@@ -192,8 +192,26 @@ static void print_integral(const compile_ctx_t *ctx, size_t value)
 static void print_string(const compile_ctx_t *ctx, String value)
 {
     fprintf_s(ctx->out, STR("\""));
-    // todo: escape
-    fprintf_s(ctx->out, value);
+    const StringEncoding *enc = value.encoding;
+    const uint8_t *begin = String_begin(value);
+    Slice(uint8_t) it = value.bytes;
+    for (; Slice_begin(&it) != Slice_end(&it); ) {
+        size_t c = enc->get(it);
+        String replace;
+        switch (c) {
+            default:
+                it = enc->next(it);
+                continue;
+#define X(c, s) case c: replace = STR(s); break;
+            X('\n', "\\n")
+#undef X
+        }
+        fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(ctx->out, replace);
+        it = enc->next(it);
+        begin = it._begin;
+    }
+    fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
     fprintf_s(ctx->out, STR("\""));
 }
 
