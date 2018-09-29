@@ -2,7 +2,7 @@
 
 (#define int_sub (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self - other;")
-}})
+}))
 
 (#define main (#func [() (#types/int)] (#do {
     (#define x 10)
