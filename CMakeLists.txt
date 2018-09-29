@@ -88,7 +88,7 @@ function(add_tests)
             OUTPUT ${CMAKE_BINARY_DIR}/tested
             DEPENDS silis ${tests}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> --output-on-failures
+            COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> --output-on-failure
             COMMAND touch ${CMAKE_BINARY_DIR}/tested
     )
 endfunction()
@@ -100,7 +100,9 @@ function(test file)
     set(name test-${name})
     add_test(
             NAME ${name}
-            COMMAND ${BASH} ${pwd}/test.sh $<TARGET_FILE:silis> ${pwd}/${file}
+            COMMAND ${CMAKE_COMMAND} -E env
+                CC=${CMAKE_C_COMPILER}
+                ${BASH} ${pwd}/test.sh $<TARGET_FILE:silis> ${pwd}/${file}
     )
     list(APPEND tests ${pwd}/${file})
     set(tests ${tests} PARENT_SCOPE)
