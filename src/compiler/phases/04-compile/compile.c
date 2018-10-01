@@ -185,8 +185,7 @@ static void print_value(const compile_ctx_t *ctx, const value_t *it)
 
 static void print_atom(const compile_ctx_t *ctx, String value)
 {
-    // todo: escape
-    fprintf_s(ctx->out, value);
+    ctx->target->identifier(ctx, value);
 }
 
 static void print_integral(const compile_ctx_t *ctx, size_t value)

@@ -7,7 +7,7 @@
     (#while
         (#do {
             (#define y x)
-            (#set x (Int_dec x))
+            (#set x (Int.dec x))
             y
         })
         (#do {

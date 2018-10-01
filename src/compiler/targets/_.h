@@ -16,4 +16,5 @@ typedef struct Target_s {
     void (*func_declare)(const compile_ctx_t *ctx, type_id T, String name, const String argnames[]);
     void (*var_begin)(const compile_ctx_t *ctx, type_id T);
     void (*var_end)(const compile_ctx_t *ctx, type_id T);
+    void (*identifier)(const compile_ctx_t *ctx, String name);
 } Target;

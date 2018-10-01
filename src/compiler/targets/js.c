@@ -6,6 +6,8 @@
 #include <compiler/type.h>
 #include <compiler/types.h>
 
+const bool types = false;
+
 static void tgt_js_file_begin(const compile_ctx_t *ctx);
 
 static void tgt_js_file_end(const compile_ctx_t *ctx);
@@ -18,6 +20,8 @@ static void tgt_js_var_begin(const compile_ctx_t *ctx, type_id T);
 
 static void tgt_js_var_end(const compile_ctx_t *ctx, type_id T);
 
+static void tgt_js_identifier(const compile_ctx_t *ctx, String name);
+
 Target target_js = {
         .file_begin = tgt_js_file_begin,
         .file_end = tgt_js_file_end,
@@ -25,6 +29,7 @@ Target target_js = {
         .func_declare = tgt_js_func_declare,
         .var_begin = tgt_js_var_begin,
         .var_end = tgt_js_var_end,
+        .identifier = tgt_js_identifier,
 };
 
 typedef struct {
@@ -75,9 +80,37 @@ static void tgt_js_var_end(const compile_ctx_t *ctx, type_id T)
             .local = true,
             .anonymous = false,
     };
-    fprintf_s(ctx->out, STR(" /*"));
+    if (!types) {
+        fprintf_s(ctx->out, STR(" /*"));
+    }
     tgt_js_print_decl_post(ctx, T, NULL, opts);
-    fprintf_s(ctx->out, STR(" */"));
+    if (!types) {
+        fprintf_s(ctx->out, STR(" */"));
+    }
+}
+
+static void tgt_js_identifier(const compile_ctx_t *ctx, String name)
+{
+    const StringEncoding *enc = name.encoding;
+    const uint8_t *begin = String_begin(name);
+    Slice(uint8_t) it = name.bytes;
+    for (; Slice_begin(&it) != Slice_end(&it);) {
+        size_t c = enc->get(it);
+        String replace;
+        switch (c) {
+            default:
+                it = enc->next(it);
+                continue;
+#define X(c, s) case c: replace = STR(s); break;
+            X('.', "__dot__")
+#undef X
+        }
+        fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(ctx->out, replace);
+        it = enc->next(it);
+        begin = it._begin;
+    }
+    fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
 }
 
 // implementation
@@ -90,7 +123,7 @@ static void tgt_js_print_function(const compile_ctx_t *ctx, type_id T, String id
     };
     tgt_js_print_decl_pre(ctx, T, opts);
     if (!opts.anonymous) {
-        fprintf_s(ctx->out, ident);
+        tgt_js_identifier(ctx, ident);
     }
     tgt_js_print_decl_post(ctx, T, idents, opts);
 }
@@ -163,11 +196,15 @@ static void tgt_js_print_decl_post(const compile_ctx_t *ctx, type_id T, const St
             break;
         }
         const String s = idents ? idents[i++] : STR("");
-        fprintf_s(ctx->out, s);
-        fprintf_s(ctx->out, STR(" /*"));
+        tgt_js_identifier(ctx, s);
+        if (!types) {
+            fprintf_s(ctx->out, STR(" /*"));
+        }
         fprintf_s(ctx->out, STR(": "));
         tgt_js_print_type(ctx, arg);
-        fprintf_s(ctx->out, STR(" */"));
+        if (!types) {
+            fprintf_s(ctx->out, STR(" */"));
+        }
         const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
         if (next->kind != TYPE_FUNCTION) {
             break;
@@ -176,8 +213,12 @@ static void tgt_js_print_decl_post(const compile_ctx_t *ctx, type_id T, const St
         fprintf_s(ctx->out, STR(", "));
     }
     fprintf_s(ctx->out, STR(")"));
-    fprintf_s(ctx->out, STR(" /*"));
+    if (!types) {
+        fprintf_s(ctx->out, STR(" /*"));
+    }
     fprintf_s(ctx->out, STR(": "));
     tgt_js_print_type(ctx, type_func_ret(ctx->env.types, type));
-    fprintf_s(ctx->out, STR(" */"));
+    if (!types) {
+        fprintf_s(ctx->out, STR(" */"));
+    }
 }

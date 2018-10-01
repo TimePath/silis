@@ -18,6 +18,8 @@ static void tgt_c_var_begin(const compile_ctx_t *ctx, type_id T);
 
 static void tgt_c_var_end(const compile_ctx_t *ctx, type_id T);
 
+static void tgt_c_identifier(const compile_ctx_t *ctx, String name);
+
 Target target_c = {
         .file_begin = tgt_c_file_begin,
         .file_end = tgt_c_file_end,
@@ -25,6 +27,7 @@ Target target_c = {
         .func_declare = tgt_c_func_declare,
         .var_begin = tgt_c_var_begin,
         .var_end = tgt_c_var_end,
+        .identifier = tgt_c_identifier,
 };
 
 typedef struct {
@@ -77,6 +80,30 @@ static void tgt_c_var_end(const compile_ctx_t *ctx, type_id T)
     tgt_c_print_decl_post(ctx, T, NULL, opts);
 }
 
+static void tgt_c_identifier(const compile_ctx_t *ctx, String name)
+{
+    const StringEncoding *enc = name.encoding;
+    const uint8_t *begin = String_begin(name);
+    Slice(uint8_t) it = name.bytes;
+    for (; Slice_begin(&it) != Slice_end(&it); ) {
+        size_t c = enc->get(it);
+        String replace;
+        switch (c) {
+            default:
+                it = enc->next(it);
+                continue;
+#define X(c, s) case c: replace = STR(s); break;
+            X('.', "__dot__")
+#undef X
+        }
+        fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(ctx->out, replace);
+        it = enc->next(it);
+        begin = it._begin;
+    }
+    fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+}
+
 // implementation
 
 static void tgt_c_print_function(const compile_ctx_t *ctx, type_id T, String ident, const String idents[])
@@ -87,7 +114,7 @@ static void tgt_c_print_function(const compile_ctx_t *ctx, type_id T, String ide
     };
     tgt_c_print_decl_pre(ctx, T, opts);
     if (!opts.anonymous) {
-        fprintf_s(ctx->out, ident);
+        tgt_c_identifier(ctx, ident);
     }
     tgt_c_print_decl_post(ctx, T, idents, opts);
 }
@@ -100,7 +127,7 @@ static void tgt_c_print_declaration(const compile_ctx_t *ctx, type_id T, String 
     };
     tgt_c_print_decl_pre(ctx, T, opts);
     if (!opts.anonymous) {
-        fprintf_s(ctx->out, ident);
+        tgt_c_identifier(ctx, ident);
     }
     tgt_c_print_decl_post(ctx, T, NULL, opts);
 }

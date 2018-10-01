@@ -1,67 +1,67 @@
-(#define Int_and (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.and (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self & other;")
 }))
 
-(#define Int_compareTo (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.compareTo (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self - other;")
 }))
 
-(#define Int_dec (#func [(#types/int self) (#types/int)] {
+(#define Int.dec (#func [(#types/int self) (#types/int)] {
     (#untyped "return self - 1;")
 }))
 
-(#define Int_div (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.div (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self / other;")
 }))
 
-(#define Int_inc (#func [(#types/int self) (#types/int)] {
+(#define Int.inc (#func [(#types/int self) (#types/int)] {
     (#untyped "return self + 1;")
 }))
 
-(#define Int_inv (#func [(#types/int self) (#types/int)] {
+(#define Int.inv (#func [(#types/int self) (#types/int)] {
     (#untyped "return ~self;")
 }))
 
-(#define Int_minus (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.minus (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self - other;")
 }))
 
-(#define Int_or (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.or (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self | other;")
 }))
 
-(#define Int_plus (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.plus (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self + other;")
 }))
 
-(#define Int_rem (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.rem (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self % other;")
 }))
 
-(#define Int_shl (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.shl (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self << other;")
 }))
 
-(#define Int_shr (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.shr (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self >> other;")
 }))
 
-(#define Int_times (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.times (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self * other;")
 }))
 
-(#define Int_unaryMinus (#func [(#types/int self) (#types/int)] {
+(#define Int.unaryMinus (#func [(#types/int self) (#types/int)] {
     (#untyped "return -self;")
 }))
 
-(#define Int_unaryPlus (#func [(#types/int self) (#types/int)] {
+(#define Int.unaryPlus (#func [(#types/int self) (#types/int)] {
     (#untyped "return +self;")
 }))
 
-(#define Int_ushr (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.ushr (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return (unsigned int) self >> other;")
 }))
 
-(#define Int_xor (#func [(#types/int self) (#types/int other) (#types/int)] {
+(#define Int.xor (#func [(#types/int self) (#types/int other) (#types/int)] {
     (#untyped "return self ^ other;")
 }))
