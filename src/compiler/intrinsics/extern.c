@@ -12,9 +12,9 @@ INTRINSIC_IMPL(extern, ((type_id[]) {
     const value_t *arg_name = &Slice_data(&argv)[0];
     const value_t *arg_type = &Slice_data(&argv)[1];
 
-    const node_t *name = node_get(env.nodes, arg_name->u.expr.value);
+    const node_t *name = compilation_node(env.compilation, arg_name->u.expr.value);
     assert(name->kind == NODE_ATOM);
-    const node_t *val = node_get(env.nodes, arg_type->u.expr.value);
+    const node_t *val = compilation_node(env.compilation, arg_type->u.expr.value);
 
     const value_t v = eval_node(env, val);
     assert(v.type.value == env.types->t_type.value && "argument is a type");

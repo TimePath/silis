@@ -12,24 +12,12 @@ Slice(node_t) node_list_children(const node_t *list)
     return (Slice(node_t)) {._begin = begin, ._end = begin + n};
 }
 
-const node_t *node_get(const Vector(node_t) *nodes, node_id ref)
-{
-    return &Vector_data(nodes)[ref.val];
-}
-
-node_id node_ref(const node_t *it, const Vector(node_t) *nodes)
-{
-    assert(it >= Vector_data(nodes) &&
-           it <= &Vector_data(nodes)[Vector_size(nodes) - 1]);
-    return (node_id) {.val = (size_t) (it - Vector_data(nodes))};
-}
-
-const node_t *node_deref(const node_t *it, const Vector(node_t) *nodes)
+const node_t *node_deref(const compilation_t *compilation, const node_t *it)
 {
     if (it->kind != NODE_REF) {
         return it;
     }
-    const node_t *ret = node_get(nodes, it->u.ref.value);
+    const node_t *ret = compilation_node(compilation, it->u.ref.value);
     assert(ret->kind == NODE_LIST_BEGIN && "references refer to lists");
     return ret;
 }
@@ -150,7 +138,7 @@ static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t 
                 break;
             case NODE_REF:
                 fprintf_s(ctx->out, STR("var_"));
-                fprintf_zu(ctx->out, it->u.ref.value.val);
+                fprintf_zu(ctx->out, it->u.ref.value.node.id);
                 fprintf_s(ctx->out, STR(" ;"));
                 {
                     {

@@ -1,9 +1,12 @@
 #pragma once
 
+#include "node-fwd.h"
+
 #include <lib/string.h>
 #include <lib/vector.h>
 
-#include <compiler/token.h>
+#include "compilation-fwd.h"
+#include "token-fwd.h"
 
 typedef enum {
     NODE_INVALID,
@@ -28,11 +31,7 @@ typedef enum {
      */ NODE_STRING,
 } node_e;
 
-typedef struct {
-    size_t val;
-} node_id;
-
-typedef struct {
+struct node_s {
     node_e kind;
     uint8_t padding[4];
     const token_t *token;
@@ -50,7 +49,7 @@ typedef struct {
         } list_end;
         /// NODE_REF
         struct {
-            node_id value;
+            compilation_node_ref value;
         } ref;
         /// NODE_ATOM
         struct {
@@ -65,20 +64,10 @@ typedef struct {
             String value;
         } string;
     } u;
-} node_t;
-
-Vector_instantiate(node_t);
-Slice_instantiate(node_t);
-
-typedef const node_t *node_t_ptr;
-Slice_instantiate(node_t_ptr);
+};
 
 Slice(node_t) node_list_children(const node_t *list);
 
-const node_t *node_get(const Vector(node_t) *nodes, node_id ref);
-
-node_id node_ref(const node_t *it, const Vector(node_t) *nodes);
-
-const node_t *node_deref(const node_t *it, const Vector(node_t) *nodes);
+const node_t *node_deref(const compilation_t *compilation, const node_t *it);
 
 void node_print(FILE *f, Slice(node_t) nodes);

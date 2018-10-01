@@ -13,9 +13,9 @@ INTRINSIC_IMPL(set, ((type_id[]) {
     const value_t *arg_name = &Slice_data(&argv)[0];
     const value_t *arg_val = &Slice_data(&argv)[1];
 
-    const node_t *name = node_get(env.nodes, arg_name->u.expr.value);
+    const node_t *name = compilation_node(env.compilation, arg_name->u.expr.value);
     assert(name->kind == NODE_ATOM);
-    const node_t *val = node_get(env.nodes, arg_val->u.expr.value);
+    const node_t *val = compilation_node(env.compilation, arg_val->u.expr.value);
 
     const value_t v = eval_node(env, val);
     sym_t entry;

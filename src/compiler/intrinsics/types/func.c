@@ -13,7 +13,7 @@ INTRINSIC_IMPL(types_func, ((type_id[]) {
 {
     const value_t *arg_args = &Slice_data(&argv)[0];
 
-    const Slice(node_t) children = node_list_children(node_get(env.nodes, arg_args->u.expr.value));
+    const Slice(node_t) children = node_list_children(compilation_node(env.compilation, arg_args->u.expr.value));
     const size_t argc = Slice_size(&children);
     assert(argc >= 2 && "has enough arguments");
     type_id *Ts = realloc(NULL, sizeof(type_id) * argc);
@@ -31,7 +31,7 @@ static void types_func_args_types(Env env, const Slice(node_t) args, type_id out
 {
     size_t argc = Slice_size(&args);
     for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
+        const node_t *it = node_deref(env.compilation, &Slice_data(&args)[i]);
         const value_t v = eval_node(env, it);
         type_id T = v.type;
         if (T.value == env.types->t_unit.value) {

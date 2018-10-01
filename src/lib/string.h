@@ -74,3 +74,5 @@ INLINE size_t String_sizeBytes(String self)
 bool String_equals(String self, String other);
 
 String String_indent(size_t n);
+
+native_char_t *String_cstr(String self);

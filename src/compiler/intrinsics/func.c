@@ -12,7 +12,7 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     const value_t *arg_args = &Slice_data(&argv)[0];
     const value_t *arg_body = &Slice_data(&argv)[1];
 
-    Slice(node_t) children = node_list_children(node_get(env.nodes, arg_args->u.expr.value));
+    Slice(node_t) children = node_list_children(compilation_node(env.compilation, arg_args->u.expr.value));
     const size_t argc = Slice_size(&children);
     assert(argc >= 2 && "has enough arguments");
     type_id *Ts = realloc(NULL, sizeof(type_id) * argc);
@@ -31,7 +31,7 @@ void func_args_types(Env env, const Slice(node_t) args, type_id out[])
 {
     size_t argc = Slice_size(&args);
     for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
+        const node_t *it = node_deref(env.compilation, &Slice_data(&args)[i]);
         const Slice(node_t) children = node_list_children(it);
         const size_t n = Slice_size(&children);
         if (n == 0) {
@@ -56,7 +56,7 @@ void func_args_names(Env env, const Slice(node_t) args, String out[])
 {
     size_t argc = Slice_size(&args);
     for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
+        const node_t *it = node_deref(env.compilation, &Slice_data(&args)[i]);
         const Slice(node_t) children = node_list_children(it);
         const size_t n = Slice_size(&children);
         if (n != 2) {
@@ -77,8 +77,8 @@ value_t func_call(Env env, value_t func, const Slice(value_t) argv, const node_t
         return func.u.intrinsic.value->call(env, self, argv);
     }
     sym_push(env.symbols);
-    const node_t *body = node_get(env.nodes, func.u.func.value);
-    const node_t *arglist = node_get(env.nodes, func.u.func.arglist);
+    const node_t *body = compilation_node(env.compilation, func.u.func.value);
+    const node_t *arglist = compilation_node(env.compilation, func.u.func.arglist);
     func_args_load(env, arglist, argv);
     const value_t ret = eval_node(env, body);
     sym_pop(env.symbols);
@@ -90,7 +90,7 @@ static void func_args_load(Env env, const node_t *arglist, const Slice(value_t) 
     const Slice(node_t) args = node_list_children(arglist);
     const size_t argc = Slice_size(&args);
     for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(&Slice_data(&args)[i], env.nodes);
+        const node_t *it = node_deref(env.compilation, &Slice_data(&args)[i]);
         const Slice(node_t) children = node_list_children(it);
         const size_t n = Slice_size(&children);
         if (n == 2) {

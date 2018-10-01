@@ -1,0 +1,7 @@
+(#emit [
+    "#include <stdio.h>"
+])
+
+(#define print (#func [(#types/string s) ()] {
+    (#untyped "puts(s);")
+}))

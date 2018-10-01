@@ -32,6 +32,7 @@ set(SOURCE_FILES
 
         src/lib/encoding/ascii.c
         src/lib/buffer.c
+        src/lib/fs.c
         src/lib/macro.h
         src/lib/slice.h
         src/lib/stdio.c
@@ -39,6 +40,7 @@ set(SOURCE_FILES
         src/lib/trie.c
         src/lib/vector.c
 
+        src/compiler/compilation.c
         src/compiler/env.c
         src/compiler/intrinsic.c
         src/compiler/node.c
@@ -63,9 +65,11 @@ set(SOURCE_FILES
         src/compiler/intrinsics/cond.c
         src/compiler/intrinsics/define.c
         src/compiler/intrinsics/do.c
+        src/compiler/intrinsics/emit.c
         src/compiler/intrinsics/extern.c
         src/compiler/intrinsics/func.c
         src/compiler/intrinsics/if.c
+        src/compiler/intrinsics/include.c
         src/compiler/intrinsics/minus.c
         src/compiler/intrinsics/plus.c
         src/compiler/intrinsics/set.c

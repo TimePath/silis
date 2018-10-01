@@ -1,5 +1,7 @@
 #pragma once
 
+#include "token-fwd.h"
+
 #include <lib/string.h>
 #include <lib/vector.h>
 
@@ -22,7 +24,7 @@ typedef enum {
      */ TOKEN_STRING,
 } token_e;
 
-typedef struct {
+struct token_s {
     token_e kind;
     uint8_t padding[4];
     union {
@@ -39,9 +41,6 @@ typedef struct {
             String value;
         } string;
     } u;
-} token_t;
-
-Vector_instantiate(token_t);
-Slice_instantiate(token_t);
+};
 
 void token_print(FILE *f, Slice(token_t) it);

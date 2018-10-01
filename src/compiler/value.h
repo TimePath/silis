@@ -27,7 +27,7 @@ typedef struct {
         } intrinsic;
 
         struct {
-            node_id value;
+            compilation_node_ref value;
         } expr;
 
         struct {
@@ -35,8 +35,8 @@ typedef struct {
         } type;
 
         struct {
-            node_id value;
-            node_id arglist;
+            compilation_node_ref value;
+            compilation_node_ref arglist;
         } func;
     } u;
     struct {

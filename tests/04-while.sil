@@ -1,15 +1,13 @@
-(#extern puts (#types/func [#types/string #types/int]))
+(#include "../src/stdlib/_.sil")
 
-(#define int_sub (#func [(#types/int self) (#types/int other) (#types/int)] {
-    (#untyped "return self - other;")
-}))
+(#extern puts (#types/func [#types/string #types/int]))
 
 (#define main (#func [() (#types/int)] (#do {
     (#define x 10)
     (#while
         (#do {
             (#define y x)
-            (#set x (int_sub x 1))
+            (#set x (Int_dec x))
             y
         })
         (#do {

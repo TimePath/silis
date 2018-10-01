@@ -2,6 +2,7 @@
 #include "flatten.h"
 
 typedef struct {
+    compilation_file_ref file;
     Vector(token_t) tokens;
     Vector(node_t) nodes;
     Vector(node_t) stack;
@@ -12,6 +13,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it);
 flatten_output do_flatten(flatten_input in)
 {
     flatten_ctx_t ctx = (flatten_ctx_t) {
+            .file = in.file,
             .tokens = in.tokens,
             .nodes = Vector_new(),
             .stack = Vector_new(),
@@ -28,7 +30,7 @@ flatten_output do_flatten(flatten_input in)
     const node_t *it = &Vector_data(&ctx.nodes)[Vector_size(&ctx.nodes) - 1];
     assert(it->kind == NODE_LIST_END);
     while ((--it)->kind != NODE_LIST_BEGIN) {}
-    return (flatten_output) {.nodes = ctx.nodes, .entry = it};
+    return (flatten_output) {.nodes = ctx.nodes, .entry = (size_t) (it - Vector_data(&ctx.nodes))};
 }
 
 static node_t convert(const token_t *it);
@@ -52,7 +54,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
     }
     // just parsed a full expression
     const size_t argc = Vector_size(&ctx->stack) - argv_begin;
-    size_t autoid = Vector_size(&ctx->nodes);
+    size_t autoid = Vector_size(&ctx->nodes) + 1;
     {
         const node_t header = (node_t) {
                 .kind = NODE_LIST_BEGIN,
@@ -73,7 +75,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
     }
     const node_t ret = (node_t) {
             .kind = NODE_REF,
-            .u.ref.value = (node_id) {.val = autoid},
+            .u.ref.value = (compilation_node_ref) {.file = ctx->file, .node = {.id = autoid}},
     };
     Vector_push(&ctx->stack, ret);
     return (size_t) (it - begin);

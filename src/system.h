@@ -91,9 +91,17 @@ extern size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
 
 extern size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
 
+extern int fflush(FILE *stream);
+
 extern int fclose(FILE *stream);
 
 extern FILE *stdout;
+
+char *getcwd(char *buf, size_t size);
+
+int chdir(const char *path);
+
+char *dirname(char *path);
 
 #endif
 

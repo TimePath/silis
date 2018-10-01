@@ -36,7 +36,7 @@ static value_t do_eval_list_block(eval_ctx_t *ctx, const node_t *it)
     const size_t n = Slice_size(&children);
     value_t ret = (value_t) {.type = ctx->env.types->t_unit, .node = it};
     for (size_t i = 0; i < n; ++i) {
-        const node_t *stmt = node_deref(&Slice_data(&children)[i], ctx->env.nodes);
+        const node_t *stmt = node_deref(ctx->env.compilation, &Slice_data(&children)[i]);
         ret = do_eval_node(ctx, stmt);
     }
     return ret;
@@ -56,10 +56,10 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     }
     if (n == 1) {
         // (expr)
-        return do_eval_node(ctx, node_deref(&Slice_data(&children)[0], ctx->env.nodes));
+        return do_eval_node(ctx, node_deref(ctx->env.compilation, &Slice_data(&children)[0]));
     }
     // (f args...)
-    const value_t func = do_eval_node(ctx, node_deref(&Slice_data(&children)[0], ctx->env.nodes));
+    const value_t func = do_eval_node(ctx, node_deref(ctx->env.compilation, &Slice_data(&children)[0]));
     const type_t *funcType = type_lookup(ctx->env.types, func.type);
     assert(funcType->kind == TYPE_FUNCTION && "function is function");
 
@@ -70,14 +70,14 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     type_id T = func.type;
     for (const type_t *argType = funcType; argType->kind == TYPE_FUNCTION; T = argType->u.func.out, argType = type_lookup(ctx->env.types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
-        const node_t *arg = node_deref(&Slice_data(&children)[++T_argc], ctx->env.nodes);
+        const node_t *arg = node_deref(ctx->env.compilation, &Slice_data(&children)[++T_argc]);
         const type_id arg_t = argType->u.func.in;
         value_t v;
         if (arg_t.value == expr_t.value) {
             v = (value_t) {
                     .type = expr_t,
                     .node = arg,
-                    .u.expr.value = node_ref(arg, ctx->env.nodes),
+                    .u.expr.value = compilation_node_find(ctx->env.compilation, arg),
             };
         } else {
             v = do_eval_node(ctx, arg);
