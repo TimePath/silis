@@ -97,6 +97,8 @@ function(add_tests)
     )
 endfunction()
 
+set(ENV ${CMAKE_COMMAND} -E env)
+set(ENV env)
 find_program(BASH bash REQUIRED)
 function(test file)
     set(pwd ${CMAKE_CURRENT_SOURCE_DIR})
@@ -104,7 +106,7 @@ function(test file)
     set(name test-${name})
     add_test(
             NAME ${name}
-            COMMAND ${CMAKE_COMMAND} -E env
+            COMMAND ${ENV}
                 CC=${CMAKE_C_COMPILER}
                 ${BASH} ${pwd}/test.sh $<TARGET_FILE:silis> ${pwd}/${file}
     )
