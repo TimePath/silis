@@ -31,7 +31,7 @@ const node_t *compilation_node(const compilation_t *self, compilation_node_ref r
     return node;
 }
 
-// todo: remove
+// todo: remove, replace with nodelist_iterator
 compilation_node_ref compilation_node_find(const compilation_t *self, const node_t *node)
 {
     Slice_loop(&Vector_toSlice(compilation_file_ptr_t, &self->files), i) {

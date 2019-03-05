@@ -66,8 +66,18 @@ struct node_s {
     } u;
 };
 
+typedef struct {
+    void *compilation;
+    Slice(node_t) nodes;
+    size_t _i, _n;
+} nodelist;
+
+bool nodelist_next(nodelist *self, compilation_node_ref *out);
+
+nodelist nodelist_iterator(Slice(node_t) list, void *env);
+
 Slice(node_t) node_list_children(const node_t *list);
 
-const node_t *node_deref(const compilation_t *compilation, const node_t *it);
+compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref node);
 
 void node_print(FILE *f, Slice(node_t) nodes);

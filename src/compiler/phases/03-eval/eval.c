@@ -33,10 +33,11 @@ static value_t do_eval_list_block(eval_ctx_t *ctx, const node_t *it)
 {
     assert(it->kind == NODE_LIST_BEGIN);
     const Slice(node_t) children = node_list_children(it);
-    const size_t n = Slice_size(&children);
     value_t ret = (value_t) {.type = ctx->env.types->t_unit, .node = it};
-    for (size_t i = 0; i < n; ++i) {
-        const node_t *stmt = node_deref(ctx->env.compilation, &Slice_data(&children)[i]);
+    nodelist iter = nodelist_iterator(children, ctx->env.compilation);
+    compilation_node_ref ref;
+    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
+        const node_t *stmt = compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, ref));
         ret = do_eval_node(ctx, stmt);
     }
     return ret;
@@ -54,12 +55,13 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
         // ()
         return (value_t) {.type = ctx->env.types->t_unit, .node = it};
     }
+    compilation_node_ref ref = compilation_node_find(ctx->env.compilation, &Slice_begin(&children)[0]);
     if (n == 1) {
         // (expr)
-        return do_eval_node(ctx, node_deref(ctx->env.compilation, &Slice_data(&children)[0]));
+        return do_eval_node(ctx, compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, ref)));
     }
     // (f args...)
-    const value_t func = do_eval_node(ctx, node_deref(ctx->env.compilation, &Slice_data(&children)[0]));
+    const value_t func = do_eval_node(ctx, compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, ref)));
     const type_t *funcType = type_lookup(ctx->env.types, func.type);
     assert(funcType->kind == TYPE_FUNCTION && "function is function");
 
@@ -70,14 +72,16 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     type_id T = func.type;
     for (const type_t *argType = funcType; argType->kind == TYPE_FUNCTION; T = argType->u.func.out, argType = type_lookup(ctx->env.types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
-        const node_t *arg = node_deref(ctx->env.compilation, &Slice_data(&children)[++T_argc]);
+        compilation_node_ref argRef = compilation_node_find(ctx->env.compilation, &Slice_begin(&children)[++T_argc]);
+        argRef = node_deref(ctx->env.compilation, argRef);
+        const node_t *arg = compilation_node(ctx->env.compilation, argRef);
         const type_id arg_t = argType->u.func.in;
         value_t v;
         if (arg_t.value == expr_t.value) {
             v = (value_t) {
                     .type = expr_t,
                     .node = arg,
-                    .u.expr.value = compilation_node_find(ctx->env.compilation, arg),
+                    .u.expr.value = argRef,
             };
         } else {
             v = do_eval_node(ctx, arg);

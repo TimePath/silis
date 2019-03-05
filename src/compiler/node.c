@@ -4,6 +4,28 @@
 
 #include <lib/stdio.h>
 
+bool nodelist_next(nodelist *self, compilation_node_ref *out)
+{
+    compilation_t *compilation = self->compilation;
+    if (self->_i < self->_n) {
+        const node_t *n = &Slice_data(&self->nodes)[self->_i++];
+        compilation_node_ref ref = compilation_node_find(compilation, n);
+        *out = ref;
+        return true;
+    }
+    return false;
+}
+
+nodelist nodelist_iterator(Slice(node_t) nodes, void *compilation)
+{
+    return (nodelist) {
+            .compilation = compilation,
+            .nodes = nodes,
+            ._i = 0,
+            ._n = Slice_size(&nodes),
+    };
+}
+
 Slice(node_t) node_list_children(const node_t *list)
 {
     assert(list->kind == NODE_LIST_BEGIN);
@@ -12,14 +34,14 @@ Slice(node_t) node_list_children(const node_t *list)
     return (Slice(node_t)) {._begin = begin, ._end = begin + n};
 }
 
-const node_t *node_deref(const compilation_t *compilation, const node_t *it)
+compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref ref)
 {
-    if (it->kind != NODE_REF) {
-        return it;
+    const node_t *it = compilation_node(compilation, ref);
+    if (it->kind == NODE_REF) {
+        ref = it->u.ref.value;
+        assert(compilation_node(compilation, ref)->kind == NODE_LIST_BEGIN && "references refer to lists");
     }
-    const node_t *ret = compilation_node(compilation, it->u.ref.value);
-    assert(ret->kind == NODE_LIST_BEGIN && "references refer to lists");
-    return ret;
+    return ref;
 }
 
 typedef struct {

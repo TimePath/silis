@@ -29,9 +29,10 @@ INTRINSIC_IMPL(func, ((type_id[]) {
 
 void func_args_types(Env env, const Slice(node_t) args, type_id out[])
 {
-    size_t argc = Slice_size(&args);
-    for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(env.compilation, &Slice_data(&args)[i]);
+    nodelist iter = nodelist_iterator(args, env.compilation);
+    compilation_node_ref ref;
+    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
+        const node_t *it = compilation_node(env.compilation, node_deref(env.compilation, ref));
         const Slice(node_t) children = node_list_children(it);
         const size_t n = Slice_size(&children);
         if (n == 0) {
@@ -54,9 +55,10 @@ void func_args_types(Env env, const Slice(node_t) args, type_id out[])
 
 void func_args_names(Env env, const Slice(node_t) args, String out[])
 {
-    size_t argc = Slice_size(&args);
-    for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(env.compilation, &Slice_data(&args)[i]);
+    nodelist iter = nodelist_iterator(args, env.compilation);
+    compilation_node_ref ref;
+    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
+        const node_t *it = compilation_node(env.compilation, node_deref(env.compilation, ref));
         const Slice(node_t) children = node_list_children(it);
         const size_t n = Slice_size(&children);
         if (n != 2) {
@@ -87,10 +89,10 @@ value_t func_call(Env env, value_t func, const Slice(value_t) argv, const node_t
 
 static void func_args_load(Env env, const node_t *arglist, const Slice(value_t) argv)
 {
-    const Slice(node_t) args = node_list_children(arglist);
-    const size_t argc = Slice_size(&args);
-    for (size_t i = 0; i < argc; ++i) {
-        const node_t *it = node_deref(env.compilation, &Slice_data(&args)[i]);
+    nodelist iter = nodelist_iterator(node_list_children(arglist), env.compilation);
+    compilation_node_ref ref;
+    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
+        const node_t *it = compilation_node(env.compilation, node_deref(env.compilation, ref));
         const Slice(node_t) children = node_list_children(it);
         const size_t n = Slice_size(&children);
         if (n == 2) {

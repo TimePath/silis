@@ -11,11 +11,12 @@ INTRINSIC_IMPL(emit, ((type_id[]) {
 }))
 {
     const value_t *arg_args = &Slice_data(&argv)[0];
-    Slice(node_t) children = node_list_children(compilation_node(env.compilation, arg_args->u.expr.value));
-    Slice_loop(&children, i) {
-        const node_t *it = &Slice_data(&children)[i];
-        assert(it->kind == NODE_STRING && "argument is string literal");
-        fprintf_s(env.prelude, it->u.string.value);
+    nodelist iter = nodelist_iterator(node_list_children(compilation_node(env.compilation, arg_args->u.expr.value)), env.compilation);
+    compilation_node_ref ref;
+    while (nodelist_next(&iter, &ref)) {
+        const node_t *node = compilation_node(env.compilation, ref);
+        assert(node->kind == NODE_STRING && "argument is string literal");
+        fprintf_s(env.prelude, node->u.string.value);
         fprintf_s(env.prelude, STR("\n"));
     }
     return (value_t) {.type = env.types->t_unit, .node = self};
