@@ -115,7 +115,7 @@ size_t main(Vector(String)
         &entry);
         (void) hasMain;
         assert(hasMain && type_lookup(types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
-        func_call(env, entry.value, (Slice(value_t)) {._begin = NULL, ._end = NULL,}, NULL);
+        func_call(env, entry.value, (Slice(value_t)) {._begin = NULL, ._end = NULL,}, (compilation_node_ref) {.file = {0}, .node = {0}});
     } else {
         if (flags.print_compile) {
             fprintf_s(out, STR("COMPILE:\n-------\n"));

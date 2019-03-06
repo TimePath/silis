@@ -4,8 +4,9 @@
 #include "env.h"
 #include "symbols.h"
 
-value_t value_from(Env env, const node_t *n)
+value_t value_from(Env env, compilation_node_ref it)
 {
+    const node_t *n = compilation_node(env.compilation, it);
     switch (n->kind) {
         case NODE_INVALID:
         case NODE_REF:
@@ -24,13 +25,13 @@ value_t value_from(Env env, const node_t *n)
         case NODE_INTEGRAL:
             return (value_t) {
                     .type = env.types->t_int,
-                    .node = n,
+                    .node = it,
                     .u.integral.value = n->u.integral.value,
             };
         case NODE_STRING:
             return (value_t) {
                     .type = env.types->t_string,
-                    .node = n,
+                    .node = it,
                     .u.string.value = n->u.string.value,
             };
     }

@@ -99,7 +99,7 @@ void compilation_begin(compilation_t *self, compilation_file_ref file, Env env)
     }
     do_eval((eval_input) {
             .env = env,
-            .entry = compilation_node(self, compilation_file(self, file)->entry),
+            .entry = compilation_file(self, file)->entry,
     });
     if (self->flags.print_eval) {
         fprintf_s(self->debug, STR("\n"));

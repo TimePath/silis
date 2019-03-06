@@ -76,7 +76,7 @@ bool nodelist_next(nodelist *self, compilation_node_ref *out);
 
 nodelist nodelist_iterator(Slice(node_t) list, void *env);
 
-Slice(node_t) node_list_children(const node_t *list);
+Slice(node_t) node_list_children(const compilation_t *compilation, compilation_node_ref list);
 
 compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref node);
 

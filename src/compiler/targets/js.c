@@ -6,7 +6,7 @@
 #include <compiler/type.h>
 #include <compiler/types.h>
 
-const bool types = false;
+static const bool types = false;
 
 static void tgt_js_file_begin(const compile_ctx_t *ctx);
 

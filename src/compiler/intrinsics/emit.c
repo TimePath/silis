@@ -11,7 +11,7 @@ INTRINSIC_IMPL(emit, ((type_id[]) {
 }))
 {
     const value_t *arg_args = &Slice_data(&argv)[0];
-    nodelist iter = nodelist_iterator(node_list_children(compilation_node(env.compilation, arg_args->u.expr.value)), env.compilation);
+    nodelist iter = nodelist_iterator(node_list_children(env.compilation, arg_args->u.expr.value), env.compilation);
     compilation_node_ref ref;
     while (nodelist_next(&iter, &ref)) {
         const node_t *node = compilation_node(env.compilation, ref);

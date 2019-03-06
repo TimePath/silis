@@ -26,11 +26,12 @@ nodelist nodelist_iterator(Slice(node_t) nodes, void *compilation)
     };
 }
 
-Slice(node_t) node_list_children(const node_t *list)
+Slice(node_t) node_list_children(const compilation_t *compilation, compilation_node_ref list)
 {
-    assert(list->kind == NODE_LIST_BEGIN);
-    size_t n = list->u.list.size;
-    const node_t *begin = list + 1;
+    const node_t *node = compilation_node(compilation, list);
+    assert(node->kind == NODE_LIST_BEGIN);
+    size_t n = node->u.list.size;
+    const node_t *begin = node + 1;
     return (Slice(node_t)) {._begin = begin, ._end = begin + n};
 }
 

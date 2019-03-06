@@ -8,7 +8,7 @@
 
 typedef struct {
     type_id type;
-    const node_t *node;
+    compilation_node_ref node;
     union {
         struct {
             void *value;
@@ -54,4 +54,4 @@ typedef struct {
 Vector_instantiate(value_t);
 Slice_instantiate(value_t);
 
-value_t value_from(Env env, const node_t *n);
+value_t value_from(Env env, compilation_node_ref n);

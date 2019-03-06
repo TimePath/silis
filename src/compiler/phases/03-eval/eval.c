@@ -9,9 +9,9 @@ typedef struct {
     Vector(value_t) stack;
 } eval_ctx_t;
 
-static value_t do_eval_list_block(eval_ctx_t *ctx, const node_t *it);
+static value_t do_eval_list_block(eval_ctx_t *ctx, compilation_node_ref it);
 
-static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it);
+static value_t do_eval_node(eval_ctx_t *ctx, compilation_node_ref it);
 
 eval_output do_eval(eval_input in)
 {
@@ -19,37 +19,38 @@ eval_output do_eval(eval_input in)
     do_eval_list_block(&ctx, in.entry);
 }
 
-value_t eval_node(Env env, const node_t *it)
+value_t eval_node(Env env, compilation_node_ref it)
 {
     return do_eval_node(&(eval_ctx_t) {.env = env}, it);
 }
 
-value_t eval_list_block(Env env, const node_t *it)
+value_t eval_list_block(Env env, compilation_node_ref it)
 {
     return do_eval_list_block(&(eval_ctx_t) {.env = env}, it);
 }
 
-static value_t do_eval_list_block(eval_ctx_t *ctx, const node_t *it)
+static value_t do_eval_list_block(eval_ctx_t *ctx, compilation_node_ref it)
 {
-    assert(it->kind == NODE_LIST_BEGIN);
-    const Slice(node_t) children = node_list_children(it);
+    assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN);
+    const Slice(node_t) children = node_list_children(ctx->env.compilation, it);
     value_t ret = (value_t) {.type = ctx->env.types->t_unit, .node = it};
     nodelist iter = nodelist_iterator(children, ctx->env.compilation);
     compilation_node_ref ref;
     for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
-        const node_t *stmt = compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, ref));
+        compilation_node_ref stmt = node_deref(ctx->env.compilation, ref);
         ret = do_eval_node(ctx, stmt);
     }
     return ret;
 }
 
-static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
+static value_t do_eval_node(eval_ctx_t *ctx, compilation_node_ref it)
 {
-    assert(it->kind != NODE_REF);
-    if (it->kind != NODE_LIST_BEGIN) {
+    const node_t *node = compilation_node(ctx->env.compilation, it);
+    assert(node->kind != NODE_REF);
+    if (node->kind != NODE_LIST_BEGIN) {
         return value_from(ctx->env, it);
     }
-    const Slice(node_t) children = node_list_children(it);
+    const Slice(node_t) children = node_list_children(ctx->env.compilation, it);
     const size_t n = Slice_size(&children);
     if (!n) {
         // ()
@@ -58,10 +59,10 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     compilation_node_ref ref = compilation_node_find(ctx->env.compilation, &Slice_begin(&children)[0]);
     if (n == 1) {
         // (expr)
-        return do_eval_node(ctx, compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, ref)));
+        return do_eval_node(ctx, node_deref(ctx->env.compilation, ref));
     }
     // (f args...)
-    const value_t func = do_eval_node(ctx, compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, ref)));
+    const value_t func = do_eval_node(ctx, node_deref(ctx->env.compilation, ref));
     const type_t *funcType = type_lookup(ctx->env.types, func.type);
     assert(funcType->kind == TYPE_FUNCTION && "function is function");
 
@@ -72,16 +73,15 @@ static value_t do_eval_node(eval_ctx_t *ctx, const node_t *it)
     type_id T = func.type;
     for (const type_t *argType = funcType; argType->kind == TYPE_FUNCTION; T = argType->u.func.out, argType = type_lookup(ctx->env.types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
-        compilation_node_ref argRef = compilation_node_find(ctx->env.compilation, &Slice_begin(&children)[++T_argc]);
-        argRef = node_deref(ctx->env.compilation, argRef);
-        const node_t *arg = compilation_node(ctx->env.compilation, argRef);
+        compilation_node_ref arg = compilation_node_find(ctx->env.compilation, &Slice_begin(&children)[++T_argc]);
+        arg = node_deref(ctx->env.compilation, arg);
         const type_id arg_t = argType->u.func.in;
         value_t v;
         if (arg_t.value == expr_t.value) {
             v = (value_t) {
                     .type = expr_t,
                     .node = arg,
-                    .u.expr.value = argRef,
+                    .u.expr.value = arg,
             };
         } else {
             v = do_eval_node(ctx, arg);

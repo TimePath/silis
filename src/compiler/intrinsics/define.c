@@ -14,7 +14,7 @@ INTRINSIC_IMPL(define, ((type_id[]) {
 
     const node_t *name = compilation_node(env.compilation, arg_name->u.expr.value);
     assert(name->kind == NODE_ATOM);
-    const node_t *val = compilation_node(env.compilation, arg_val->u.expr.value);
+    compilation_node_ref val = arg_val->u.expr.value;
 
     const value_t v = eval_node(env, val);
     sym_def(env.symbols, name->u.atom.value, (sym_t) {

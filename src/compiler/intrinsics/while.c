@@ -12,8 +12,8 @@ INTRINSIC_IMPL(while, ((type_id[]) {
     const value_t *arg_predicate = &Slice_data(&argv)[0];
     const value_t *arg_body = &Slice_data(&argv)[1];
 
-    const node_t *predicate = compilation_node(env.compilation, arg_predicate->u.expr.value);
-    const node_t *node_body = compilation_node(env.compilation, arg_body->u.expr.value);
+    compilation_node_ref predicate = arg_predicate->u.expr.value;
+    compilation_node_ref node_body = arg_body->u.expr.value;
     while (true) {
         const value_t ret = eval_node(env, predicate);
         if (ret.u.integral.value != 0) {

@@ -14,7 +14,7 @@ INTRINSIC_IMPL(extern, ((type_id[]) {
 
     const node_t *name = compilation_node(env.compilation, arg_name->u.expr.value);
     assert(name->kind == NODE_ATOM);
-    const node_t *val = compilation_node(env.compilation, arg_type->u.expr.value);
+    compilation_node_ref val = arg_type->u.expr.value;
 
     const value_t v = eval_node(env, val);
     assert(v.type.value == env.types->t_type.value && "argument is a type");
