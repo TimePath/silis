@@ -123,8 +123,8 @@ compile_output do_compile(compile_input in)
             continue;
         }
         LINE();
-        Slice(node_t) argv = node_list_children(ctx->env.compilation, it->value.u.func.arglist);
-        size_t argc = Slice_size(&argv);
+        nodelist argv = nodelist_iterator(ctx->env.compilation, it->value.u.func.arglist);
+        size_t argc = argv._n;
         String *argnames = realloc(NULL, sizeof(String) * argc);
         func_args_names(ctx->env, argv, argnames);
         ctx->target->func_declare(ctx, type, ident, argnames);
@@ -324,9 +324,9 @@ static void visit_node_expr(const compile_ctx_t *ctx, visit_state_t state, retur
 static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, return_t ret, compilation_node_ref it)
 {
     assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN && "it is list");
-    const Slice(node_t) childrenRaw = node_list_children(ctx->env.compilation, it);
-    const size_t n = Slice_size(&childrenRaw);
-    compilation_node_ref ref = compilation_node_find(ctx->env.compilation, &Slice_begin(&childrenRaw)[0]);
+    nodelist childrenRaw = nodelist_iterator(ctx->env.compilation, it);
+    const size_t n = childrenRaw._n;
+    compilation_node_ref ref = compilation_node_find(ctx->env.compilation, &Slice_begin(&childrenRaw.nodes)[0]);
     compilation_node_ref first = node_deref(ctx->env.compilation, ref);
     if (n == 1) {
         visit_node(ctx, state, ret, first);
@@ -335,7 +335,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
     const node_t **_children = realloc(NULL, sizeof(node_t *) * n);
     _children[0] = compilation_node(ctx->env.compilation, first);
     for (size_t i = 1; i < n; ++i) {
-        compilation_node_ref childref = compilation_node_find(ctx->env.compilation, &Slice_begin(&childrenRaw)[i]);
+        compilation_node_ref childref = compilation_node_find(ctx->env.compilation, &Slice_begin(&childrenRaw.nodes)[i]);
         _children[i] = compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, childref));
     }
     const Slice(node_t_ptr) children = (Slice(node_t_ptr)) {._begin = &_children[0], ._end = &_children[n]};
@@ -470,9 +470,8 @@ static bool visit_node_macro(const compile_ctx_t *ctx, visit_state_t state, retu
     if (intrin == &intrin_do) {
         const node_t *bodyNode = Slice_data(&children)[1];
         compilation_node_ref bodyRef = compilation_node_find(ctx->env.compilation, bodyNode);
-        const Slice(node_t) bodyChildren = node_list_children(ctx->env.compilation, bodyRef);
         sym_push(ctx->env.symbols);
-        nodelist iter = nodelist_iterator(bodyChildren, ctx->env.compilation);
+        nodelist iter = nodelist_iterator(ctx->env.compilation, bodyRef);
         compilation_node_ref ref;
         for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
             if (i) {

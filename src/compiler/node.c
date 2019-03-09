@@ -6,33 +6,31 @@
 
 bool nodelist_next(nodelist *self, compilation_node_ref *out)
 {
-    compilation_t *compilation = self->compilation;
+    const compilation_t *compilation = self->compilation;
     if (self->_i < self->_n) {
         const node_t *n = &Slice_data(&self->nodes)[self->_i++];
         compilation_node_ref ref = compilation_node_find(compilation, n);
-        *out = ref;
+        if (out) {
+            *out = ref;
+        }
         return true;
     }
     return false;
 }
 
-nodelist nodelist_iterator(Slice(node_t) nodes, void *compilation)
-{
-    return (nodelist) {
-            .compilation = compilation,
-            .nodes = nodes,
-            ._i = 0,
-            ._n = Slice_size(&nodes),
-    };
-}
-
-Slice(node_t) node_list_children(const compilation_t *compilation, compilation_node_ref list)
+nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_ref list)
 {
     const node_t *node = compilation_node(compilation, list);
     assert(node->kind == NODE_LIST_BEGIN);
     size_t n = node->u.list.size;
     const node_t *begin = node + 1;
-    return (Slice(node_t)) {._begin = begin, ._end = begin + n};
+    Slice(node_t) nodes = (Slice(node_t)) {._begin = begin, ._end = begin + n};
+    return (nodelist) {
+            .compilation = compilation,
+            .nodes = nodes,
+            ._i = 0,
+            ._n = n,
+    };
 }
 
 compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref ref)

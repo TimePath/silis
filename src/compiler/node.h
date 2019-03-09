@@ -67,16 +67,14 @@ struct node_s {
 };
 
 typedef struct {
-    void *compilation;
+    const compilation_t *compilation;
     Slice(node_t) nodes;
     size_t _i, _n;
 } nodelist;
 
 bool nodelist_next(nodelist *self, compilation_node_ref *out);
 
-nodelist nodelist_iterator(Slice(node_t) list, void *env);
-
-Slice(node_t) node_list_children(const compilation_t *compilation, compilation_node_ref list);
+nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_ref list);
 
 compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref node);
 

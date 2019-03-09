@@ -4,7 +4,7 @@
 #include "../_.h"
 #include "../../phases/03-eval/eval.h"
 
-static void types_func_args_types(Env env, Slice(node_t) args, type_id out[]);
+static void types_func_args_types(Env env, nodelist iter, type_id out[]);
 
 INTRINSIC_IMPL(types_func, ((type_id[]) {
         types->t_expr,
@@ -13,8 +13,8 @@ INTRINSIC_IMPL(types_func, ((type_id[]) {
 {
     const value_t *arg_args = &Slice_data(&argv)[0];
 
-    const Slice(node_t) children = node_list_children(env.compilation, arg_args->u.expr.value);
-    const size_t argc = Slice_size(&children);
+    nodelist children = nodelist_iterator(env.compilation, arg_args->u.expr.value);
+    const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
     type_id *Ts = realloc(NULL, sizeof(type_id) * argc);
     types_func_args_types(env, children, Ts);
@@ -27,9 +27,8 @@ INTRINSIC_IMPL(types_func, ((type_id[]) {
     };
 }
 
-static void types_func_args_types(Env env, const Slice(node_t) args, type_id out[])
+static void types_func_args_types(Env env, nodelist iter, type_id out[])
 {
-    nodelist iter = nodelist_iterator(args, env.compilation);
     compilation_node_ref ref;
     for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
         compilation_node_ref it = node_deref(env.compilation, ref);

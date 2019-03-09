@@ -12,8 +12,8 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     const value_t *arg_args = &Slice_data(&argv)[0];
     const value_t *arg_body = &Slice_data(&argv)[1];
 
-    Slice(node_t) children = node_list_children(env.compilation, arg_args->u.expr.value);
-    const size_t argc = Slice_size(&children);
+    nodelist children = nodelist_iterator(env.compilation, arg_args->u.expr.value);
+    const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
     type_id *Ts = realloc(NULL, sizeof(type_id) * argc);
     func_args_types(env, children, Ts);
@@ -27,47 +27,45 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     };
 }
 
-void func_args_types(Env env, const Slice(node_t) args, type_id out[])
+void func_args_types(Env env, nodelist iter, type_id out[])
 {
-    nodelist iter = nodelist_iterator(args, env.compilation);
     compilation_node_ref ref;
     for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
         compilation_node_ref it = node_deref(env.compilation, ref);
-        const Slice(node_t) children = node_list_children(env.compilation, it);
-        const size_t n = Slice_size(&children);
-        if (n == 0) {
+        nodelist children = nodelist_iterator(env.compilation, it);
+        compilation_node_ref typeRef;
+        if (!nodelist_next(&children, &typeRef)) {
             out[i] = env.types->t_unit;
-        } else if (n <= 2) {
-            const node_t *node_type = &Slice_data(&children)[0];
-            const value_t type = eval_node(env, compilation_node_find(env.compilation, node_type));
-            assert(type.type.value == env.types->t_type.value && "argument is a type");
-            out[i] = type.u.type.value;
-            if (n == 2) {
-                const node_t *node_id = &Slice_data(&children)[1];
-                assert(node_id->kind == NODE_ATOM && "argument is a name");
-                (void) (node_id);
-            }
-        } else {
-            assert(false);
+            continue;
+        }
+        const node_t *typeNode = compilation_node(env.compilation, typeRef);
+        const value_t type = eval_node(env, compilation_node_find(env.compilation, typeNode));
+        assert(type.type.value == env.types->t_type.value && "argument is a type");
+        out[i] = type.u.type.value;
+        compilation_node_ref id;
+        if (nodelist_next(&children, &id)) {
+            const node_t *idNode = compilation_node(env.compilation, id);
+            assert(idNode->kind == NODE_ATOM && "argument is a name");
+            (void) (idNode);
         }
     }
 }
 
-void func_args_names(Env env, const Slice(node_t) args, String out[])
+void func_args_names(Env env, nodelist iter, String out[])
 {
-    nodelist iter = nodelist_iterator(args, env.compilation);
     compilation_node_ref ref;
     for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
         compilation_node_ref it = node_deref(env.compilation, ref);
-        const Slice(node_t) children = node_list_children(env.compilation, it);
-        const size_t n = Slice_size(&children);
-        if (n != 2) {
+        nodelist children = nodelist_iterator(env.compilation, it);
+        nodelist_next(&children, NULL);
+        compilation_node_ref id;
+        if (!nodelist_next(&children, &id)) {
             out[i] = STR("");
-        } else {
-            const node_t *node_id = &Slice_data(&children)[1];
-            assert(node_id->kind == NODE_ATOM && "argument is a name");
-            out[i] = node_id->u.atom.value;
+            continue;
         }
+        const node_t *idNode = compilation_node(env.compilation, id);
+        assert(idNode->kind == NODE_ATOM && "argument is a name");
+        out[i] = idNode->u.atom.value;
     }
 }
 
@@ -89,18 +87,19 @@ value_t func_call(Env env, value_t func, const Slice(value_t) argv, compilation_
 
 static void func_args_load(Env env, compilation_node_ref arglist, const Slice(value_t) argv)
 {
-    nodelist iter = nodelist_iterator(node_list_children(env.compilation, arglist), env.compilation);
+    nodelist iter = nodelist_iterator(env.compilation, arglist);
     compilation_node_ref ref;
     for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
         compilation_node_ref it = node_deref(env.compilation, ref);
-        const Slice(node_t) children = node_list_children(env.compilation, it);
-        const size_t n = Slice_size(&children);
-        if (n == 2) {
-            const node_t *node_id = &Slice_data(&children)[1];
-            assert(node_id->kind == NODE_ATOM && "argument is a name");
+        nodelist children = nodelist_iterator(env.compilation, it);
+        nodelist_next(&children, NULL);
+        compilation_node_ref id;
+        if (nodelist_next(&children, &id)) {
+            const node_t *idNode = compilation_node(env.compilation, id);
+            assert(idNode->kind == NODE_ATOM && "argument is a name");
 
             const value_t *v = &Slice_data(&argv)[i];
-            sym_def(env.symbols, node_id->u.atom.value, (sym_t) {
+            sym_def(env.symbols, idNode->u.atom.value, (sym_t) {
                     .type = v->type,
                     .value = *v,
                     .flags.eval = true,
