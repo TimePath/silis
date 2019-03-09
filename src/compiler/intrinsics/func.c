@@ -38,8 +38,7 @@ void func_args_types(Env env, nodelist iter, type_id out[])
             out[i] = env.types->t_unit;
             continue;
         }
-        const node_t *typeNode = compilation_node(env.compilation, typeRef);
-        const value_t type = eval_node(env, compilation_node_find(env.compilation, typeNode));
+        const value_t type = eval_node(env, typeRef);
         assert(type.type.value == env.types->t_type.value && "argument is a type");
         out[i] = type.u.type.value;
         compilation_node_ref id;

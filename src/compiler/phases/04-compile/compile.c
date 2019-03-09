@@ -326,7 +326,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
     assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN && "it is list");
     nodelist childrenRaw = nodelist_iterator(ctx->env.compilation, it);
     const size_t n = childrenRaw._n;
-    compilation_node_ref ref = compilation_node_find(ctx->env.compilation, &Slice_begin(&childrenRaw.nodes)[0]);
+    compilation_node_ref ref = nodelist_get(&childrenRaw, 0);
     compilation_node_ref first = node_deref(ctx->env.compilation, ref);
     if (n == 1) {
         visit_node(ctx, state, ret, first);
@@ -335,7 +335,7 @@ static void visit_node_list(const compile_ctx_t *ctx, visit_state_t state, retur
     const node_t **_children = realloc(NULL, sizeof(node_t *) * n);
     _children[0] = compilation_node(ctx->env.compilation, first);
     for (size_t i = 1; i < n; ++i) {
-        compilation_node_ref childref = compilation_node_find(ctx->env.compilation, &Slice_begin(&childrenRaw.nodes)[i]);
+        compilation_node_ref childref = nodelist_get(&childrenRaw, i);
         _children[i] = compilation_node(ctx->env.compilation, node_deref(ctx->env.compilation, childref));
     }
     const Slice(node_t_ptr) children = (Slice(node_t_ptr)) {._begin = &_children[0], ._end = &_children[n]};

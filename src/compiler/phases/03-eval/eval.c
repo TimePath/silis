@@ -73,7 +73,7 @@ static value_t do_eval_node(eval_ctx_t *ctx, compilation_node_ref it)
     type_id T = func.type;
     for (const type_t *argType = funcType; argType->kind == TYPE_FUNCTION; T = argType->u.func.out, argType = type_lookup(ctx->env.types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
-        compilation_node_ref arg = compilation_node_find(ctx->env.compilation, &Slice_begin(&children.nodes)[++T_argc]);
+        compilation_node_ref arg = nodelist_get(&children, ++T_argc);
         arg = node_deref(ctx->env.compilation, arg);
         const type_id arg_t = argType->u.func.in;
         value_t v;

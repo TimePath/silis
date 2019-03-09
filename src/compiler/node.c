@@ -6,30 +6,33 @@
 
 bool nodelist_next(nodelist *self, compilation_node_ref *out)
 {
-    const compilation_t *compilation = self->compilation;
     if (self->_i < self->_n) {
-        const node_t *n = &Slice_data(&self->nodes)[self->_i++];
-        compilation_node_ref ref = compilation_node_find(compilation, n);
+        size_t i = self->_i++;
         if (out) {
-            *out = ref;
+            *out = nodelist_get(self, i);
         }
         return true;
     }
     return false;
 }
 
+compilation_node_ref nodelist_get(nodelist *self, size_t index)
+{
+    return (compilation_node_ref) {
+            .file = self->head.file,
+            .node = { .id = self->head.node.id + index }
+    };
+}
+
 nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_ref list)
 {
     const node_t *node = compilation_node(compilation, list);
     assert(node->kind == NODE_LIST_BEGIN);
-    size_t n = node->u.list.size;
-    const node_t *begin = node + 1;
-    Slice(node_t) nodes = (Slice(node_t)) {._begin = begin, ._end = begin + n};
     return (nodelist) {
             .compilation = compilation,
-            .nodes = nodes,
+            .head = (compilation_node_ref) { .file = list.file, .node = { .id = list.node.id + 1 }},
             ._i = 0,
-            ._n = n,
+            ._n = node->u.list.size,
     };
 }
 
