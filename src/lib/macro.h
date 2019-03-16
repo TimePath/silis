@@ -1,6 +1,10 @@
 #pragma once
 
+#if defined(_MSC_VER)
+#define INLINE inline
+#else
 #define INLINE __attribute__((always_inline)) inline
+#endif
 
 #define MACRO_BEGIN if (1) {
 #define MACRO_END } else ((void) 0)

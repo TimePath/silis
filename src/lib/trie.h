@@ -4,34 +4,22 @@
 #include "vector.h"
 #include "slice.h"
 
-#if !defined(__TINYC__)
-#define TrieNode_Padding
-#else
-#define TrieNode_Padding uint8_t padding[7];
-#endif
-
 #define TrieNode(T) CAT2(TrieNode__, T)
 #define TrieNode_instantiate(T) typedef TrieNode_(T) TrieNode(T)
 #define TrieNode_(T) \
-DIAG_PUSH \
-DIAG_IGNORE("-Wpacked") \
-struct __attribute__((__packed__)) { \
+struct { \
     uint16_t children[256]; \
     bool initialised; \
-    TrieNode_Padding \
+    uint8_t _padding[7]; \
     T value; \
-} \
-DIAG_POP
+}
 
-DIAG_PUSH
-DIAG_IGNORE("-Wpacked")
-typedef struct __attribute__((__packed__)) {
+typedef struct {
     uint16_t children[256];
     bool initialised;
-    TrieNode_Padding
+    uint8_t _padding[7];
     // T value;
 } TrieNode;
-DIAG_POP
 
 #define TrieNode_Value_Offset (sizeof (TrieNode))
 #define TrieNode_Value(self) ((void *) (((uint8_t *) (self)) + TrieNode_Value_Offset))
@@ -66,7 +54,7 @@ const TrieNode(T) root = (TrieNode(T)) {.children = {0}, .initialised = false}; 
 Vector_push(&(self)->nodes, root); \
 MACRO_END
 
-typedef struct { uint8_t padding[1]; } TriePlaceholder;
+typedef struct { uint8_t padding[2]; } TriePlaceholder;
 Trie_instantiate(TriePlaceholder);
 typedef Trie(TriePlaceholder) AnyTrie;
 

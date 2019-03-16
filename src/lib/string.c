@@ -10,12 +10,18 @@ bool String_equals(String self, String other)
 
 static native_char_t *spaces(size_t n)
 {
-    static native_char_t *spaces = NULL;
-    static size_t i = 0;
-    for (spaces = realloc(spaces, n + 1); i < n; ++i) {
-        spaces[i] = ' ';
-    }
-    return spaces;
+	static native_char_t *spaces = NULL;
+	static size_t i = 0;
+	static size_t biggest = 0;
+	if (n > biggest) {
+        biggest = n;
+        spaces = realloc(spaces, n + 1);
+        for (; i < n; ++i) {
+            spaces[i] = ' ';
+        }
+        spaces[i] = 0;
+	}
+	return spaces;
 }
 
 String String_indent(size_t n)

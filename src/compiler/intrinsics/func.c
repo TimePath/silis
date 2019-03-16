@@ -68,7 +68,7 @@ void func_args_names(Env env, nodelist iter, String out[])
     }
 }
 
-static void func_args_load(Env env, compilation_node_ref arglist, Slice(value_t) argv);
+static void func_args_load(Env env, compilation_node_ref arglist, const Slice(value_t) argv);
 
 value_t func_call(Env env, value_t func, const Slice(value_t) argv, compilation_node_ref self)
 {

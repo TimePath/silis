@@ -12,6 +12,8 @@ void fprintf_raw(FILE *stream, Slice(uint8_t) slice)
 
 typedef size_t itoa_T;
 
+#define itoa silis_itoa
+
 static String itoa(itoa_T val);
 
 void fprintf_zu(FILE *stream, size_t zu)

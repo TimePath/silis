@@ -100,7 +100,7 @@ size_t main(Vector(String)
             .compilation = compilation,
             .types = types,
             .symbols = symbols,
-            .stdout = out,
+            .out = out,
             .preludeBuf = &prelude,
             .prelude = Buffer_asFile(&prelude),
     };
