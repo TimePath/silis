@@ -1,5 +1,5 @@
-# nix-build -A silis release.nix
-# nix-build -A silis-musl-static release.nix
+# nix-build release.nix -A silis
+# nix-build release.nix -A silis-musl-static
 let
     config = {
         packageOverrides = pkgs: {
@@ -53,6 +53,17 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
     link = {
         default = identity;
         static = pkg: let
+            makeStaticBinaries = stdenv: stdenv // {
+                mkDerivation = args:
+                if stdenv.hostPlatform.isDarwin
+                then throw "Cannot build fully static binaries on Darwin/macOS"
+                else stdenv.mkDerivation (args // {
+                    NIX_CFLAGS_LINK = toString (args.NIX_CFLAGS_LINK or "") + "-static";
+                    configureFlags = (args.configureFlags or []) ++ [
+                        "--disable-shared" # brrr...
+                    ];
+                });
+            };
             stdenv = makeStaticBinaries pkg.stdenv;
         in (pkg.override { inherit stdenv; }) // { inherit stdenv; };
     };
@@ -64,18 +75,24 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
 buildMatrix = { name ? apply, apply ? name }: m: prefix: pkg: let
     next = decided: alt: let
         altAttrs = lib.attrNames alt;
-    in if (lib.length altAttrs) != 0
-        then let
+        result = if (lib.length altAttrs) != 0 then edge else terminal;
+        edge = let
             k = lib.head altAttrs;
-        in lib.flatten (map (it: next (decided // { ${k} = it; }) (removeAttrs alt [k])) alt.${k})
-        else let
+            result = lib.flatten (map (it: next (decided // { ${k} = it; }) (removeAttrs alt [k])) alt.${k});
+            in result;
+        terminal = let
             flavor = it: if it == "default" then "" else "-${it}";
             flags = lib.concatStrings (map (it: flavor decided.${it}) name);
             pkg' = lib.foldl (pkg: f: m.${f}.${decided.${f}} pkg) pkg apply;
-        in { name = prefix + flags; value = pkg'.overrideAttrs (oldAttrs: { name = oldAttrs.name + flags; }); }
-    ;
-    x = lib.listToAttrs (builtins.map (it: { name = it; value = lib.attrNames m.${it}; }) apply);
-in lib.listToAttrs (next {} x);
+            result = {
+                name = prefix + flags;
+                value = pkg'.overrideAttrs (oldAttrs: { name = oldAttrs.name + flags; });
+            };
+            in result;
+        in result;
+    alt = lib.listToAttrs (builtins.map (it: { name = it; value = lib.attrNames m.${it}; }) apply);
+    result = lib.listToAttrs (next {} alt);
+    in result;
 casguard = pkgs.writeScript "casguard.py" ''
     #!${pkgs.python3}/bin/python
     import sys
@@ -103,6 +120,18 @@ casguard = pkgs.writeScript "casguard.py" ''
     print("")
     print("#endif")
 '';
-in (m "silis" pkgs.silis) // {
+targets = removeAttrs (m "silis" pkgs.silis) [
+    "silis-tcc-musl"
+    "silis-tcc-musl-debug"
+    "silis-tcc-musl-static"
+    "silis-tcc-musl-static-debug"
+
+    "silis-static"
+    "silis-static-debug"
+    "silis-musl-static"
+    "silis-musl-static-debug"
+];
+result = targets // {
     casguard = casguard;
-}
+};
+in result
