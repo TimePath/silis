@@ -60,9 +60,9 @@ size_t main(Vector(String)
             .buffer = OUTPUT_BUFFER,
     };
 
-    FILE *out = stdout;
+    File *out = fs_stdout();
     String inputFile = Vector_data(&args)[1];
-    FILE *outputFile = Vector_size(&args) >= 3 ? fopen(String_cstr(Vector_data(&args)[2]), "w") : out;
+    File *outputFile = Vector_size(&args) >= 3 ? fs_open(Vector_data(&args)[2], STR("w")) : out;
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
@@ -121,18 +121,18 @@ size_t main(Vector(String)
             fprintf_s(out, STR("COMPILE:\n-------\n"));
         }
         Buffer outBuf = Vector_new();
-        FILE *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
+        File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
         do_compile((compile_input) {
                 .out = f,
                 .target = &target_c,
                 .env = env,
         });
         if (flags.buffer) {
-            fclose(f);
+            fs_close(f);
             fprintf_raw(outputFile, Buffer_toSlice(&outBuf));
         }
         if (outputFile != out) {
-            fclose(outputFile);
+            fs_close(outputFile);
         }
     }
 

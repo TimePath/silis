@@ -4,7 +4,7 @@
 #include <lib/stdio.h>
 
 typedef struct {
-    FILE *out;
+    File *out;
     Slice(token_t) tokens;
 } token_print_ctx_t;
 
@@ -17,7 +17,7 @@ typedef struct {
 
 static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it);
 
-void token_print(FILE *f, Slice(token_t) tokens)
+void token_print(File *f, Slice(token_t) tokens)
 {
     token_print_ctx_t ctx = {
             .out = f,

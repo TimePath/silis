@@ -1,7 +1,22 @@
 #include <system.h>
 #include "buffer.h"
 
-FILE *Buffer_asFile(Buffer *self)
+static ssize_t File_memory_write(void *self, Slice(uint8_t) in);
+
+static File_class File_memory = {
+        .write = File_memory_write,
+};
+
+File *Buffer_asFile(Buffer *self)
 {
-    return open_memstream((native_char_t **) &Vector_data(self), &Vector_size(self));
+    return fs_open_(File_memory, self);
+}
+
+static ssize_t File_memory_write(void *_self, Slice(uint8_t) in)
+{
+    Buffer *self = _self;
+    size_t n = Slice_size(&in);
+    const uint8_t *d = Slice_data(&in);
+    _Vector_push(sizeof(uint8_t), self, n, d, n);
+    return (ssize_t) n;
 }

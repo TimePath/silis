@@ -40,7 +40,7 @@ void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value, size_t sizeof_Node
         assert(end < uint16_max && "size is constrained");
         n->children[b] = (uint16_t) end;
         TrieNode x = {.children = {0}, .initialised = false};
-        _Vector_push(TrieNode_Size(self), &self->nodes, sizeof(x), &x);
+        _Vector_push(TrieNode_Size(self), &self->nodes, sizeof(x), &x, 1);
         n = Trie_node(self, end);
     }
     memcpy(TrieNode_Value(n), value, self->t_size);

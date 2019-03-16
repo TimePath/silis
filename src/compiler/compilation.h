@@ -10,7 +10,7 @@
 #include "env.h"
 
 struct compilation_s {
-    FILE *debug;
+    File *debug;
     Vector(compilation_file_ptr_t) files;
     const struct {
         bool print_parse : 1;

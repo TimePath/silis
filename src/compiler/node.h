@@ -2,6 +2,7 @@
 
 #include "node-fwd.h"
 
+#include <lib/fs.h>
 #include <lib/string.h>
 #include <lib/vector.h>
 
@@ -80,4 +81,4 @@ nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_re
 
 compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref node);
 
-void node_print(FILE *f, Slice(node_t) nodes);
+void node_print(File *f, Slice(node_t) nodes);

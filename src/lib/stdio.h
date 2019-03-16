@@ -1,16 +1,17 @@
 #pragma once
 
 #include "buffer.h"
+#include "fs.h"
 #include "string.h"
 
-void fprintf_raw(FILE *stream, Slice(uint8_t) slice);
+void fprintf_raw(File *stream, Slice(uint8_t) slice);
 
-void fprintf_zu(FILE *stream, size_t zu);
+void fprintf_zu(File *stream, size_t zu);
 
 #define fprintf_s fprintf_str
 
-void fprintf_s(FILE *stream, String s);
+void fprintf_s(File *stream, String s);
 
-void fprintf_slice(FILE *stream, Slice(uint8_t) slice);
+void fprintf_slice(File *stream, Slice(uint8_t) slice);
 
-void fprintf_buf(FILE *stream, Buffer *buf);
+void fprintf_buf(File *stream, Buffer *buf);

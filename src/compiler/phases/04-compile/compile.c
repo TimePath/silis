@@ -76,7 +76,7 @@ compile_output do_compile(compile_input in)
 
     ctx->target->file_begin(ctx);
 
-    fflush(ctx->env.prelude);
+    fs_flush(ctx->env.prelude);
     String prelude = String_fromSlice(Buffer_toSlice(ctx->env.preludeBuf), ENCODING_DEFAULT);
     fprintf_s(ctx->out, prelude);
 

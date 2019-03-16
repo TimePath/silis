@@ -6,7 +6,10 @@
 #define Slice_instantiate(T) typedef Slice_(T) Slice(T)
 #define Slice_(T) \
 struct { \
-    const T *_begin; \
+    union { \
+        const T *_begin; \
+        T *_begin_mut; \
+    }; \
     const T *_end; /** one after the actual last element */ \
 }
 
@@ -17,6 +20,7 @@ Slice_instantiate(uint8_t);
 
 #define Slice_size(self) ((size_t) ((self)->_end - (self)->_begin))
 #define Slice_data(self) ((self)->_begin)
+#define Slice_data_mut(self) ((self)->_begin_mut)
 
 #define Slice_loop(self, i) \
 DIAG_PUSH \

@@ -21,12 +21,12 @@ struct { \
 #define Vector_data(self) ((self)->_data)
 #define Vector_toSlice(T, self) ((Slice(T)) { ._begin = Vector_data(self), ._end = Vector_data(self) + Vector_size(self) })
 
-void _Vector_push(size_t sizeof_T, void *self, size_t dataSize, const void *data);
+void _Vector_push(size_t sizeof_T, void *self, size_t dataSize, const void *data, size_t count);
 
 #define Vector_push(self, val) \
 MACRO_BEGIN \
     if (0) { (void) (Vector_data(self) == &(val)); } \
-    _Vector_push(sizeof(val), self, sizeof(val), &(val)); \
+    _Vector_push(sizeof(val), self, sizeof(val), &(val), 1); \
 MACRO_END
 
 void Vector_pop(void *self);

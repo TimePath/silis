@@ -5,9 +5,9 @@
 #include "slice.h"
 #include "string.h"
 
-void fprintf_raw(FILE *stream, Slice(uint8_t) slice)
+void fprintf_raw(File *stream, Slice(uint8_t) slice)
 {
-    fwrite(Slice_begin(&slice), sizeof(uint8_t), Slice_size(&slice), stream);
+    fs_write(stream, slice);
 }
 
 typedef size_t itoa_T;
@@ -16,36 +16,38 @@ typedef size_t itoa_T;
 
 static String itoa(itoa_T val);
 
-void fprintf_zu(FILE *stream, size_t zu)
+void fprintf_zu(File *stream, size_t zu)
 {
     fprintf_s(stream, itoa(zu));
 }
 
-void fprintf_s(FILE *stream, String s)
+void fprintf_s(File *stream, String s)
 {
     fprintf_raw(stream, s.bytes); // todo: re-encode if needed
 }
 
 static native_string_t hexdigits = "0123456789abcdef";
 
-static void _fprintf_hexdump(FILE *stream, Slice(uint8_t) slice)
+static void _fprintf_hexdump(File *stream, Slice(uint8_t) slice)
 {
     for (size_t i = 0; i < Slice_size(&slice); ++i) {
         if (i) { fprintf_s(stream, STR(" ")); }
         const uint8_t b = Slice_data(&slice)[i];
-        fwrite(&hexdigits[((b & 0xF0) >> 4)], sizeof(uint8_t), 1, stream);
-        fwrite(&hexdigits[((b & 0x0F) >> 0)], sizeof(uint8_t), 1, stream);
+        fs_write(stream, Slice_of(uint8_t, (uint8_t[2]) {
+            (uint8_t) hexdigits[((b & 0xF0) >> 4)],
+            (uint8_t) hexdigits[((b & 0x0F) >> 0)],
+        }));
     }
 }
 
-void fprintf_slice(FILE *stream, Slice(uint8_t) slice)
+void fprintf_slice(File *stream, Slice(uint8_t) slice)
 {
     fprintf_s(stream, STR("<Slice "));
     _fprintf_hexdump(stream, slice);
     fprintf_s(stream, STR(">"));
 }
 
-void fprintf_buf(FILE *stream, Buffer *buf)
+void fprintf_buf(File *stream, Buffer *buf)
 {
     fprintf_s(stream, STR("<Buffer "));
     _fprintf_hexdump(stream, Buffer_toSlice(buf));

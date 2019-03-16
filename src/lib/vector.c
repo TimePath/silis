@@ -3,14 +3,14 @@
 
 Vector_instantiate(void);
 
-void _Vector_push(size_t sizeof_T, void *_self, size_t dataSize, const void *data)
+void _Vector_push(size_t sizeof_T, void *_self, size_t dataSize, const void *data, size_t n)
 {
     Vector(void) *self = (Vector(void) *) _self;
-    const size_t n = Vector_size(self);
+    const size_t size = Vector_size(self);
     // todo: smarter growth strategy
-    Vector_data(self) = realloc(Vector_data(self), (n + 1) * sizeof_T);
-    memcpy((uint8_t *) Vector_data(self) + (n * sizeof_T), data, dataSize);
-    ++Vector_size(self);
+    Vector_data(self) = realloc(Vector_data(self), (size + n) * sizeof_T);
+    memcpy((uint8_t *) Vector_data(self) + (size * sizeof_T), data, dataSize);
+    Vector_size(self) += n;
 }
 
 void Vector_pop(void *_self)

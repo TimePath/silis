@@ -47,7 +47,7 @@ compilation_node_ref node_deref(const compilation_t *compilation, compilation_no
 }
 
 typedef struct {
-    FILE *out;
+    File *out;
     Slice(node_t) nodes;
 } node_print_ctx_t;
 
@@ -60,7 +60,7 @@ typedef struct {
 
 static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it);
 
-void node_print(FILE *f, Slice(node_t) nodes)
+void node_print(File *f, Slice(node_t) nodes)
 {
     node_print_ctx_t ctx = {
             .out = f,

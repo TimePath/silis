@@ -3,7 +3,7 @@
 #include <compiler/env.h>
 
 typedef struct {
-    FILE *out;
+    File *out;
     struct Target_s *target;
     Env env;
 } compile_input;

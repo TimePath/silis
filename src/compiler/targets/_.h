@@ -4,7 +4,7 @@
 #include <compiler/type.h>
 
 typedef struct {
-    FILE *out;
+    File *out;
     struct Target_s *target;
     Env env;
 } compile_ctx_t;

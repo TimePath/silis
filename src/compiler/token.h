@@ -2,6 +2,7 @@
 
 #include "token-fwd.h"
 
+#include <lib/fs.h>
 #include <lib/string.h>
 #include <lib/vector.h>
 
@@ -43,4 +44,4 @@ struct token_s {
     } u;
 };
 
-void token_print(FILE *f, Slice(token_t) it);
+void token_print(File *f, Slice(token_t) it);
