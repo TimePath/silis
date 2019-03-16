@@ -16,14 +16,21 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
         default = identity;
 
         gcc = pkg: pkg.override { stdenv = overrideCC stdenv gcc; };
+        # gcc48 = pkg: pkg.override { stdenv = overrideCC stdenv gcc48; };
+        # gcc49 = pkg: pkg.override { stdenv = overrideCC stdenv gcc49; };
         gcc5 = pkg: pkg.override { stdenv = overrideCC stdenv gcc5; };
         gcc6 = pkg: pkg.override { stdenv = overrideCC stdenv gcc6; };
         gcc7 = pkg: pkg.override { stdenv = overrideCC stdenv gcc7; };
+        gcc8 = pkg: pkg.override { stdenv = overrideCC stdenv gcc8; };
 
         clang = pkg: pkg.override { stdenv = overrideCC stdenv clang; };
+        clang37 = pkg: pkg.override { stdenv = overrideCC stdenv clang_37; };
+        clang38 = pkg: pkg.override { stdenv = overrideCC stdenv clang_38; };
+        clang39 = pkg: pkg.override { stdenv = overrideCC stdenv clang_39; };
         clang4 = pkg: pkg.override { stdenv = overrideCC stdenv clang_4; };
         clang5 = pkg: pkg.override { stdenv = overrideCC stdenv clang_5; };
         clang6 = pkg: pkg.override { stdenv = overrideCC stdenv clang_6; };
+        clang7 = pkg: pkg.override { stdenv = overrideCC stdenv clang_7; };
 
         tcc = pkg: (pkg.override { stdenv = overrideCC stdenv tinycc; }).overrideAttrs (oldAttrs: {
             CC = "tcc";
