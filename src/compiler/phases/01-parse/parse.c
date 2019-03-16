@@ -97,6 +97,7 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
 
 #define PARSE_WS(_) \
     _('\t') \
+    _('\r') \
     _('\n') \
     _(' ') \
     /**/

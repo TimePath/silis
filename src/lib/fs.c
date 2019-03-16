@@ -36,7 +36,7 @@ void fs_popd(fs_dirtoken tok)
 
 bool fs_read(String path, String *out)
 {
-    FILE *file = fopen(String_cstr(path), "r");
+    FILE *file = fopen(String_cstr(path), "rb");
     if (!file) {
         return false;
     }
