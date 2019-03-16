@@ -169,6 +169,10 @@ File *fs_stdout(void)
 
 static File *fs_open_native(String path, String mode)
 {
-    FILE *file = fopen(String_cstr(path), String_cstr(mode));
+    native_char_t *p = String_cstr(path);
+    native_char_t *m = String_cstr(mode);
+    FILE *file = fopen(p, m);
+    free(p);
+    free(m);
     return fs_open_(File_native, file);
 }
