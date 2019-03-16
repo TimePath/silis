@@ -23,6 +23,7 @@ struct compilation_s {
 
 struct compilation_file_s {
     String path;
+    uint8_t *content;
     Vector(token_t) tokens;
     Vector(node_t) nodes;
     compilation_node_ref entry;

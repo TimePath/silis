@@ -48,7 +48,7 @@ compilation_node_ref compilation_node_find(const compilation_t *self, const node
 compilation_file_ref compilation_include(compilation_t *self, String path)
 {
     String fileStr;
-    bool read = fs_read_all(path, &fileStr);
+    uint8_t *read = fs_read_all(path, &fileStr);
     if (!read) {
         assert(read && "read from file");
         return (compilation_file_ref) {0};
@@ -80,6 +80,7 @@ compilation_file_ref compilation_include(compilation_t *self, String path)
     compilation_file_t *file = realloc(NULL, sizeof(*file));
     *file = (compilation_file_t) {
             .path = path,
+            .content = read,
             .tokens = parse.tokens,
             .nodes = flatten.nodes,
             .entry = {.file = ret, .node = {.id = flatten.entry + 1}},

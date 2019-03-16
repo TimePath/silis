@@ -39,7 +39,7 @@ ssize_t fs_flush(File *self);
 
 ssize_t fs_close(File *self);
 
-bool fs_read_all(String path, String *out);
+uint8_t *fs_read_all(String path, String *out);
 
 typedef struct {
     native_char_t *prev;

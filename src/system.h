@@ -170,5 +170,7 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) \
         String s = String_fromSlice(slice, ENCODING_SYSTEM); \
         Vector_push(&args, s); \
     } \
-    return (native_int_t) impl(args); \
+    size_t ret = impl(args); \
+    Vector_delete(&args); \
+    return (native_int_t) ret; \
 }

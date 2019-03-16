@@ -58,10 +58,9 @@ ssize_t fs_flush(File *self)
 ssize_t fs_close(File *self)
 {
     ssize_t (*func)(void *) = self->class.close;
-    if (!func) {
-        return 0;
-    }
-    return func(self->self);
+    ssize_t ret = !func ? 0 : func(self->self);
+    free(self);
+    return ret;
 }
 
 static fs_dirtoken _fs_pushd(native_char_t *path);
@@ -97,7 +96,7 @@ void fs_popd(fs_dirtoken tok)
     free(tok.prev);
 }
 
-bool fs_read_all(String path, String *out)
+uint8_t *fs_read_all(String path, String *out)
 {
     File *file = fs_open(path, STR("rb"));
     if (!file) {
@@ -116,7 +115,7 @@ bool fs_read_all(String path, String *out)
     buf[len] = 0;
     fs_close(file);
     *out = String_fromSlice(slice, ENCODING_DEFAULT);
-    return true;
+    return buf;
 }
 
 // impl: native

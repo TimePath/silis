@@ -96,13 +96,14 @@ size_t main(Vector(String)
     }));
     symbols_t *symbols = &_symbols;
     Buffer prelude = Vector_new();
+    File *preludeFile = Buffer_asFile(&prelude);
     Env env = (Env) {
             .compilation = compilation,
             .types = types,
             .symbols = symbols,
             .out = out,
             .preludeBuf = &prelude,
-            .prelude = Buffer_asFile(&prelude),
+            .prelude = preludeFile,
     };
     compilation_begin(compilation, mainFile, env);
 
@@ -137,5 +138,22 @@ size_t main(Vector(String)
     }
 
     fprintf_s(out, STR("\n"));
+    Slice_loop(&Vector_toSlice(compilation_file_ptr_t, &env.compilation->files), i) {
+        compilation_file_ptr_t it = Vector_data(&env.compilation->files)[i];
+        free(it->content);
+        Vector_delete(&it->tokens);
+        Vector_delete(&it->nodes);
+        free(it);
+    }
+    Vector_delete(&env.compilation->files);
+    Vector_delete(&env.types->all);
+    Slice_loop(&Vector_toSlice(sym_scope_t, &env.symbols->scopes), i) {
+        Trie(sym_t) it = Vector_data(&env.symbols->scopes)[i].t;
+        Vector_delete(&it.nodes);
+        Vector_delete(&it.entries);
+    }
+    Vector_delete(&env.symbols->scopes);
+    fs_close(preludeFile);
+    Vector_delete(&prelude);
     return EXIT_SUCCESS;
 }
