@@ -10,8 +10,8 @@ typedef struct compilation_file_s compilation_file_t;
 
 typedef compilation_file_t *compilation_file_ptr_t;
 
-Vector_instantiate(compilation_file_ptr_t);
 Slice_instantiate(compilation_file_ptr_t);
+Vector_instantiate(compilation_file_ptr_t);
 
 typedef struct {
     size_t id;

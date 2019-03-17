@@ -31,8 +31,8 @@ typedef struct {
     uint8_t padding[6];
 } TrieEntry;
 
-Vector_instantiate(TrieEntry);
 Slice_instantiate(TrieEntry);
+Vector_instantiate(TrieEntry);
 
 #define Trie(T) CAT2(Trie__, T)
 #define Trie_instantiate(T) \

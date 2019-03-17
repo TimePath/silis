@@ -1,5 +1,117 @@
 #include <system.h>
+#include "buffer.h"
 #include "fs.h"
+#include "stdio.h"
+
+// todo: create multiple filesystem roots
+
+FilePath fs_dirname(FilePath self)
+{
+    Vector(String) parts = Vector_new();
+    Slice(String) slice = Vector_toSlice(String, &self.parts);
+    slice._end -= 1;
+    Slice_loop(&slice, i) {
+        String it = Slice_data(&slice)[i];
+        Vector_push(&parts, it);
+    }
+    return (FilePath) {
+            ._data = STR(""),
+            .parts = parts,
+            .absolute = self.absolute,
+    };
+}
+
+static FilePath fs_path_from_native_unix(String path);
+
+static FilePath fs_path_from_native_win(String path);
+
+FilePath fs_path_from(String path)
+{
+    return fs_path_from_native_unix(path);
+}
+
+FilePath fs_path_from_native_(String path, bool nix)
+{
+    return nix ? fs_path_from_native_unix(path) : fs_path_from_native_win(path);
+}
+
+static FilePath fs_path_from_native_unix(String path)
+{
+    String delim = STR("/");
+    bool absolute = false;
+    Vector(String) parts = Vector_new();
+    uint8_t i = 0;
+    String state = path;
+    for (String head; String_delim(&state, delim, &head); ++i) {
+        if (!String_sizeBytes(head)) {
+            if (i == 0) {
+                absolute = true;
+            }
+            continue;
+        }
+        Vector_push(&parts, head);
+    }
+    Vector_push(&parts, state);
+    return (FilePath) { ._data = path, .parts = parts, .absolute = absolute };
+}
+
+static FilePath fs_path_from_native_win(String path)
+{
+    String delim = STR("\\");
+    bool absolute = false;
+    Vector(String) parts = Vector_new();
+    uint8_t i = 0;
+    String state = path;
+    for (String head; String_delim(&state, delim, &head); ++i) {
+        Vector_push(&parts, head);
+    }
+    Vector_push(&parts, state);
+    return (FilePath) { ._data = path, .parts = parts, .absolute = absolute };
+}
+
+static String fs_path_to_native_unix(FilePath path, Buffer *buf);
+
+static String fs_path_to_native_win(FilePath path, Buffer *buf);
+
+String fs_path_to_native_(FilePath path, Buffer *buf, bool nix)
+{
+    return nix ? fs_path_to_native_unix(path, buf) : fs_path_to_native_win(path, buf);
+}
+
+static String fs_path_to_native_unix(FilePath path, Buffer *buf)
+{
+    String delim = STR("/");
+    File *f = Buffer_asFile(buf);
+    Slice_loop(&Vector_toSlice(String, &path.parts), i) {
+        String it = Vector_data(&path.parts)[i];
+        if (i == 0 ? path.absolute : true) {
+            fprintf_s(f, delim);
+        }
+        fprintf_s(f, it);
+    }
+    fs_close(f);
+    String ret = String_fromSlice(Vector_toSlice(uint8_t, buf), ENCODING_DEFAULT);
+    return ret;
+}
+
+static String fs_path_to_native_win(FilePath path, Buffer *buf)
+{
+    String delim = STR("\\");
+    File *f = Buffer_asFile(buf);
+    if (path.absolute) {
+        fprintf_s(f, STR("\\\\?\\"));
+    }
+    Slice_loop(&Vector_toSlice(String, &path.parts), i) {
+        String it = Vector_data(&path.parts)[i];
+        if (i != 0) {
+            fprintf_s(f, delim);
+        }
+        fprintf_s(f, it);
+    }
+    fs_close(f);
+    String ret = String_fromSlice(Vector_toSlice(uint8_t, buf), ENCODING_DEFAULT);
+    return ret;
+}
 
 File *fs_open_(File_class class, void *self)
 {
@@ -11,9 +123,9 @@ File *fs_open_(File_class class, void *self)
     return ret;
 }
 
-static File *fs_open_native(String path, String mode);
+static File *fs_open_native(FilePath path, String mode);
 
-File *fs_open(String path, String mode)
+File *fs_open(FilePath path, String mode)
 {
     return fs_open_native(path, mode);
 }
@@ -63,40 +175,27 @@ ssize_t fs_close(File *self)
     return ret;
 }
 
-static fs_dirtoken _fs_pushd(native_char_t *path);
-
-fs_dirtoken fs_pushd_dirname(String path)
-{
-    native_char_t *s = String_cstr(path);
-    fs_dirtoken ret = _fs_pushd(dirname(s));
-    free(s);
-    return ret;
-}
-
-fs_dirtoken fs_pushd(String path)
-{
-    native_char_t *s = String_cstr(path);
-    fs_dirtoken ret = _fs_pushd(s);
-    free(s);
-    return ret;
-}
-
-static fs_dirtoken _fs_pushd(native_char_t *path)
+fs_dirtoken fs_pushd(FilePath path)
 {
     size_t size = 1024;
-    native_char_t *ret = getcwd(realloc(NULL, size), size);
-    assert(ret && "buf is large enough");
-    chdir(path);
-    return (fs_dirtoken) {ret};
+    native_char_t *cwd = getcwd(realloc(NULL, size), size);
+    assert(cwd && "cwd is large enough");
+    Buffer buf = Vector_new();
+    native_char_t *s = String_cstr(fs_path_to_native(path, &buf));
+    Vector_delete(&buf);
+    chdir(s);
+    free(s);
+    return (fs_dirtoken) {cwd};
 }
 
 void fs_popd(fs_dirtoken tok)
 {
-    chdir(tok.prev);
-    free(tok.prev);
+    native_char_t *s = tok.prev;
+    chdir(s);
+    free(s);
 }
 
-uint8_t *fs_read_all(String path, String *out)
+uint8_t *fs_read_all(FilePath path, String *out)
 {
     File *file = fs_open(path, STR("rb"));
     if (!file) {
@@ -166,11 +265,14 @@ File *fs_stdout(void)
     return ret;
 }
 
-static File *fs_open_native(String path, String mode)
+static File *fs_open_native(FilePath path, String mode)
 {
-    native_char_t *p = String_cstr(path);
+    Buffer buf = Vector_new();
+    native_char_t *p = String_cstr(fs_path_to_native(path, &buf));
+    Vector_delete(&buf);
     native_char_t *m = String_cstr(mode);
     FILE *file = fopen(p, m);
+    assert(file && "File exists");
     free(p);
     free(m);
     return fs_open_(File_native, file);

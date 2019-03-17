@@ -1,6 +1,8 @@
 #pragma once
 
+#include "buffer.h"
 #include "string.h"
+#include "vector.h"
 
 typedef struct {
     ssize_t (*read)(void *self, Slice(uint8_t) out);
@@ -16,16 +18,42 @@ typedef struct {
     ssize_t (*close)(void *self);
 } File_class;
 
-typedef struct {
+typedef struct File_s {
     File_class class;
     void *self;
 } File;
+
+typedef struct {
+    String _data;
+    Vector(String) parts;
+    bool absolute;
+} FilePath;
+
+FilePath fs_dirname(FilePath self);
+
+FilePath fs_path_from(String path);
+
+#ifdef __linux__
+#define fs_path_from_native(path) fs_path_from_native_(path, true)
+#else
+#define fs_path_from_native(path) fs_path_from_native_(path, false)
+#endif
+
+FilePath fs_path_from_native_(String path, bool nix);
+
+#ifdef __linux__
+#define fs_path_to_native(path, buf) fs_path_to_native_(path, buf, true)
+#else
+#define fs_path_to_native(path, buf) fs_path_to_native_(path, buf, false)
+#endif
+
+String fs_path_to_native_(FilePath path, Buffer *buf, bool nix);
 
 File *fs_open_(File_class class, void *self);
 
 File *fs_stdout(void);
 
-File *fs_open(String path, String mode);
+File *fs_open(FilePath path, String mode);
 
 ssize_t fs_read(File *self, Slice(uint8_t) out);
 
@@ -39,14 +67,12 @@ ssize_t fs_flush(File *self);
 
 ssize_t fs_close(File *self);
 
-uint8_t *fs_read_all(String path, String *out);
+uint8_t *fs_read_all(FilePath path, String *out);
 
 typedef struct {
     native_char_t *prev;
 } fs_dirtoken;
 
-fs_dirtoken fs_pushd_dirname(String path);
-
-fs_dirtoken fs_pushd(String path);
+fs_dirtoken fs_pushd(FilePath path);
 
 void fs_popd(fs_dirtoken tok);

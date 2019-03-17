@@ -2,6 +2,7 @@
 
 #include "macro.h"
 #include "slice.h"
+#include "vector.h"
 
 typedef struct {
     native_string_t name;
@@ -37,6 +38,9 @@ typedef struct {
     const StringEncoding *encoding;
     Slice(uint8_t) bytes;
 } String;
+
+Slice_instantiate(String);
+Vector_instantiate(String);
 
 #define STR(str) STR_(""str"")
 #define STR_(str) String_fromSlice(CAST(Slice(uint8_t), Slice(void), _Slice_of((str), (sizeof (str) - 1))), ENCODING_COMPILER)
@@ -76,3 +80,5 @@ bool String_equals(String self, String other);
 String String_indent(size_t n);
 
 native_char_t *String_cstr(String self);
+
+bool String_delim(String *tail, String delim, String *head);

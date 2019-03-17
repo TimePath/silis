@@ -28,8 +28,6 @@
 #include "intrinsics/while.h"
 #include "symbols.h"
 
-Vector_instantiate(String);
-
 MAIN(main)
 
 #ifdef NDEBUG
@@ -61,8 +59,8 @@ size_t main(Vector(String)
     };
 
     File *out = fs_stdout();
-    String inputFile = Vector_data(&args)[1];
-    File *outputFile = Vector_size(&args) >= 3 ? fs_open(Vector_data(&args)[2], STR("w")) : out;
+    FilePath inputFilePath = fs_path_from_native(Vector_data(&args)[1]);
+    File *outputFile = Vector_size(&args) >= 3 ? fs_open(fs_path_from_native(Vector_data(&args)[2]), STR("w")) : out;
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
@@ -72,7 +70,7 @@ size_t main(Vector(String)
             .files = Vector_new(),
     };
     compilation_t *compilation = &_compilation;
-    compilation_file_ref mainFile = compilation_include(compilation, inputFile);
+    compilation_file_ref mainFile = compilation_include(compilation, inputFilePath);
 
     types_t _types = types_new();
     types_t *types = &_types;
@@ -140,6 +138,7 @@ size_t main(Vector(String)
     fprintf_s(out, STR("\n"));
     Slice_loop(&Vector_toSlice(compilation_file_ptr_t, &env.compilation->files), i) {
         compilation_file_ptr_t it = Vector_data(&env.compilation->files)[i];
+        Vector_delete(&it->path.parts);
         free(it->content);
         Vector_delete(&it->tokens);
         Vector_delete(&it->nodes);

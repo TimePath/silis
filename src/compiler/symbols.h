@@ -13,8 +13,8 @@ typedef struct {
     size_t parent;
 } sym_scope_t;
 
-Vector_instantiate(sym_scope_t);
 Slice_instantiate(sym_scope_t);
+Vector_instantiate(sym_scope_t);
 typedef struct symbols_s {
     Vector(sym_scope_t) scopes;
 } symbols_t;

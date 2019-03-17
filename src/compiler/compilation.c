@@ -45,7 +45,7 @@ compilation_node_ref compilation_node_find(const compilation_t *self, const node
     return (compilation_node_ref) {.file = {0}, .node = {0}};
 }
 
-compilation_file_ref compilation_include(compilation_t *self, String path)
+compilation_file_ref compilation_include(compilation_t *self, FilePath path)
 {
     String fileStr;
     uint8_t *read = fs_read_all(path, &fileStr);
@@ -93,7 +93,9 @@ compilation_file_ref compilation_include(compilation_t *self, String path)
 void compilation_begin(compilation_t *self, compilation_file_ref file, Env env)
 {
     const compilation_file_t *f = compilation_file(self, file);
-    fs_dirtoken state = fs_pushd_dirname(f->path);
+    FilePath dir = fs_dirname(f->path);
+    fs_dirtoken state = fs_pushd(dir);
+    Vector_delete(&dir.parts);
 
     if (self->flags.print_eval) {
         fprintf_s(self->debug, STR("EVAL:\n----\n"));

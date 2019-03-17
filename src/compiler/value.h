@@ -51,7 +51,7 @@ typedef struct {
     uint8_t padding[7];
 } value_t;
 
-Vector_instantiate(value_t);
 Slice_instantiate(value_t);
+Vector_instantiate(value_t);
 
 value_t value_from(Env env, compilation_node_ref n);

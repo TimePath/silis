@@ -115,8 +115,6 @@ char *getcwd(char *buf, size_t size);
 
 int chdir(const char *path);
 
-char *dirname(char *path);
-
 #endif
 
 #if USE_REAL_HEADERS

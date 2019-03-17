@@ -22,13 +22,13 @@ struct compilation_s {
 };
 
 struct compilation_file_s {
-    String path;
+    FilePath path;
     uint8_t *content;
     Vector(token_t) tokens;
     Vector(node_t) nodes;
     compilation_node_ref entry;
 };
 
-compilation_file_ref compilation_include(compilation_t *self, String path);
+compilation_file_ref compilation_include(compilation_t *self, FilePath path);
 
 void compilation_begin(compilation_t *self, compilation_file_ref file, Env env);
