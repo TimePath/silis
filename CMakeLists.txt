@@ -100,7 +100,7 @@ function(add_tests)
             DEPENDS silis-test silis ${tests}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> --output-on-failure
-            COMMAND touch ${CMAKE_BINARY_DIR}/tested
+            COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/tested
     )
 endfunction()
 
