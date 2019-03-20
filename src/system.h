@@ -1,5 +1,13 @@
 #pragma once
 
+#if defined(__linux__) || defined(__EMSCRIPTEN__)
+#define TARGET_OS_WIN 0
+#elif defined(_WIN32)
+#define TARGET_OS_WIN 1
+#else
+#error "Unknown OS"
+#endif
+
 #define USE_REAL_HEADERS 0
 
 #include <assert.h>

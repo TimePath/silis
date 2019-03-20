@@ -231,7 +231,7 @@ static ssize_t File_native_write(void *self, Slice(uint8_t) in)
 
 static ssize_t File_native_seek(void *self, off64_t pos, uint8_t whence)
 {
-    return fseek(self, pos, whence);
+    return fseek(self, (native_long_t) pos, whence);
 }
 
 static ssize_t File_native_tell(void *self)

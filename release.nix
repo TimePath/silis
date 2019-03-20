@@ -1,3 +1,4 @@
+# nix-env -f release.nix -qa
 # nix-build release.nix -A silis
 # nix-build release.nix -A silis-musl-static
 let
@@ -14,6 +15,33 @@ identity = it: it;
 m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" "cc" "type" ]; } (with pkgs; {
     cc = {
         default = identity;
+
+        emscripten = pkg: (pkg.override { stdenv = emscriptenStdenv; }).overrideAttrs (old: {
+            nativeBuildInputs = [ pkgs.cmake ] ++ old.nativeBuildInputs;
+            installPhase = ''
+                mkdir -p $out/bin
+                mv silis.js $out/bin
+            '';
+            NIX_CFLAGS_COMPILE = "";
+            configurePhase = ''
+                HOME=$TMPDIR
+                # cmakeConfigurePhase
+
+                runHook preConfigure
+
+                mkdir -p build
+                cd build
+                cmakeDir=''${cmakeDir:-..}
+
+                cmakeFlags="-DCMAKE_BUILD_TYPE=$cmakeBuildType $cmakeFlags"
+
+                echo "cmake flags: $cmakeFlags ''${cmakeFlagsArray[@]}"
+                emconfigure cmake $cmakeDir
+
+                runHook postConfigure
+            '';
+            checkPhase = "";
+        });
 
         gcc = pkg: pkg.override { stdenv = overrideCC stdenv gcc; };
         # gcc48 = pkg: pkg.override { stdenv = overrideCC stdenv gcc48; };
@@ -128,15 +156,25 @@ casguard = pkgs.writeScript "casguard.py" ''
     print("#endif")
 '';
 targets = removeAttrs (m "silis" pkgs.silis) [
+    # tcc-musl-*-*
     "silis-tcc-musl"
     "silis-tcc-musl-debug"
     "silis-tcc-musl-static"
     "silis-tcc-musl-static-debug"
 
+    # default-*-static-*
     "silis-static"
     "silis-static-debug"
     "silis-musl-static"
     "silis-musl-static-debug"
+
+    # emscripten-*-*-* except emscripten-default-default-default
+    "silis-emscripten-static"
+    "silis-emscripten-static-debug"
+    "silis-emscripten-musl"
+    "silis-emscripten-musl-debug"
+    "silis-emscripten-musl-static"
+    "silis-emscripten-musl-static-debug"
 ];
 result = targets // {
     casguard = casguard;

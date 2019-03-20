@@ -9,7 +9,7 @@ typedef struct {
     struct {
         /// interpreter variable (function call)
         bool eval : 1;
-        uint8_t padding : 7;
+        uint8_t _padding : 7;
     } flags;
-    uint8_t padding[7];
+    uint8_t _padding[7];
 } sym_t;

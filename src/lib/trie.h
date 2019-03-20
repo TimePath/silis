@@ -28,7 +28,7 @@ typedef struct {
 typedef struct {
     Slice(uint8_t) key;
     uint16_t value;
-    uint8_t padding[6];
+    uint8_t _padding[6];
 } TrieEntry;
 
 Slice_instantiate(TrieEntry);
@@ -54,7 +54,7 @@ const TrieNode(T) root = (TrieNode(T)) {.children = {0}, .initialised = false}; 
 Vector_push(&(self)->nodes, root); \
 MACRO_END
 
-typedef struct { uint8_t padding[2]; } TriePlaceholder;
+typedef struct { uint8_t _padding[2]; } TriePlaceholder;
 Trie_instantiate(TriePlaceholder);
 typedef Trie(TriePlaceholder) AnyTrie;
 

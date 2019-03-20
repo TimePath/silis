@@ -34,7 +34,7 @@ typedef enum {
 
 struct node_s {
     node_e kind;
-    uint8_t padding[4];
+    uint8_t _padding[4];
     const token_t *token;
     union {
         /// NODE_LIST_BEGIN
@@ -46,7 +46,7 @@ struct node_s {
         } list;
         /// NODE_LIST_END
         struct {
-            uint8_t padding;
+            uint8_t _padding;
         } list_end;
         /// NODE_REF
         struct {

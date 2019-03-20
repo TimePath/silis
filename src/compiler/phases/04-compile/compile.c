@@ -38,7 +38,7 @@ typedef enum {
 
 typedef struct {
     return_e kind;
-    uint8_t padding[4];
+    uint8_t _padding[4];
     type_id type;
     union {
         struct {

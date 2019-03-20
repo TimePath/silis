@@ -20,11 +20,7 @@ stdenv.mkDerivation {
         mv silis $out/bin
     '';
     dontStrip = if debug then true else false;
-    preConfigure = ''
-        cmakeFlagsArray+=(
-            "-DCMAKE_BUILD_TYPE=${if debug then "Debug" else "Release"}"
-        )
-    '';
+    cmakeBuildType = if debug then "Debug" else "Release";
     meta = {
         description = "static interchange lisp in stages";
         homepage = "https://github.com/TimePath/silis";

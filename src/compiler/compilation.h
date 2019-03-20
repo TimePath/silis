@@ -16,9 +16,9 @@ struct compilation_s {
         bool print_parse : 1;
         bool print_flatten : 1;
         bool print_eval: 1;
-        uint8_t padding : 5;
+        uint8_t _padding : 5;
     } flags;
-    uint8_t padding[7];
+    uint8_t _padding[7];
 };
 
 struct compilation_file_s {

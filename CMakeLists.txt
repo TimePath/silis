@@ -21,7 +21,12 @@ try_flag(CMAKE_C_FLAGS "-Wextra")
 try_flag(CMAKE_C_FLAGS "-Weverything")
 
 # keep
+try_flag(CMAKE_C_FLAGS "-Wno-unused-command-line-argument")
 try_flag(CMAKE_C_FLAGS "-Wno-keyword-macro")
+
+if (EMSCRIPTEN)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-reserved-id-macro -s RETAIN_COMPILER_SETTINGS=1 -s NODERAWFS=1")
+endif ()
 
 include_directories(src)
 
@@ -119,4 +124,7 @@ test(tests/02-extern.sil)
 test(tests/03-if.sil)
 test(tests/04-while.sil)
 
-add_tests()
+if (EMSCRIPTEN)
+else ()
+    add_tests()
+endif ()

@@ -55,7 +55,7 @@ typedef struct {
     size_t depth;
     bool needLine;
     bool needTab;
-    uint8_t padding[6];
+    uint8_t _padding[6];
 } node_print_state_t;
 
 static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it);

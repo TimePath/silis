@@ -12,7 +12,7 @@ typedef struct {
     size_t depth;
     bool needLine;
     bool needTab;
-    uint8_t padding[6];
+    uint8_t _padding[6];
 } token_print_state_t;
 
 static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it);

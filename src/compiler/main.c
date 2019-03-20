@@ -47,7 +47,7 @@ size_t main(Vector(String)
         bool print_compile : 1;
         bool print_run : 1;
         bool buffer : 1;
-        uint8_t padding : 1;
+        uint8_t _padding : 1;
     } flags = {
             .run = false,
             .print_parse = true,

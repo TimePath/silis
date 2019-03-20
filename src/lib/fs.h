@@ -27,25 +27,18 @@ typedef struct {
     String _data;
     Vector(String) parts;
     bool absolute;
+    uint8_t _padding[7];
 } FilePath;
 
 FilePath fs_dirname(FilePath self);
 
 FilePath fs_path_from(String path);
 
-#ifdef __linux__
-#define fs_path_from_native(path) fs_path_from_native_(path, true)
-#else
-#define fs_path_from_native(path) fs_path_from_native_(path, false)
-#endif
+#define fs_path_from_native(path) fs_path_from_native_(path, !TARGET_OS_WIN)
 
 FilePath fs_path_from_native_(String path, bool nix);
 
-#ifdef __linux__
-#define fs_path_to_native(path, buf) fs_path_to_native_(path, buf, true)
-#else
-#define fs_path_to_native(path, buf) fs_path_to_native_(path, buf, false)
-#endif
+#define fs_path_to_native(path, buf) fs_path_to_native_(path, buf, !TARGET_OS_WIN)
 
 String fs_path_to_native_(FilePath path, Buffer *buf, bool nix);
 
