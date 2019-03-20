@@ -31,20 +31,6 @@ const node_t *compilation_node(const compilation_t *self, compilation_node_ref r
     return node;
 }
 
-// todo: remove, replace with nodelist_iterator
-compilation_node_ref compilation_node_find(const compilation_t *self, const node_t *node)
-{
-    Slice_loop(&Vector_toSlice(compilation_file_ptr_t, &self->files), i) {
-        compilation_file_t *f = Vector_data(&self->files)[i];
-        const Vector(node_t) *nodes = &f->nodes;
-        if (node > Vector_data(nodes) && node < Vector_data(nodes) + Vector_size(nodes)) {
-            return (compilation_node_ref) {.file = {i + 1}, .node = {(size_t) (node - Vector_data(nodes)) + 1}};
-        }
-    }
-    assert(false);
-    return (compilation_node_ref) {.file = {0}, .node = {0}};
-}
-
 compilation_file_ref compilation_include(compilation_t *self, FilePath path)
 {
     String fileStr;

@@ -27,11 +27,11 @@ typedef struct {
     struct { size_t id; } node;
 } compilation_node_ref;
 
+Slice_instantiate(compilation_node_ref);
+Vector_instantiate(compilation_node_ref);
+
 const compilation_file_t *compilation_file(const compilation_t *self, compilation_file_ref ref);
 
 const token_t *compilation_token(const compilation_t *self, compilation_token_ref ref);
 
 const node_t *compilation_node(const compilation_t *self, compilation_node_ref ref);
-
-// todo: remove
-compilation_node_ref compilation_node_find(const compilation_t *self, const node_t *node);
