@@ -22,10 +22,11 @@ try_flag(CMAKE_C_FLAGS "-Weverything")
 
 # keep
 try_flag(CMAKE_C_FLAGS "-Wno-unused-command-line-argument")
+try_flag(CMAKE_C_FLAGS "-Wno-reserved-id-macro")
 try_flag(CMAKE_C_FLAGS "-Wno-keyword-macro")
 
 if (EMSCRIPTEN)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-reserved-id-macro -s RETAIN_COMPILER_SETTINGS=1 -s NODERAWFS=1")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s RETAIN_COMPILER_SETTINGS=1 -s NODERAWFS=1")
 endif ()
 
 include_directories(src)
@@ -84,9 +85,10 @@ set(SOURCE_FILES
         src/compiler/intrinsics/types/func.c
         )
 add_executable(silis ${SOURCE_FILES})
+add_executable(silis-test src/test.c)
 
 enable_testing()
-set(tests ${CMAKE_CURRENT_SOURCE_DIR}/test.sh)
+set(tests "")
 function(add_tests)
     add_custom_target(
             tests
@@ -95,7 +97,7 @@ function(add_tests)
     )
     add_custom_command(
             OUTPUT ${CMAKE_BINARY_DIR}/tested
-            DEPENDS silis ${tests}
+            DEPENDS silis-test silis ${tests}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
             COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> --output-on-failure
             COMMAND touch ${CMAKE_BINARY_DIR}/tested
@@ -106,7 +108,6 @@ set(ENV ${CMAKE_COMMAND} -E env)
 if (${CMAKE_VERSION} VERSION_LESS "3.1.0")
     set(ENV env)
 endif ()
-find_program(BASH bash REQUIRED)
 function(test file)
     set(pwd ${CMAKE_CURRENT_SOURCE_DIR})
     get_filename_component(name ${file} NAME)
@@ -115,7 +116,7 @@ function(test file)
             NAME ${name}
             COMMAND ${ENV}
                 CC=${CMAKE_C_COMPILER}
-                ${BASH} ${pwd}/test.sh $<TARGET_FILE:silis> ${pwd}/${file}
+                $<TARGET_FILE:silis-test> $<TARGET_FILE:silis> ${pwd}/${file}
     )
     list(APPEND tests ${pwd}/${file})
     set(tests ${tests} PARENT_SCOPE)
