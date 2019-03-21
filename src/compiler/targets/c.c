@@ -6,19 +6,19 @@
 #include <compiler/type.h>
 #include <compiler/types.h>
 
-static void tgt_c_file_begin(const compile_ctx_t *ctx);
+static void tgt_c_file_begin(const compile_ctx_t *ctx, const compile_file *file);
 
-static void tgt_c_file_end(const compile_ctx_t *ctx);
+static void tgt_c_file_end(const compile_ctx_t *ctx, const compile_file *file);
 
-static void tgt_c_func_forward(const compile_ctx_t *ctx, type_id T, String name);
+static void tgt_c_func_forward(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name);
 
-static void tgt_c_func_declare(const compile_ctx_t *ctx, type_id T, String name, const String argnames[]);
+static void tgt_c_func_declare(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name, const String argnames[]);
 
-static void tgt_c_var_begin(const compile_ctx_t *ctx, type_id T);
+static void tgt_c_var_begin(const compile_ctx_t *ctx, const compile_file *file, type_id T);
 
-static void tgt_c_var_end(const compile_ctx_t *ctx, type_id T);
+static void tgt_c_var_end(const compile_ctx_t *ctx, const compile_file *file, type_id T);
 
-static void tgt_c_identifier(const compile_ctx_t *ctx, String name);
+static void tgt_c_identifier(const compile_ctx_t *ctx, const compile_file *file, String name);
 
 Target target_c = {
         .file_begin = tgt_c_file_begin,
@@ -35,53 +35,56 @@ typedef struct {
     bool anonymous;
 } tgt_c_print_decl_opts;
 
-static void tgt_c_print_decl_pre(const compile_ctx_t *ctx, type_id T, tgt_c_print_decl_opts opts);
+static void tgt_c_print_decl_pre(const compile_ctx_t *ctx, const compile_file *file, type_id T, tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_decl_post(const compile_ctx_t *ctx, type_id T, const String idents[], tgt_c_print_decl_opts opts);
+static void tgt_c_print_decl_post(const compile_ctx_t *ctx, const compile_file *file, type_id T, const String idents[], tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_function(const compile_ctx_t *ctx, type_id T, String ident, const String idents[]);
+static void tgt_c_print_function(const compile_ctx_t *ctx, const compile_file *file, type_id T, String ident, const String idents[]);
 
-static void tgt_c_file_begin(const compile_ctx_t *ctx)
-{
-    fprintf_s(ctx->out, STR("typedef const char *string;\n"));
-}
-
-static void tgt_c_file_end(const compile_ctx_t *ctx)
+static void tgt_c_file_begin(const compile_ctx_t *ctx, const compile_file *file)
 {
     (void) ctx;
+    fprintf_s(file->out, STR("typedef const char *string;\n"));
 }
 
-static void tgt_c_func_forward(const compile_ctx_t *ctx, type_id T, String name)
+static void tgt_c_file_end(const compile_ctx_t *ctx, const compile_file *file)
 {
-    tgt_c_print_function(ctx, T, name, NULL);
-    fprintf_s(ctx->out, STR(";"));
+    (void) ctx;
+    (void) file;
 }
 
-static void tgt_c_func_declare(const compile_ctx_t *ctx, type_id T, String name, const String argnames[])
+static void tgt_c_func_forward(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name)
 {
-    tgt_c_print_function(ctx, T, name, argnames);
+    tgt_c_print_function(ctx, file, T, name, NULL);
+    fprintf_s(file->out, STR(";"));
 }
 
-static void tgt_c_var_begin(const compile_ctx_t *ctx, type_id T)
+static void tgt_c_func_declare(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name, const String argnames[])
 {
-    tgt_c_print_decl_opts opts = {
-            .local = true,
-            .anonymous = false,
-    };
-    tgt_c_print_decl_pre(ctx, T, opts);
+    tgt_c_print_function(ctx, file, T, name, argnames);
 }
 
-static void tgt_c_var_end(const compile_ctx_t *ctx, type_id T)
+static void tgt_c_var_begin(const compile_ctx_t *ctx, const compile_file *file, type_id T)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
             .anonymous = false,
     };
-    tgt_c_print_decl_post(ctx, T, NULL, opts);
+    tgt_c_print_decl_pre(ctx, file, T, opts);
 }
 
-static void tgt_c_identifier(const compile_ctx_t *ctx, String name)
+static void tgt_c_var_end(const compile_ctx_t *ctx, const compile_file *file, type_id T)
 {
+    tgt_c_print_decl_opts opts = {
+            .local = true,
+            .anonymous = false,
+    };
+    tgt_c_print_decl_post(ctx, file, T, NULL, opts);
+}
+
+static void tgt_c_identifier(const compile_ctx_t *ctx, const compile_file *file, String name)
+{
+    (void) ctx;
     const StringEncoding *enc = name.encoding;
     const uint8_t *begin = String_begin(name);
     Slice(uint8_t) it = name.bytes;
@@ -96,96 +99,96 @@ static void tgt_c_identifier(const compile_ctx_t *ctx, String name)
             X('.', "__dot__")
 #undef X
         }
-        fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
-        fprintf_s(ctx->out, replace);
+        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(file->out, replace);
         it = enc->next(it);
         begin = it._begin;
     }
-    fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
 }
 
 // implementation
 
-static void tgt_c_print_function(const compile_ctx_t *ctx, type_id T, String ident, const String idents[])
+static void tgt_c_print_function(const compile_ctx_t *ctx, const compile_file *file, type_id T, String ident, const String idents[])
 {
     tgt_c_print_decl_opts opts = {
             .local = false,
             .anonymous = !String_sizeBytes(ident),
     };
-    tgt_c_print_decl_pre(ctx, T, opts);
+    tgt_c_print_decl_pre(ctx, file, T, opts);
     if (!opts.anonymous) {
-        tgt_c_identifier(ctx, ident);
+        tgt_c_identifier(ctx, file, ident);
     }
-    tgt_c_print_decl_post(ctx, T, idents, opts);
+    tgt_c_print_decl_post(ctx, file, T, idents, opts);
 }
 
-static void tgt_c_print_declaration(const compile_ctx_t *ctx, type_id T, String ident)
+static void tgt_c_print_declaration(const compile_ctx_t *ctx, const compile_file *file, type_id T, String ident)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
             .anonymous = !String_sizeBytes(ident),
     };
-    tgt_c_print_decl_pre(ctx, T, opts);
+    tgt_c_print_decl_pre(ctx, file, T, opts);
     if (!opts.anonymous) {
-        tgt_c_identifier(ctx, ident);
+        tgt_c_identifier(ctx, file, ident);
     }
-    tgt_c_print_decl_post(ctx, T, NULL, opts);
+    tgt_c_print_decl_post(ctx, file, T, NULL, opts);
 }
 
-static void tgt_c_print_decl_pre(const compile_ctx_t *ctx, type_id T, tgt_c_print_decl_opts opts)
+static void tgt_c_print_decl_pre(const compile_ctx_t *ctx, const compile_file *file, type_id T, tgt_c_print_decl_opts opts)
 {
     const type_t *type = type_lookup(ctx->env.types, T);
     if (type->kind != TYPE_FUNCTION) {
 #define CASE(t) if (T.value == ctx->env.types->t.value)
         CASE(t_unit) {
-            fprintf_s(ctx->out, !opts.anonymous ? STR("void ") : STR("void"));
+            fprintf_s(file->out, !opts.anonymous ? STR("void ") : STR("void"));
             return;
         }
         CASE(t_int) {
-            fprintf_s(ctx->out, !opts.anonymous ? STR("int ") : STR("int"));
+            fprintf_s(file->out, !opts.anonymous ? STR("int ") : STR("int"));
             return;
         }
         CASE(t_string) {
-            fprintf_s(ctx->out, !opts.anonymous ? STR("string ") : STR("string"));
+            fprintf_s(file->out, !opts.anonymous ? STR("string ") : STR("string"));
             return;
         }
 #undef CASE
-        fprintf_s(ctx->out, STR("type<"));
-        fprintf_zu(ctx->out, T.value);
-        fprintf_s(ctx->out, !opts.anonymous ? STR("> ") : STR(">"));
+        fprintf_s(file->out, STR("type<"));
+        fprintf_zu(file->out, T.value);
+        fprintf_s(file->out, !opts.anonymous ? STR("> ") : STR(">"));
         return;
     }
-    tgt_c_print_declaration(ctx, type_func_ret(ctx->env.types, type), STR(""));
+    tgt_c_print_declaration(ctx, file, type_func_ret(ctx->env.types, type), STR(""));
     if (!opts.anonymous) {
-        fprintf_s(ctx->out, STR(" "));
+        fprintf_s(file->out, STR(" "));
     }
     if (opts.local) {
-        fprintf_s(ctx->out, STR("(*"));
+        fprintf_s(file->out, STR("(*"));
     }
 }
 
-static void tgt_c_print_decl_post(const compile_ctx_t *ctx, type_id T, const String idents[], tgt_c_print_decl_opts opts)
+static void tgt_c_print_decl_post(const compile_ctx_t *ctx, const compile_file *file, type_id T, const String idents[], tgt_c_print_decl_opts opts)
 {
     const type_t *type = type_lookup(ctx->env.types, T);
     if (type->kind != TYPE_FUNCTION) {
         return;
     }
     if (opts.local) {
-        fprintf_s(ctx->out, STR(")"));
+        fprintf_s(file->out, STR(")"));
     }
-    fprintf_s(ctx->out, STR("("));
+    fprintf_s(file->out, STR("("));
     const type_t *argp = type;
     size_t i = 0;
     while (true) {
         const type_id arg = argp->u.func.in;
         const String s = idents ? idents[i++] : STR("");
-        tgt_c_print_declaration(ctx, arg, s);
+        tgt_c_print_declaration(ctx, file, arg, s);
         const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
         if (next->kind != TYPE_FUNCTION) {
             break;
         }
         argp = next;
-        fprintf_s(ctx->out, STR(", "));
+        fprintf_s(file->out, STR(", "));
     }
-    fprintf_s(ctx->out, STR(")"));
+    fprintf_s(file->out, STR(")"));
 }

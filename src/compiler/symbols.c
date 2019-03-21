@@ -5,31 +5,20 @@
 #include "types.h"
 #include "env.h"
 
-symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init)
+symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin)
 {
     symbols_t ret = symbols_t_new();
     symbols_t *self = &ret;
-
     sym_push(self);
-    sym_def(self, STR("#types/string"), (sym_t) {
-            .type = types->t_type,
-            .value = {
-                    .type = types->t_type,
-                    .u.type.value = types->t_string,
-                    .flags.intrinsic = true,
-            },
-    });
-    sym_def(self, STR("#types/int"), (sym_t) {
-            .type = types->t_type,
-            .value = {
-                    .type = types->t_type,
-                    .u.type.value = types->t_int,
-                    .flags.intrinsic = true,
-            },
-    });
-
     Slice_loop(&init, i) {
         InitialSymbol it = Slice_data(&init)[i];
+        sym_def(self, it.id, (sym_t) {
+                .type = it.value.type,
+                .value = it.value
+        });
+    }
+    Slice_loop(&initIntrin, i) {
+        InitialSymbol_intrin it = Slice_data(&initIntrin)[i];
         type_id T = it.value->load(types);
         sym_def(self, it.id, (sym_t) {
                 .type = T,

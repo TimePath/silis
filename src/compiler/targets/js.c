@@ -8,19 +8,19 @@
 
 static const bool types = false;
 
-static void tgt_js_file_begin(const compile_ctx_t *ctx);
+static void tgt_js_file_begin(const compile_ctx_t *ctx, const compile_file *file);
 
-static void tgt_js_file_end(const compile_ctx_t *ctx);
+static void tgt_js_file_end(const compile_ctx_t *ctx, const compile_file *file);
 
-static void tgt_js_func_forward(const compile_ctx_t *ctx, type_id T, String name);
+static void tgt_js_func_forward(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name);
 
-static void tgt_js_func_declare(const compile_ctx_t *ctx, type_id T, String name, const String argnames[]);
+static void tgt_js_func_declare(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name, const String argnames[]);
 
-static void tgt_js_var_begin(const compile_ctx_t *ctx, type_id T);
+static void tgt_js_var_begin(const compile_ctx_t *ctx, const compile_file *file, type_id T);
 
-static void tgt_js_var_end(const compile_ctx_t *ctx, type_id T);
+static void tgt_js_var_end(const compile_ctx_t *ctx, const compile_file *file, type_id T);
 
-static void tgt_js_identifier(const compile_ctx_t *ctx, String name);
+static void tgt_js_identifier(const compile_ctx_t *ctx, const compile_file *file, String name);
 
 Target target_js = {
         .file_begin = tgt_js_file_begin,
@@ -37,60 +37,64 @@ typedef struct {
     bool anonymous;
 } tgt_js_print_decl_opts;
 
-static void tgt_js_print_decl_pre(const compile_ctx_t *ctx, type_id T, tgt_js_print_decl_opts opts);
+static void tgt_js_print_decl_pre(const compile_ctx_t *ctx, const compile_file *file, type_id T, tgt_js_print_decl_opts opts);
 
-static void tgt_js_print_decl_post(const compile_ctx_t *ctx, type_id T, const String idents[], tgt_js_print_decl_opts opts);
+static void tgt_js_print_decl_post(const compile_ctx_t *ctx, const compile_file *file, type_id T, const String idents[], tgt_js_print_decl_opts opts);
 
-static void tgt_js_print_function(const compile_ctx_t *ctx, type_id T, String ident, const String idents[]);
+static void tgt_js_print_function(const compile_ctx_t *ctx, const compile_file *file, type_id T, String ident, const String idents[]);
 
-static void tgt_js_file_begin(const compile_ctx_t *ctx)
+static void tgt_js_file_begin(const compile_ctx_t *ctx, const compile_file *file)
 {
     (void) ctx;
+    (void) file;
 }
 
-static void tgt_js_file_end(const compile_ctx_t *ctx)
+static void tgt_js_file_end(const compile_ctx_t *ctx, const compile_file *file)
 {
     (void) ctx;
+    (void) file;
 }
 
-static void tgt_js_func_forward(const compile_ctx_t *ctx, type_id T, String name)
+static void tgt_js_func_forward(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name)
 {
     (void) ctx;
+    (void) file;
     (void) T;
     (void) name;
 }
 
-static void tgt_js_func_declare(const compile_ctx_t *ctx, type_id T, String name, const String argnames[])
+static void tgt_js_func_declare(const compile_ctx_t *ctx, const compile_file *file, type_id T, String name, const String argnames[])
 {
-    tgt_js_print_function(ctx, T, name, argnames);
+    tgt_js_print_function(ctx, file, T, name, argnames);
 }
 
-static void tgt_js_var_begin(const compile_ctx_t *ctx, type_id T)
+static void tgt_js_var_begin(const compile_ctx_t *ctx, const compile_file *file, type_id T)
 {
     tgt_js_print_decl_opts opts = {
             .local = true,
             .anonymous = false,
     };
-    tgt_js_print_decl_pre(ctx, T, opts);
+    tgt_js_print_decl_pre(ctx, file, T, opts);
 }
 
-static void tgt_js_var_end(const compile_ctx_t *ctx, type_id T)
+static void tgt_js_var_end(const compile_ctx_t *ctx, const compile_file *file, type_id T)
 {
     tgt_js_print_decl_opts opts = {
             .local = true,
             .anonymous = false,
     };
     if (!types) {
-        fprintf_s(ctx->out, STR(" /*"));
+        fprintf_s(file->out, STR(" /*"));
     }
-    tgt_js_print_decl_post(ctx, T, NULL, opts);
+    tgt_js_print_decl_post(ctx, file, T, NULL, opts);
     if (!types) {
-        fprintf_s(ctx->out, STR(" */"));
+        fprintf_s(file->out, STR(" */"));
     }
 }
 
-static void tgt_js_identifier(const compile_ctx_t *ctx, String name)
+static void tgt_js_identifier(const compile_ctx_t *ctx, const compile_file *file, String name)
 {
+    (void) ctx;
     const StringEncoding *enc = name.encoding;
     const uint8_t *begin = String_begin(name);
     Slice(uint8_t) it = name.bytes;
@@ -105,89 +109,89 @@ static void tgt_js_identifier(const compile_ctx_t *ctx, String name)
             X('.', "__dot__")
 #undef X
         }
-        fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
-        fprintf_s(ctx->out, replace);
+        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(file->out, replace);
         it = enc->next(it);
         begin = it._begin;
     }
-    fprintf_s(ctx->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
 }
 
 // implementation
 
-static void tgt_js_print_function(const compile_ctx_t *ctx, type_id T, String ident, const String idents[])
+static void tgt_js_print_function(const compile_ctx_t *ctx, const compile_file *file, type_id T, String ident, const String idents[])
 {
     tgt_js_print_decl_opts opts = {
             .local = false,
             .anonymous = !String_sizeBytes(ident),
     };
-    tgt_js_print_decl_pre(ctx, T, opts);
+    tgt_js_print_decl_pre(ctx, file, T, opts);
     if (!opts.anonymous) {
-        tgt_js_identifier(ctx, ident);
+        tgt_js_identifier(ctx, file, ident);
     }
-    tgt_js_print_decl_post(ctx, T, idents, opts);
+    tgt_js_print_decl_post(ctx, file, T, idents, opts);
 }
 
-static void tgt_js_print_type(const compile_ctx_t *ctx, type_id T)
+static void tgt_js_print_type(const compile_ctx_t *ctx, const compile_file *file, type_id T)
 {
 #define CASE(t) if (T.value == ctx->env.types->t.value)
     CASE(t_unit) {
-        fprintf_s(ctx->out, STR("void"));
+        fprintf_s(file->out, STR("void"));
         return;
     }
     CASE(t_int) {
-        fprintf_s(ctx->out, STR("number"));
+        fprintf_s(file->out, STR("number"));
         return;
     }
     CASE(t_string) {
-        fprintf_s(ctx->out, STR("string"));
+        fprintf_s(file->out, STR("string"));
         return;
     }
 #undef CASE
     const type_t *type = type_lookup(ctx->env.types, T);
     if (type->kind == TYPE_FUNCTION) {
-        fprintf_s(ctx->out, STR("("));
+        fprintf_s(file->out, STR("("));
         type_id argT;
         const type_t *argType = type;
         while (true) {
-            tgt_js_print_type(ctx, argType->u.func.in);
+            tgt_js_print_type(ctx, file, argType->u.func.in);
             argT = argType->u.func.out;
             argType = type_lookup(ctx->env.types, argT);
             if (argType->kind != TYPE_FUNCTION) {
                 break;
             }
-            fprintf_s(ctx->out, STR(", "));
+            fprintf_s(file->out, STR(", "));
         }
-        fprintf_s(ctx->out, STR(") => "));
-        tgt_js_print_type(ctx, argT);
+        fprintf_s(file->out, STR(") => "));
+        tgt_js_print_type(ctx, file, argT);
         return;
     }
-    fprintf_s(ctx->out, STR("type<"));
-    fprintf_zu(ctx->out, T.value);
-    fprintf_s(ctx->out, STR(">"));
+    fprintf_s(file->out, STR("type<"));
+    fprintf_zu(file->out, T.value);
+    fprintf_s(file->out, STR(">"));
 }
 
-static void tgt_js_print_decl_pre(const compile_ctx_t *ctx, type_id T, tgt_js_print_decl_opts opts)
+static void tgt_js_print_decl_pre(const compile_ctx_t *ctx, const compile_file *file, type_id T, tgt_js_print_decl_opts opts)
 {
     (void) opts;
     const type_t *type = type_lookup(ctx->env.types, T);
     if (type->kind != TYPE_FUNCTION || opts.local) {
-        fprintf_s(ctx->out, STR("let "));
+        fprintf_s(file->out, STR("let "));
         return;
     }
-    fprintf_s(ctx->out, STR("function "));
+    fprintf_s(file->out, STR("function "));
 }
 
-static void tgt_js_print_decl_post(const compile_ctx_t *ctx, type_id T, const String idents[], tgt_js_print_decl_opts opts)
+static void tgt_js_print_decl_post(const compile_ctx_t *ctx, const compile_file *file, type_id T, const String idents[], tgt_js_print_decl_opts opts)
 {
     (void) opts;
     const type_t *type = type_lookup(ctx->env.types, T);
     if (type->kind != TYPE_FUNCTION || opts.local) {
-        fprintf_s(ctx->out, STR(": "));
-        tgt_js_print_type(ctx, T);
+        fprintf_s(file->out, STR(": "));
+        tgt_js_print_type(ctx, file, T);
         return;
     }
-    fprintf_s(ctx->out, STR("("));
+    fprintf_s(file->out, STR("("));
     const type_t *argp = type;
     size_t i = 0;
     while (true) {
@@ -196,29 +200,29 @@ static void tgt_js_print_decl_post(const compile_ctx_t *ctx, type_id T, const St
             break;
         }
         const String s = idents ? idents[i++] : STR("");
-        tgt_js_identifier(ctx, s);
+        tgt_js_identifier(ctx, file, s);
         if (!types) {
-            fprintf_s(ctx->out, STR(" /*"));
+            fprintf_s(file->out, STR(" /*"));
         }
-        fprintf_s(ctx->out, STR(": "));
-        tgt_js_print_type(ctx, arg);
+        fprintf_s(file->out, STR(": "));
+        tgt_js_print_type(ctx, file, arg);
         if (!types) {
-            fprintf_s(ctx->out, STR(" */"));
+            fprintf_s(file->out, STR(" */"));
         }
         const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
         if (next->kind != TYPE_FUNCTION) {
             break;
         }
         argp = next;
-        fprintf_s(ctx->out, STR(", "));
+        fprintf_s(file->out, STR(", "));
     }
-    fprintf_s(ctx->out, STR(")"));
+    fprintf_s(file->out, STR(")"));
     if (!types) {
-        fprintf_s(ctx->out, STR(" /*"));
+        fprintf_s(file->out, STR(" /*"));
     }
-    fprintf_s(ctx->out, STR(": "));
-    tgt_js_print_type(ctx, type_func_ret(ctx->env.types, type));
+    fprintf_s(file->out, STR(": "));
+    tgt_js_print_type(ctx, file, type_func_ret(ctx->env.types, type));
     if (!types) {
-        fprintf_s(ctx->out, STR(" */"));
+        fprintf_s(file->out, STR(" */"));
     }
 }

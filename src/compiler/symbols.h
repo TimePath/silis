@@ -26,16 +26,22 @@ typedef struct symbols_s {
 
 typedef struct {
     String id;
+    value_t value;
+} InitialSymbol;
+Slice_instantiate(InitialSymbol);
+
+typedef struct {
+    String id;
     Intrinsic *value;
     struct {
         bool abstract : 1;
         uint8_t _padding : 7;
     } flags;
     uint8_t _padding[7];
-} InitialSymbol;
-Slice_instantiate(InitialSymbol);
+} InitialSymbol_intrin;
+Slice_instantiate(InitialSymbol_intrin);
 
-symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init);
+symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin);
 
 void sym_push(symbols_t *symbols);
 

@@ -74,7 +74,21 @@ size_t main(Vector(String)
 
     types_t _types = types_new();
     types_t *types = &_types;
-    symbols_t _symbols = symbols_new(types, Slice_of(InitialSymbol, (InitialSymbol[16]) {
+
+    symbols_t _symbols = symbols_new(types,
+    Slice_of(InitialSymbol, (InitialSymbol[2]) {
+            {.id = STR("#types/string"), .value = (value_t) {
+                    .type = types->t_type,
+                    .u.type.value = types->t_string,
+                    .flags.intrinsic = true,
+            }},
+            {.id = STR("#types/int"), .value = (value_t) {
+                    .type = types->t_type,
+                    .u.type.value = types->t_int,
+                    .flags.intrinsic = true,
+            }},
+    }),
+    Slice_of(InitialSymbol_intrin, (InitialSymbol_intrin[16]) {
             {.id = STR("#puti"), .value = &intrin_debug_puti},
             {.id = STR("#puts"), .value = &intrin_debug_puts},
             {.id = STR("#types/func"), .value = &intrin_types_func},
@@ -121,11 +135,24 @@ size_t main(Vector(String)
         }
         Buffer outBuf = Vector_new();
         File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
-        do_compile((compile_input) {
-                .out = f,
+        compile_output ret = do_compile((compile_input) {
                 .target = &target_c,
                 .env = env,
         });
+        Slice_loop(&Vector_toSlice(compile_file, &ret.files), i) {
+            compile_file *it = &Vector_data(&ret.files)[i];
+            const compilation_file_t *file = compilation_file(compilation, it->file);
+            fprintf_s(f, STR("// file "));
+            Buffer buf = Vector_new();
+            fprintf_s(f, fs_path_to_native(file->path, &buf));
+            Vector_delete(&buf);
+            fprintf_s(f, STR("\n"));
+            fprintf_raw(f, Buffer_toSlice(it->content));
+            fs_close(it->out);
+            Vector_delete(it->content);
+            free(it->content);
+        }
+        Vector_delete(&ret.files);
         if (flags.buffer) {
             fs_close(f);
             fprintf_raw(outputFile, Buffer_toSlice(&outBuf));
