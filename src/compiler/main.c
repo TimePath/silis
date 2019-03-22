@@ -107,7 +107,7 @@ size_t main(Vector(String)
             {.id = STR("#while"), .value = &intrin_while},
     }));
     symbols_t *symbols = &_symbols;
-    Buffer prelude = Vector_new();
+    Buffer prelude = Buffer_new();
     File *preludeFile = Buffer_asFile(&prelude);
     Env env = (Env) {
             .compilation = compilation,
@@ -133,7 +133,7 @@ size_t main(Vector(String)
         if (flags.print_compile) {
             fprintf_s(out, STR("COMPILE:\n-------\n"));
         }
-        Buffer outBuf = Vector_new();
+        Buffer outBuf = Buffer_new();
         File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
         compile_output ret = do_compile((compile_input) {
                 .target = &target_c,
@@ -142,11 +142,14 @@ size_t main(Vector(String)
         Slice_loop(&Vector_toSlice(compile_file, &ret.files), i) {
             compile_file *it = &Vector_data(&ret.files)[i];
             const compilation_file_t *file = compilation_file(compilation, it->file);
-            fprintf_s(f, STR("// file "));
-            Buffer buf = Vector_new();
+            if (i) {
+                fprintf_s(f, STR("\n"));
+            }
+            fprintf_s(f, STR("// file://"));
+            Buffer buf = Buffer_new();
             fprintf_s(f, fs_path_to_native(file->path, &buf));
             Vector_delete(&buf);
-            fprintf_s(f, STR("\n"));
+            fprintf_s(f, STR("\n\n"));
             fprintf_raw(f, Buffer_toSlice(it->content));
             fs_close(it->out);
             Vector_delete(it->content);

@@ -13,6 +13,7 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSy
     Slice_loop(&init, i) {
         InitialSymbol it = Slice_data(&init)[i];
         sym_def(self, it.id, (sym_t) {
+                .file = {0},
                 .type = it.value.type,
                 .value = it.value
         });
@@ -21,6 +22,7 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSy
         InitialSymbol_intrin it = Slice_data(&initIntrin)[i];
         type_id T = it.value->load(types);
         sym_def(self, it.id, (sym_t) {
+                .file = {0},
                 .type = T,
                 .value = {
                         .type = T,

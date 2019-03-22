@@ -4,6 +4,7 @@
 #include "value.h"
 
 typedef struct {
+    compilation_file_ref file;
     type_id type; // could be removed if values could be tagged as undefined
     value_t value;
     struct {

@@ -25,7 +25,7 @@ Slice_instantiate(uint8_t);
 #define Slice_loop(self, i) \
 DIAG_PUSH \
 DIAG_IGNORE_REDUNDANT_PARENS \
-for (size_t __n = Slice_size(self), (i) = 0; (i) < __n; ++(i)) \
+for (size_t CAT2(__n_, __LINE__) = Slice_size(self), (i) = 0; (i) < CAT2(__n_, __LINE__); ++(i)) \
 DIAG_POP \
 /**/
 

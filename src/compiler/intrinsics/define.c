@@ -18,6 +18,7 @@ INTRINSIC_IMPL(define, ((type_id[]) {
 
     const value_t v = eval_node(env, val);
     sym_def(env.symbols, name->u.atom.value, (sym_t) {
+            .file = self.file,
             .type = v.type,
             .value = v,
     });

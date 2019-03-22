@@ -13,7 +13,8 @@
 
 #define CAST(T, U, it) ((union { U from; T to; }) { .from = (it) }.to)
 
-#define CAT2(_0, _1) _0 ## _1
+#define CAT2(_0, _1) _CAT2(_0, _1)
+#define _CAT2(_0, _1) _0 ## _1
 #define CAT3(_0, _1, _2) _0 ## _1 ## _2
 
 #define STRINGIFY(self) #self

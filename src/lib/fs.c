@@ -180,7 +180,7 @@ fs_dirtoken fs_pushd(FilePath path)
     size_t size = 1024;
     native_char_t *cwd = getcwd(realloc(NULL, size), size);
     assert(cwd && "cwd is large enough");
-    Buffer buf = Vector_new();
+    Buffer buf = Buffer_new();
     native_char_t *s = String_cstr(fs_path_to_native(path, &buf));
     Vector_delete(&buf);
     chdir(s);
@@ -267,7 +267,7 @@ File *fs_stdout(void)
 
 static File *fs_open_native(FilePath path, String mode)
 {
-    Buffer buf = Vector_new();
+    Buffer buf = Buffer_new();
     native_char_t *p = String_cstr(fs_path_to_native(path, &buf));
     Vector_delete(&buf);
     native_char_t *m = String_cstr(mode);

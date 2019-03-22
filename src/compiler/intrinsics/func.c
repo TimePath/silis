@@ -99,6 +99,7 @@ static void func_args_load(Env env, compilation_node_ref arglist, const Slice(va
 
             const value_t *v = &Slice_data(&argv)[i];
             sym_def(env.symbols, idNode->u.atom.value, (sym_t) {
+                    .file = {0},
                     .type = v->type,
                     .value = *v,
                     .flags.eval = true,

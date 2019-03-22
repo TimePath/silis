@@ -16,6 +16,7 @@
 #include <compiler/targets/_.h>
 #include <compiler/env.h>
 #include <compiler/type.h>
+#include <compiler/compilation.h>
 
 #define LINE(...) MACRO_BEGIN \
     state.depth = state.depth __VA_ARGS__; \
@@ -58,18 +59,8 @@ static void visit_node(const compile_ctx_t *ctx, const compile_file *file, visit
 
 compile_output do_compile(compile_input in)
 {
-    compile_output ret = {
-            .files = Vector_new(),
-    };
-    Buffer *content = realloc(NULL, sizeof(*content));
-    *content = (Buffer) Vector_new();
-    compile_file x = (compile_file) {
-            .file = {1},
-            .content = content,
-            .out = Buffer_asFile(content),
-    };
-    Vector_push(&ret.files, x);
-    const compile_file *file = &Vector_data(&ret.files)[0];
+    Vector(compile_file) files = Vector_new();
+
     compile_ctx_t _ctx = {
             .target = in.target,
             .env = in.env,
@@ -77,48 +68,64 @@ compile_output do_compile(compile_input in)
     compile_ctx_t *ctx = &_ctx;
 
     sym_t entry;
-    bool hasMain = sym_lookup(ctx->env.symbols, STR("main"),
-    &entry);
+    bool hasMain = sym_lookup(ctx->env.symbols, STR("main"), &entry);
     (void) entry;
     (void) hasMain;
     assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION && "main is a function");
 
-    visit_state_t state = (visit_state_t) {.depth = 0};
-
-    ctx->target->file_begin(ctx, file);
-
     fs_flush(ctx->env.prelude);
     String prelude = String_fromSlice(Buffer_toSlice(ctx->env.preludeBuf), ENCODING_DEFAULT);
-    fprintf_s(file->out, prelude);
+
+    Slice_loop(&Vector_toSlice(compilation_file_ptr_t, &in.env.compilation->files), i) {
+        Buffer *content = realloc(NULL, sizeof(*content));
+        *content = Buffer_new();
+        compile_file x = (compile_file) {
+                .file = {i + 1},
+                .content = content,
+                .out = Buffer_asFile(content),
+        };
+        Vector_push(&files, x);
+    }
+
+    Slice_loop(&Vector_toSlice(compile_file, &files), i) {
+        const compile_file *file = &Vector_data(&files)[i];
+        ctx->target->file_begin(ctx, file);
+        fprintf_s(file->out, prelude);
+    }
+
+    visit_state_t state = (visit_state_t) {.depth = 0};
 
     const sym_scope_t *globals = &Vector_data(&ctx->env.symbols->scopes)[0];
+    Slice_loop(&Vector_toSlice(compile_file, &files), j) {
+        Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
+            const compile_file *file = &Vector_data(&files)[j];
 
-    Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
-        const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
-        const TrieNode(sym_t) *n = &Vector_data(&globals->t.nodes)[e->value];
-        const sym_t _it = n->value;
-        const sym_t *it = &_it;
-        if (it->value.flags.intrinsic) {
-            continue;
-        }
-        const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const type_id type = it->type;
-        if (it->value.flags.native) {
-            fprintf_s(file->out, STR("extern "));
-        }
-        if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
-            ctx->target->func_forward(ctx, file, type, ident);
-        } else {
-            ctx->target->var_begin(ctx, file, type);
-            fprintf_s(file->out, ident);
-            ctx->target->var_end(ctx, file, type);
-            if (!it->value.flags.native) {
-                fprintf_s(file->out, STR(" = "));
-                print_value(ctx, file, &it->value);
+            const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
+            const TrieNode(sym_t) *n = &Vector_data(&globals->t.nodes)[e->value];
+            const sym_t _it = n->value;
+            const sym_t *it = &_it;
+            if (it->value.flags.intrinsic) {
+                continue;
             }
-            SEMI();
+            const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
+            const type_id type = it->type;
+            if (it->value.flags.native) {
+                fprintf_s(file->out, STR("extern "));
+            }
+            if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
+                ctx->target->func_forward(ctx, file, type, ident);
+            } else {
+                ctx->target->var_begin(ctx, file, type);
+                fprintf_s(file->out, ident);
+                ctx->target->var_end(ctx, file, type);
+                if (!it->value.flags.native) {
+                    fprintf_s(file->out, STR(" = "));
+                    print_value(ctx, file, &it->value);
+                }
+                SEMI();
+            }
+            LINE();
         }
-        LINE();
     }
     Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
         const TrieEntry *e = &Vector_data(&globals->t.entries)[i];
@@ -133,6 +140,8 @@ compile_output do_compile(compile_input in)
         if (type_lookup(ctx->env.types, type)->kind != TYPE_FUNCTION) {
             continue;
         }
+        assert(it->file.id && "global is user-defined");
+        const compile_file *file = &Vector_data(&files)[it->file.id - 1];
         LINE();
         nodelist argv = nodelist_iterator(ctx->env.compilation, it->value.u.func.arglist);
         size_t argc = argv._n;
@@ -150,8 +159,14 @@ compile_output do_compile(compile_input in)
         LINE();
     }
 
-    ctx->target->file_end(ctx, file);
-    return ret;
+    Slice_loop(&Vector_toSlice(compile_file, &files), i) {
+        const compile_file *file = &Vector_data(&files)[i];
+        ctx->target->file_end(ctx, file);
+    }
+
+    return (compile_output) {
+            .files = files,
+    };
 }
 
 // print
