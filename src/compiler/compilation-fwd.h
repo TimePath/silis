@@ -10,6 +10,8 @@ typedef struct compilation_file_s compilation_file_t;
 
 typedef compilation_file_t *compilation_file_ptr_t;
 
+#define compilation_file_ptr_t_delete(self) compilation_file_t_delete(*self)
+
 Slice_instantiate(compilation_file_ptr_t);
 Vector_instantiate(compilation_file_ptr_t);
 
@@ -26,6 +28,8 @@ typedef struct {
     compilation_file_ref file;
     struct { size_t id; } node;
 } compilation_node_ref;
+
+#define compilation_node_ref_delete(self) ((void) (self))
 
 Slice_instantiate(compilation_node_ref);
 Vector_instantiate(compilation_node_ref);

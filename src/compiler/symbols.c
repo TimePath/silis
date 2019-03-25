@@ -5,6 +5,12 @@
 #include "types.h"
 #include "env.h"
 
+void sym_scope_t_delete(sym_scope_t *self)
+{
+    _Vector_delete(&self->t.nodes);
+    _Vector_delete(&self->t.entries);
+}
+
 symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin)
 {
     symbols_t ret = symbols_t_new();
@@ -42,12 +48,6 @@ static sym_scope_t sym_trie_new(size_t parent)
     return self;
 }
 
-static void sym_trie_delete(sym_scope_t *self)
-{
-    Vector_delete(&self->t.nodes);
-    Vector_delete(&self->t.entries);
-}
-
 static bool sym_trie_get(sym_scope_t *self, String ident, sym_t *out)
 {
     return Trie_get((void *) &self->t, ident.bytes, out);
@@ -68,7 +68,7 @@ void sym_push(symbols_t *symbols)
 
 void sym_pop(symbols_t *symbols)
 {
-    sym_trie_delete(&Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1]);
+    sym_scope_t_delete(&Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1]);
     Vector_pop(&symbols->scopes);
 }
 

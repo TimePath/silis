@@ -148,14 +148,11 @@ size_t main(Vector(String)
             fprintf_s(f, STR("// file://"));
             Buffer buf = Buffer_new();
             fprintf_s(f, fs_path_to_native(file->path, &buf));
-            Vector_delete(&buf);
+            Buffer_delete(&buf);
             fprintf_s(f, STR("\n\n"));
             fprintf_raw(f, Buffer_toSlice(it->content));
-            fs_close(it->out);
-            Vector_delete(it->content);
-            free(it->content);
         }
-        Vector_delete(&ret.files);
+        Vector_delete(compile_file, &ret.files);
         if (flags.buffer) {
             fs_close(f);
             fprintf_raw(outputFile, Buffer_toSlice(&outBuf));
@@ -166,23 +163,10 @@ size_t main(Vector(String)
     }
 
     fprintf_s(out, STR("\n"));
-    Slice_loop(&Vector_toSlice(compilation_file_ptr_t, &env.compilation->files), i) {
-        compilation_file_ptr_t it = Vector_data(&env.compilation->files)[i];
-        Vector_delete(&it->path.parts);
-        free(it->content);
-        Vector_delete(&it->tokens);
-        Vector_delete(&it->nodes);
-        free(it);
-    }
-    Vector_delete(&env.compilation->files);
-    Vector_delete(&env.types->all);
-    Slice_loop(&Vector_toSlice(sym_scope_t, &env.symbols->scopes), i) {
-        Trie(sym_t) it = Vector_data(&env.symbols->scopes)[i].t;
-        Vector_delete(&it.nodes);
-        Vector_delete(&it.entries);
-    }
-    Vector_delete(&env.symbols->scopes);
+    Vector_delete(compilation_file_ptr_t, &env.compilation->files);
+    Vector_delete(type_t, &env.types->all);
+    Vector_delete(sym_scope_t, &env.symbols->scopes);
     fs_close(preludeFile);
-    Vector_delete(&prelude);
+    Buffer_delete(&prelude);
     return EXIT_SUCCESS;
 }

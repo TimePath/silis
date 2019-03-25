@@ -44,4 +44,6 @@ struct token_s {
     } u;
 };
 
+#define token_t_delete(self) ((void) (self))
+
 void token_print(File *f, Slice(token_t) it);

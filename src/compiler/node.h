@@ -67,6 +67,8 @@ struct node_s {
     } u;
 };
 
+#define node_t_delete(self) ((void) (self))
+
 typedef struct {
     const compilation_t *compilation;
     compilation_node_ref head;

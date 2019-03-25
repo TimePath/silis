@@ -5,6 +5,11 @@
 
 // todo: create multiple filesystem roots
 
+void FilePath_delete(FilePath *self)
+{
+    Vector_delete(String, &self->parts);
+}
+
 FilePath fs_dirname(FilePath self)
 {
     Vector(String) parts = Vector_new();
@@ -182,7 +187,7 @@ fs_dirtoken fs_pushd(FilePath path)
     assert(cwd && "cwd is large enough");
     Buffer buf = Buffer_new();
     native_char_t *s = String_cstr(fs_path_to_native(path, &buf));
-    Vector_delete(&buf);
+    Buffer_delete(&buf);
     chdir(s);
     free(s);
     return (fs_dirtoken) {cwd};
@@ -269,7 +274,7 @@ static File *fs_open_native(FilePath path, String mode)
 {
     Buffer buf = Buffer_new();
     native_char_t *p = String_cstr(fs_path_to_native(path, &buf));
-    Vector_delete(&buf);
+    Buffer_delete(&buf);
     native_char_t *m = String_cstr(mode);
     FILE *file = fopen(p, m);
     assert(file && "File exists");

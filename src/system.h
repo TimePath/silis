@@ -177,6 +177,6 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) \
         Vector_push(&args, s); \
     } \
     size_t ret = impl(args); \
-    Vector_delete(&args); \
+    Vector_delete(String, &args); \
     return (native_int_t) ret; \
 }

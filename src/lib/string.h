@@ -39,6 +39,8 @@ typedef struct {
     Slice(uint8_t) bytes;
 } String;
 
+#define String_delete(self) ((void) (self))
+
 Slice_instantiate(String);
 Vector_instantiate(String);
 

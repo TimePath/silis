@@ -29,6 +29,8 @@ struct compilation_file_s {
     compilation_node_ref entry;
 };
 
+void compilation_file_t_delete(compilation_file_t *self);
+
 compilation_file_ref compilation_include(compilation_t *self, FilePath path);
 
 void compilation_begin(compilation_t *self, compilation_file_ref file, Env env);

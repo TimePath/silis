@@ -31,4 +31,13 @@ MACRO_END
 
 void Vector_pop(void *self);
 
-void Vector_delete(void *self);
+#define Vector_delete(T, self) \
+MACRO_BEGIN \
+Slice_loop(&Vector_toSlice(T, self), __i) { \
+    T *__it = &Vector_data(self)[__i]; \
+    T##_delete(__it); \
+} \
+_Vector_delete(self); \
+MACRO_END
+
+void _Vector_delete(void *self);

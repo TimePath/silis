@@ -62,6 +62,7 @@ set(SOURCE_FILES
         src/compiler/phases/03-eval/eval.c
         src/compiler/phases/04-compile/compile.c
 
+        src/compiler/targets/_.c
         src/compiler/targets/c.c
         src/compiler/targets/js.c
 

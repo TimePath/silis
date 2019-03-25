@@ -48,4 +48,7 @@ typedef struct {
     } u;
 } type_t;
 
+#define type_t_delete(self) ((void) (self))
+
+Slice_instantiate(type_t);
 Vector_instantiate(type_t);

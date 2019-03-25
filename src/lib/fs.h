@@ -30,6 +30,8 @@ typedef struct {
     uint8_t _padding[7];
 } FilePath;
 
+void FilePath_delete(FilePath *self);
+
 FilePath fs_dirname(FilePath self);
 
 FilePath fs_path_from(String path);

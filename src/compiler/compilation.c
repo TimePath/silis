@@ -8,6 +8,15 @@
 #include <compiler/phases/02-flatten/flatten.h>
 #include <compiler/phases/03-eval/eval.h>
 
+void compilation_file_t_delete(compilation_file_t *self)
+{
+    FilePath_delete(&self->path);
+    free(self->content);
+    Vector_delete(token_t, &self->tokens);
+    Vector_delete(node_t, &self->nodes);
+    free(self);
+}
+
 const compilation_file_t *compilation_file(const compilation_t *self, compilation_file_ref ref)
 {
     assert(ref.id && "file exists");
@@ -81,7 +90,7 @@ void compilation_begin(compilation_t *self, compilation_file_ref file, Env env)
     const compilation_file_t *f = compilation_file(self, file);
     FilePath dir = fs_dirname(f->path);
     fs_dirtoken state = fs_pushd(dir);
-    Vector_delete(&dir.parts);
+    FilePath_delete(&dir);
 
     if (self->flags.print_eval) {
         fprintf_s(self->debug, STR("EVAL:\n----\n"));

@@ -23,7 +23,7 @@ void Vector_pop(void *_self)
     }
 }
 
-void Vector_delete(void *_self)
+void _Vector_delete(void *_self)
 {
     Vector(void) *self = (Vector(void) *) _self;
     Vector_size(self) = 0;

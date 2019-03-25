@@ -377,7 +377,7 @@ static void visit_node_list(const compile_ctx_t *ctx, const compile_file *file, 
         }
         visit_node_expr(ctx, file, state, ret, first, children);
     } while (false);
-    Vector_delete(&_children);
+    Vector_delete(compilation_node_ref, &_children);
 }
 
 static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret,
