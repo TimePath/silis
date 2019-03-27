@@ -27,9 +27,7 @@ flatten_output do_flatten(flatten_input in)
     }
     const node_t *it = &Vector_data(&ctx.nodes)[Vector_size(&ctx.nodes) - 1];
     assert(it->kind == NODE_LIST_END);
-    while ((--it)->kind != NODE_LIST_BEGIN) {}
-    size_t entry = (size_t) (it - Vector_data(&ctx.nodes)) + 1;
-    return (flatten_output) {.nodes = ctx.nodes, .entry = entry};
+    return (flatten_output) {.nodes = ctx.nodes, .entry = it->u.list_end.begin};
 }
 
 static node_t convert(const token_t *it);
@@ -49,8 +47,8 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
         while (it->kind != TOKEN_LIST_END) {
             it += do_flatten_rec(ctx, it);
         }
-        ++it; // skip end
     }
+    const token_t *end = it;
     // just parsed a full expression
     const size_t argc = Vector_size(&ctx->stack) - argv_begin;
     size_t autoid = Vector_size(&ctx->nodes) + 1;
@@ -69,7 +67,11 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
         for (size_t i = 0; i < argc; ++i) {
             Vector_pop(&ctx->stack);
         }
-        const node_t footer = (node_t) {.kind = NODE_LIST_END};
+        const node_t footer = (node_t) {
+            .kind = NODE_LIST_END,
+            .token = end,
+            .u.list_end.begin = autoid,
+        };
         Vector_push(&ctx->nodes, footer);
     }
     const node_t ret = (node_t) {
@@ -77,7 +79,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
             .u.ref.value = (compilation_node_ref) {.file = ctx->file, .node = {.id = autoid}},
     };
     Vector_push(&ctx->stack, ret);
-    return (size_t) (it - begin);
+    return 1 + (size_t) (end - begin);
 }
 
 static node_t convert(const token_t *it)

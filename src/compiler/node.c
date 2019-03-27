@@ -149,6 +149,11 @@ static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t 
                 fprintf_zu(ctx->out, id);
                 fprintf_s(ctx->out, STR(","));
             }
+            {
+                fprintf_s(ctx->out, STR(" .begin = "));
+                fprintf_zu(ctx->out, it->u.list_end.begin);
+                fprintf_s(ctx->out, STR(","));
+            }
         }
     } else {
         _node_print_indent(ctx, &state);

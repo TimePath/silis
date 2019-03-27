@@ -46,7 +46,7 @@ struct node_s {
         } list;
         /// NODE_LIST_END
         struct {
-            uint8_t _padding;
+            size_t begin;
         } list_end;
         /// NODE_REF
         struct {
