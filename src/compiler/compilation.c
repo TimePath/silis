@@ -78,7 +78,7 @@ compilation_file_ref compilation_include(compilation_t *self, FilePath path)
             .content = read,
             .tokens = parse.tokens,
             .nodes = flatten.nodes,
-            .entry = {.file = ret, .node = {.id = flatten.entry + 1}},
+            .entry = {.file = ret, .node = {.id = flatten.entry}},
     };
     Vector_push(&self->files, file);
 

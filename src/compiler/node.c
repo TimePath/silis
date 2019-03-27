@@ -58,7 +58,7 @@ typedef struct {
     uint8_t _padding[6];
 } node_print_state_t;
 
-static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it);
+static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it, size_t id);
 
 void node_print(File *f, Slice(node_t) nodes)
 {
@@ -72,9 +72,8 @@ void node_print(File *f, Slice(node_t) nodes)
             .needTab = false,
     };
     Slice_loop(&nodes, i) {
-        if (i < 1) { continue; }
         const node_t *it = &Slice_data(&nodes)[i];
-        state = _node_print(&ctx, state, it);
+        state = _node_print(&ctx, state, it, i + 1);
         if (it->kind == NODE_LIST_END) {
             fprintf_s(f, STR("\n"));
             state = (node_print_state_t) {
@@ -98,9 +97,8 @@ static void _node_print_indent(node_print_ctx_t *ctx, node_print_state_t *state)
     }
 }
 
-static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it)
+static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it, size_t id)
 {
-    size_t id = (size_t) (it - ctx->nodes._begin);
     if (it->kind == NODE_INVALID) {
         assert(false);
         return state;

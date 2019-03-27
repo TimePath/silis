@@ -18,8 +18,6 @@ flatten_output do_flatten(flatten_input in)
             .nodes = Vector_new(),
             .stack = Vector_new(),
     };
-    const node_t dummy = (node_t) {.kind = NODE_INVALID};
-    Vector_push(&ctx.nodes, dummy); // make node ids start at 1
     Slice_loop(&Vector_toSlice(token_t, &ctx.tokens), i) {
         const token_t *it = &Vector_data(&ctx.tokens)[i];
         const size_t skip = do_flatten_rec(&ctx, it);
@@ -30,7 +28,8 @@ flatten_output do_flatten(flatten_input in)
     const node_t *it = &Vector_data(&ctx.nodes)[Vector_size(&ctx.nodes) - 1];
     assert(it->kind == NODE_LIST_END);
     while ((--it)->kind != NODE_LIST_BEGIN) {}
-    return (flatten_output) {.nodes = ctx.nodes, .entry = (size_t) (it - Vector_data(&ctx.nodes))};
+    size_t entry = (size_t) (it - Vector_data(&ctx.nodes)) + 1;
+    return (flatten_output) {.nodes = ctx.nodes, .entry = entry};
 }
 
 static node_t convert(const token_t *it);

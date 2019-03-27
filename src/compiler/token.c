@@ -15,7 +15,7 @@ typedef struct {
     uint8_t _padding[6];
 } token_print_state_t;
 
-static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it);
+static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it, size_t id);
 
 void token_print(File *f, Slice(token_t) tokens)
 {
@@ -30,7 +30,7 @@ void token_print(File *f, Slice(token_t) tokens)
     };
     Slice_loop(&tokens, i) {
         const token_t *it = &Slice_data(&tokens)[i];
-        state = _token_print(&ctx, state, it);
+        state = _token_print(&ctx, state, it, i + 1);
     }
 }
 
@@ -46,9 +46,8 @@ static void _token_print_indent(token_print_ctx_t *ctx, token_print_state_t *sta
     }
 }
 
-static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it)
+static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it, size_t id)
 {
-    size_t id = (size_t) (it - ctx->tokens._begin);
     if (it->kind == TOKEN_INVALID) {
         assert(false);
         return state;
