@@ -3,5 +3,5 @@
 ])
 
 (#define print (#func [(#types/string s) ()] {
-    (#untyped "puts(s);")
+    (#untyped "puts(s)")
 }))

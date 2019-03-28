@@ -549,7 +549,9 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
     if (intrin == &intrin_untyped) {
         const node_t *code = compilation_node(ctx->env.compilation, Slice_data(&children)[1]);
         assert(code->kind == NODE_STRING);
+        print_return_assign(ctx, file, state, ret);
         fprintf_s(file->out, code->u.string.value);
+        SEMI();
         return true;
     }
     if (intrin == &intrin_while) {
