@@ -133,8 +133,6 @@ enum {
     EXIT_SUCCESS = 0,
 };
 
-extern unsigned long strtoul(const char *nptr, char **endptr, int base);
-
 extern void free(void *ptr);
 
 extern void *realloc(void *ptr, size_t size);

@@ -226,9 +226,14 @@ static size_t parse_atom(parse_ctx_t *ctx, String prog)
             enc
     );
     if (number) {
+        size_t val = 0;
+        for (Slice(uint8_t) d = atom.bytes; Slice_begin(&d) != Slice_end(&d); d = enc->next(d)) {
+            const size_t c = enc->get(d);
+            val = 10 * val + (c - '0');
+        }
         ctx_list_add(ctx, (token_t) {
                 .kind = TOKEN_INTEGRAL,
-                .u.integral.value = strtoul(String_begin(atom), NULL, 10),
+                .u.integral.value = val,
         });
     } else {
         ctx_list_add(ctx, (token_t) {
