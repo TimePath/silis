@@ -87,7 +87,7 @@ static String fs_path_to_native_unix(FilePath path, Buffer *buf)
 {
     String delim = STR("/");
     File *f = Buffer_asFile(buf);
-    Slice_loop(&Vector_toSlice(String, &path.parts), i) {
+    Vector_loop(String, &path.parts, i) {
         String it = *Vector_at(&path.parts, i);
         if (i == 0 ? path.absolute : true) {
             fprintf_s(f, delim);
@@ -106,7 +106,7 @@ static String fs_path_to_native_win(FilePath path, Buffer *buf)
     if (path.absolute) {
         fprintf_s(f, STR("\\\\?\\"));
     }
-    Slice_loop(&Vector_toSlice(String, &path.parts), i) {
+    Vector_loop(String, &path.parts, i) {
         String it = *Vector_at(&path.parts, i);
         if (i != 0) {
             fprintf_s(f, delim);

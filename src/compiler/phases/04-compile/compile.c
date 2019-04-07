@@ -76,7 +76,7 @@ compile_output do_compile(compile_input in)
     fs_flush(ctx->env.prelude);
     String prelude = String_fromSlice(Buffer_toSlice(ctx->env.preludeBuf), ENCODING_DEFAULT);
 
-    Slice_loop(&Vector_toSlice(compilation_file_ptr_t, &in.env.compilation->files), i) {
+    Vector_loop(compilation_file_ptr_t, &in.env.compilation->files, i) {
         Buffer *content = realloc(NULL, sizeof(*content));
         *content = Buffer_new();
         compile_file x = (compile_file) {
@@ -87,7 +87,7 @@ compile_output do_compile(compile_input in)
         Vector_push(&files, x);
     }
 
-    Slice_loop(&Vector_toSlice(compile_file, &files), i) {
+    Vector_loop(compile_file, &files, i) {
         const compile_file *file = Vector_at(&files, i);
         ctx->target->file_begin(ctx, file);
         fprintf_s(file->out, prelude);
@@ -96,8 +96,8 @@ compile_output do_compile(compile_input in)
     visit_state_t state = (visit_state_t) {.depth = 0};
 
     const sym_scope_t *globals = Vector_at(&ctx->env.symbols->scopes, 0);
-    Slice_loop(&Vector_toSlice(compile_file, &files), j) {
-        Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
+    Vector_loop(compile_file, &files, j) {
+        Vector_loop(TrieEntry, &globals->t.entries, i) {
             const compile_file *file = Vector_at(&files, j);
 
             const TrieEntry *e = Vector_at(&globals->t.entries, i);
@@ -127,7 +127,7 @@ compile_output do_compile(compile_input in)
             LINE();
         }
     }
-    Slice_loop(&Vector_toSlice(TrieEntry, &globals->t.entries), i) {
+    Vector_loop(TrieEntry, &globals->t.entries, i) {
         const TrieEntry *e = Vector_at(&globals->t.entries, i);
         const TrieNode(sym_t) *n = Vector_at(&globals->t.nodes, e->value);
         const sym_t _it = n->value;
@@ -159,7 +159,7 @@ compile_output do_compile(compile_input in)
         LINE();
     }
 
-    Slice_loop(&Vector_toSlice(compile_file, &files), i) {
+    Vector_loop(compile_file, &files, i) {
         const compile_file *file = Vector_at(&files, i);
         ctx->target->file_end(ctx, file);
     }

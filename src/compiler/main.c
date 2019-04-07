@@ -139,7 +139,7 @@ size_t main(Vector(String)
                 .target = &target_c,
                 .env = env,
         });
-        Slice_loop(&Vector_toSlice(compile_file, &ret.files), i) {
+        Vector_loop(compile_file, &ret.files, i) {
             compile_file *it = Vector_at(&ret.files, i);
             const compilation_file_t *file = compilation_file(compilation, it->file);
             if (i) {

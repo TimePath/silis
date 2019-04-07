@@ -18,7 +18,7 @@ flatten_output do_flatten(flatten_input in)
             .nodes = Vector_new(),
             .stack = Vector_new(),
     };
-    Slice_loop(&Vector_toSlice(token_t, &ctx.tokens), i) {
+    Vector_loop(token_t, &ctx.tokens, i) {
         const token_t *it = Vector_at(&ctx.tokens, i);
         const size_t skip = do_flatten_rec(&ctx, it);
         Vector_pop(&ctx.stack); // ignore the final ref
