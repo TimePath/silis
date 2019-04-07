@@ -101,7 +101,7 @@ static value_t do_eval_node(eval_ctx_t *ctx, compilation_node_ref it)
             .flags.abstract = true,
         };
     } else {
-        const value_t *argv = &Vector_data(&ctx->stack)[ofs];
+        const value_t *argv = Vector_at(&ctx->stack, ofs);
         ret = func_call(ctx->env, func, (Slice(value_t)) {._begin = argv, ._end = argv + n,}, it);
     }
     for (size_t i = 0; i < n - 1; ++i) {

@@ -48,7 +48,7 @@ typedef struct {
         bool native : 1;
         uint8_t _padding : 5;
     } flags;
-    uint8_t _padding[7];
+    PADDING(7)
 } value_t;
 
 Slice_instantiate(value_t);

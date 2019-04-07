@@ -17,7 +17,7 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSy
     symbols_t *self = &ret;
     sym_push(self);
     Slice_loop(&init, i) {
-        InitialSymbol it = Slice_data(&init)[i];
+        InitialSymbol it = *Slice_at(&init, i);
         sym_def(self, it.id, (sym_t) {
                 .file = {0},
                 .type = it.value.type,
@@ -25,7 +25,7 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSy
         });
     }
     Slice_loop(&initIntrin, i) {
-        InitialSymbol_intrin it = Slice_data(&initIntrin)[i];
+        InitialSymbol_intrin it = *Slice_at(&initIntrin, i);
         type_id T = it.value->load(types);
         sym_def(self, it.id, (sym_t) {
                 .file = {0},
@@ -68,7 +68,7 @@ void sym_push(symbols_t *symbols)
 
 void sym_pop(symbols_t *symbols)
 {
-    sym_scope_t_delete(&Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1]);
+    sym_scope_t_delete(Vector_at(&symbols->scopes, Vector_size(&symbols->scopes) - 1));
     Vector_pop(&symbols->scopes);
 }
 
@@ -76,7 +76,7 @@ bool sym_lookup(const symbols_t *symbols, String ident, sym_t *out)
 {
     size_t i = Vector_size(&symbols->scopes) - 1;
     for (;;) {
-        sym_scope_t *it = &Vector_data(&symbols->scopes)[i];
+        sym_scope_t *it = Vector_at(&symbols->scopes, i);
         if (sym_trie_get(it, ident, out)) {
             return true;
         }
@@ -90,6 +90,6 @@ bool sym_lookup(const symbols_t *symbols, String ident, sym_t *out)
 
 void sym_def(symbols_t *symbols, String ident, sym_t sym)
 {
-    sym_scope_t *top = &Vector_data(&symbols->scopes)[Vector_size(&symbols->scopes) - 1];
+    sym_scope_t *top = Vector_at(&symbols->scopes, Vector_size(&symbols->scopes) - 1);
     sym_trie_set(top, ident, sym);
 }

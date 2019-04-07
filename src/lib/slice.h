@@ -19,7 +19,8 @@ Slice_instantiate(uint8_t);
 #define Slice_end(self) ((self)->_end)
 
 #define Slice_size(self) ((size_t) ((self)->_end - (self)->_begin))
-#define Slice_data(self) ((self)->_begin)
+#define _Slice_data(self) ((self)->_begin)
+#define Slice_at(self, i) (&_Slice_data(self)[i])
 #define Slice_data_mut(self) ((self)->_begin_mut)
 
 #define Slice_loop(self, i) \

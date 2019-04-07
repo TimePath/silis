@@ -27,7 +27,7 @@ typedef struct {
     String _data;
     Vector(String) parts;
     bool absolute;
-    uint8_t _padding[7];
+    PADDING(7)
 } FilePath;
 
 void FilePath_delete(FilePath *self);

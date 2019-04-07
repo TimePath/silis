@@ -11,7 +11,7 @@ INTRINSIC_IMPL(types_func, ((type_id[]) {
         types->t_unit,
 }))
 {
-    const value_t *arg_args = &Slice_data(&argv)[0];
+    const value_t *arg_args = Slice_at(&argv, 0);
 
     nodelist children = nodelist_iterator(env.compilation, arg_args->u.expr.value);
     const size_t argc = children._n;

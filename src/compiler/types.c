@@ -93,5 +93,5 @@ size_t type_func_argc(const types_t *ctx, const type_t *T)
 
 const type_t *type_lookup(const types_t *ctx, type_id id)
 {
-    return &Vector_data(&ctx->all)[id.value - 1];
+    return Vector_at(&ctx->all, id.value - 1);
 }

@@ -9,8 +9,8 @@ INTRINSIC_IMPL(define, ((type_id[]) {
         types->t_unit,
 }))
 {
-    const value_t *arg_name = &Slice_data(&argv)[0];
-    const value_t *arg_val = &Slice_data(&argv)[1];
+    const value_t *arg_name = Slice_at(&argv, 0);
+    const value_t *arg_val = Slice_at(&argv, 1);
 
     const node_t *name = compilation_node(env.compilation, arg_name->u.expr.value);
     assert(name->kind == NODE_ATOM);

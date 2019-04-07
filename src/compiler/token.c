@@ -12,7 +12,7 @@ typedef struct {
     size_t depth;
     bool needLine;
     bool needTab;
-    uint8_t _padding[6];
+    PADDING(6)
 } token_print_state_t;
 
 static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it, size_t id);
@@ -29,7 +29,7 @@ void token_print(File *f, Slice(token_t) tokens)
             .needTab = false,
     };
     Slice_loop(&tokens, i) {
-        const token_t *it = &Slice_data(&tokens)[i];
+        const token_t *it = Slice_at(&tokens, i);
         state = _token_print(&ctx, state, it, i + 1);
     }
 }

@@ -39,7 +39,7 @@ typedef struct {
         bool abstract : 1;
         uint8_t _padding : 7;
     } flags;
-    uint8_t _padding[7];
+    PADDING(7)
 } InitialSymbol_intrin;
 Slice_instantiate(InitialSymbol_intrin);
 

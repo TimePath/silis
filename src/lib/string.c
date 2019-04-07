@@ -47,7 +47,7 @@ bool String_delim(String *tail, String delim, String *head)
     Slice(uint8_t) it = tail->bytes;
     for (Slice(uint8_t) next; (void) (next = enc->next(it)), Slice_begin(&it) != Slice_end(&it); it = next) {
         size_t c = enc->get(it);
-        if (c == Slice_data(&delim.bytes)[0]) { // todo: use all of `delim`
+        if (c == *Slice_at(&delim.bytes, 0)) { // todo: use all of `delim`
             *head = String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}, enc);
             *tail = String_fromSlice(next, enc);
             return true;

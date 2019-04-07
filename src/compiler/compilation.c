@@ -20,7 +20,7 @@ void compilation_file_t_delete(compilation_file_t *self)
 const compilation_file_t *compilation_file(const compilation_t *self, compilation_file_ref ref)
 {
     assert(ref.id && "file exists");
-    const compilation_file_t *file = Vector_data(&self->files)[ref.id - 1];
+    const compilation_file_t *file = *Vector_at(&self->files, ref.id - 1);
     return file;
 }
 
@@ -28,7 +28,7 @@ const token_t *compilation_token(const compilation_t *self, compilation_token_re
 {
     assert(ref.token.id && "token exists");
     const compilation_file_t *file = compilation_file(self, ref.file);
-    const token_t *token = &Vector_data(&file->tokens)[ref.token.id - 1];
+    const token_t *token = Vector_at(&file->tokens, ref.token.id - 1);
     return token;
 }
 
@@ -36,7 +36,7 @@ const node_t *compilation_node(const compilation_t *self, compilation_node_ref r
 {
     assert(ref.node.id && "node exists");
     const compilation_file_t *file = compilation_file(self, ref.file);
-    const node_t *node = &Vector_data(&file->nodes)[ref.node.id - 1];
+    const node_t *node = Vector_at(&file->nodes, ref.node.id - 1);
     return node;
 }
 

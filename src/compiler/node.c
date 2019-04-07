@@ -55,7 +55,7 @@ typedef struct {
     size_t depth;
     bool needLine;
     bool needTab;
-    uint8_t _padding[6];
+    PADDING(6)
 } node_print_state_t;
 
 static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it, size_t id);
@@ -72,7 +72,7 @@ void node_print(File *f, Slice(node_t) nodes)
             .needTab = false,
     };
     Slice_loop(&nodes, i) {
-        const node_t *it = &Slice_data(&nodes)[i];
+        const node_t *it = Slice_at(&nodes, i);
         state = _node_print(&ctx, state, it, i + 1);
         if (it->kind == NODE_LIST_END) {
             fprintf_s(f, STR("\n"));

@@ -19,13 +19,13 @@ flatten_output do_flatten(flatten_input in)
             .stack = Vector_new(),
     };
     Slice_loop(&Vector_toSlice(token_t, &ctx.tokens), i) {
-        const token_t *it = &Vector_data(&ctx.tokens)[i];
+        const token_t *it = Vector_at(&ctx.tokens, i);
         const size_t skip = do_flatten_rec(&ctx, it);
         Vector_pop(&ctx.stack); // ignore the final ref
         assert(Vector_size(&ctx.stack) == 0 && "stack is empty");
         i += skip;
     }
-    const node_t *it = &Vector_data(&ctx.nodes)[Vector_size(&ctx.nodes) - 1];
+    const node_t *it = Vector_at(&ctx.nodes, Vector_size(&ctx.nodes) - 1);
     assert(it->kind == NODE_LIST_END);
     return (flatten_output) {.nodes = ctx.nodes, .entry = it->u.list_end.begin};
 }
@@ -62,7 +62,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
         };
         Vector_push(&ctx->nodes, header);
         for (size_t i = 0; i < argc; ++i) {
-            Vector_push(&ctx->nodes, Vector_data(&ctx->stack)[argv_begin + i]);
+            Vector_push(&ctx->nodes, *Vector_at(&ctx->stack, argv_begin + i));
         }
         for (size_t i = 0; i < argc; ++i) {
             Vector_pop(&ctx->stack);

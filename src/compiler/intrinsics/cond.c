@@ -10,9 +10,9 @@ INTRINSIC_IMPL(cond, ((type_id[]) {
 }))
 {
     (void) self;
-    const value_t *arg_predicate = &Slice_data(&argv)[0];
-    const value_t *arg_true = &Slice_data(&argv)[1];
-    const value_t *arg_false = &Slice_data(&argv)[2];
+    const value_t *arg_predicate = Slice_at(&argv, 0);
+    const value_t *arg_true = Slice_at(&argv, 1);
+    const value_t *arg_false = Slice_at(&argv, 2);
 
     compilation_node_ref predicate = arg_predicate->u.expr.value;
     compilation_node_ref node_true = arg_true->u.expr.value;

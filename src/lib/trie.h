@@ -10,14 +10,14 @@
 struct { \
     uint16_t children[256]; \
     bool initialised; \
-    uint8_t _padding[7]; \
+    PADDING(7) \
     T value; \
 }
 
 typedef struct {
     uint16_t children[256];
     bool initialised;
-    uint8_t _padding[7];
+    PADDING(7)
     // T value;
 } TrieNode;
 
@@ -28,7 +28,7 @@ typedef struct {
 typedef struct {
     Slice(uint8_t) key;
     uint16_t value;
-    uint8_t _padding[6];
+    PADDING(6)
 } TrieEntry;
 
 Slice_instantiate(TrieEntry);
@@ -54,7 +54,7 @@ const TrieNode(T) root = (TrieNode(T)) {.children = {0}, .initialised = false}; 
 Vector_push(&(self)->nodes, root); \
 MACRO_END
 
-typedef struct { uint8_t _padding[2]; } TriePlaceholder;
+typedef struct { PADDING(2) } TriePlaceholder;
 Trie_instantiate(TriePlaceholder);
 typedef Trie(TriePlaceholder) AnyTrie;
 

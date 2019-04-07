@@ -6,6 +6,8 @@
 #define INLINE __attribute__((always_inline)) inline
 #endif
 
+#define PADDING(n) uint8_t _padding[n];
+
 #define MACRO_BEGIN if (1) {
 #define MACRO_END } else ((void) 0)
 

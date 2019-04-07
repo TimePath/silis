@@ -24,7 +24,7 @@ typedef struct {
 
 typedef struct {
     type_e kind;
-    uint8_t _padding[4];
+    PADDING(4)
     union {
         /// TYPE_OPAQUE
         struct {

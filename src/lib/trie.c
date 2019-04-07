@@ -1,13 +1,13 @@
 #include <system.h>
 #include "trie.h"
 
-#define Trie_node(self, i) ((TrieNode *) (void *) (((uint8_t *) (Vector_data(&(self)->nodes))) + (TrieNode_Size(self) * (i))))
+#define Trie_node(self, i) ((TrieNode *) (void *) (((uint8_t *) (_Vector_data(&(self)->nodes))) + (TrieNode_Size(self) * (i))))
 
 bool Trie_get(AnyTrie *self, Slice(uint8_t) key, void *out)
 {
     TrieNode *n = Trie_node(self, 0);
     Slice_loop(&key, i) {
-        const uint8_t b = Slice_data(&key)[i];
+        const uint8_t b = *Slice_at(&key, i);
         const uint16_t idx = n->children[b];
         if (idx == 0) {
             return false;
@@ -29,7 +29,7 @@ void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value, size_t sizeof_Node
     assert(sizeof_Node == TrieNode_Size(self));
     TrieNode *n = Trie_node(self, 0);
     Slice_loop(&key, i) {
-        const uint8_t b = Slice_data(&key)[i];
+        const uint8_t b = *Slice_at(&key, i);
         const uint16_t idx = n->children[b];
         if (idx != 0) {
             n = Trie_node(self, idx);

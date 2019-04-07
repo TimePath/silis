@@ -16,7 +16,7 @@ FilePath fs_dirname(FilePath self)
     Slice(String) slice = Vector_toSlice(String, &self.parts);
     slice._end -= 1;
     Slice_loop(&slice, i) {
-        String it = Slice_data(&slice)[i];
+        String it = *Slice_at(&slice, i);
         Vector_push(&parts, it);
     }
     return (FilePath) {
@@ -88,7 +88,7 @@ static String fs_path_to_native_unix(FilePath path, Buffer *buf)
     String delim = STR("/");
     File *f = Buffer_asFile(buf);
     Slice_loop(&Vector_toSlice(String, &path.parts), i) {
-        String it = Vector_data(&path.parts)[i];
+        String it = *Vector_at(&path.parts, i);
         if (i == 0 ? path.absolute : true) {
             fprintf_s(f, delim);
         }
@@ -107,7 +107,7 @@ static String fs_path_to_native_win(FilePath path, Buffer *buf)
         fprintf_s(f, STR("\\\\?\\"));
     }
     Slice_loop(&Vector_toSlice(String, &path.parts), i) {
-        String it = Vector_data(&path.parts)[i];
+        String it = *Vector_at(&path.parts, i);
         if (i != 0) {
             fprintf_s(f, delim);
         }
@@ -231,7 +231,7 @@ static ssize_t File_native_read(void *self, Slice(uint8_t) out)
 
 static ssize_t File_native_write(void *self, Slice(uint8_t) in)
 {
-    return (ssize_t) fwrite(Slice_data(&in), sizeof(uint8_t), Slice_size(&in), self);
+    return (ssize_t) fwrite(_Slice_data(&in), sizeof(uint8_t), Slice_size(&in), self);
 }
 
 static ssize_t File_native_seek(void *self, off64_t pos, uint8_t whence)

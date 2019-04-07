@@ -9,8 +9,8 @@ INTRINSIC_IMPL(func, ((type_id[]) {
         types->t_unit,
 }))
 {
-    const value_t *arg_args = &Slice_data(&argv)[0];
-    const value_t *arg_body = &Slice_data(&argv)[1];
+    const value_t *arg_args = Slice_at(&argv, 0);
+    const value_t *arg_body = Slice_at(&argv, 1);
 
     nodelist children = nodelist_iterator(env.compilation, arg_args->u.expr.value);
     const size_t argc = children._n;
@@ -97,7 +97,7 @@ static void func_args_load(Env env, compilation_node_ref arglist, const Slice(va
             const node_t *idNode = compilation_node(env.compilation, id);
             assert(idNode->kind == NODE_ATOM && "argument is a name");
 
-            const value_t *v = &Slice_data(&argv)[i];
+            const value_t *v = Slice_at(&argv, i);
             sym_def(env.symbols, idNode->u.atom.value, (sym_t) {
                     .file = {0},
                     .type = v->type,

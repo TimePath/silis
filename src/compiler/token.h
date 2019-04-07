@@ -27,7 +27,7 @@ typedef enum {
 
 struct token_s {
     token_e kind;
-    uint8_t _padding[4];
+    PADDING(4)
     union {
         /// TOKEN_ATOM
         struct {

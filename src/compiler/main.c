@@ -59,8 +59,8 @@ size_t main(Vector(String)
     };
 
     File *out = fs_stdout();
-    FilePath inputFilePath = fs_path_from_native(Vector_data(&args)[1]);
-    File *outputFile = Vector_size(&args) >= 3 ? fs_open(fs_path_from_native(Vector_data(&args)[2]), STR("w")) : out;
+    FilePath inputFilePath = fs_path_from_native(*Vector_at(&args, 1));
+    File *outputFile = Vector_size(&args) >= 3 ? fs_open(fs_path_from_native(*Vector_at(&args, 2)), STR("w")) : out;
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
@@ -140,7 +140,7 @@ size_t main(Vector(String)
                 .env = env,
         });
         Slice_loop(&Vector_toSlice(compile_file, &ret.files), i) {
-            compile_file *it = &Vector_data(&ret.files)[i];
+            compile_file *it = Vector_at(&ret.files, i);
             const compilation_file_t *file = compilation_file(compilation, it->file);
             if (i) {
                 fprintf_s(f, STR("\n"));

@@ -12,7 +12,7 @@ INTRINSIC_IMPL(include, ((type_id[]) {
         types->t_unit,
 }))
 {
-    const value_t *arg_args = &Slice_data(&argv)[0];
+    const value_t *arg_args = Slice_at(&argv, 0);
     const node_t *it = compilation_node(env.compilation, arg_args->u.expr.value);
     assert(it->kind == NODE_STRING && "argument is string literal");
     String path = it->u.string.value;
