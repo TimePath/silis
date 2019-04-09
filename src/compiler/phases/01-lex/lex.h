@@ -6,10 +6,10 @@
 
 typedef struct {
     const String source;
-} parse_input;
+} lex_input;
 
 typedef struct {
     const Vector(token_t) tokens;
-} parse_output;
+} lex_output;
 
-parse_output do_parse(parse_input in);
+lex_output do_lex(lex_input in);

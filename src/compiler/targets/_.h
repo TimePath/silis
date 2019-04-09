@@ -14,6 +14,8 @@ typedef struct {
     File *out;
 } compile_file;
 
+compile_file compile_file_new(compilation_file_ref file);
+
 void compile_file_delete(compile_file *self);
 
 Slice_instantiate(compile_file);

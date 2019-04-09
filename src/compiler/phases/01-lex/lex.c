@@ -1,66 +1,5 @@
 #include <system.h>
-#include "parse.h"
-
-typedef struct {
-    size_t list_parent_idx;
-    Vector(token_t) tokens;
-} parse_ctx_t;
-
-#define parse_ctx_new() (parse_ctx_t) { \
-    .list_parent_idx = 0, \
-    .tokens = Vector_new(), \
-} \
-/**/
-
-typedef struct {
-    size_t idx;
-} ctx_list_memo;
-
-/// begin a new list
-/// \param ctx compiler context
-/// \return memo for pop
-static ctx_list_memo ctx_list_push(parse_ctx_t *ctx);
-
-static void ctx_list_add(parse_ctx_t *ctx, token_t it);
-
-static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo);
-
-static size_t parse_list(parse_ctx_t *ctx, String prog);
-
-parse_output do_parse(parse_input in)
-{
-    parse_ctx_t ctx = parse_ctx_new();
-    parse_list(&ctx, in.source);
-    return (parse_output) {.tokens = ctx.tokens};
-}
-
-static ctx_list_memo ctx_list_push(parse_ctx_t *ctx)
-{
-    const size_t parentIdx = ctx->list_parent_idx;
-    Vector(token_t) *tokens = &ctx->tokens;
-    ctx->list_parent_idx = Vector_size(tokens);
-    token_t it = (token_t) {
-            .kind = TOKEN_LIST_BEGIN,
-    };
-    Vector_push(tokens, it);
-    return (ctx_list_memo) {.idx = parentIdx};
-}
-
-static void ctx_list_add(parse_ctx_t *ctx, token_t it)
-{
-    Vector(token_t) *tokens = &ctx->tokens;
-    Vector_push(tokens, it);
-}
-
-static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
-{
-    Vector(token_t) *tokens = &ctx->tokens;
-    ctx->list_parent_idx = memo.idx;
-    token_t it = (token_t) {
-            .kind = TOKEN_LIST_END,
-    };
-    Vector_push(tokens, it);
-}
+#include "lex.h"
 
 /*
 
@@ -95,14 +34,39 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
 
 */
 
-#define PARSE_WS(_) \
+typedef struct {
+    Vector(token_t) tokens;
+} lex_context;
+
+static void lex_yield(lex_context *ctx, token_t it)
+{
+    Vector_push(&ctx->tokens, it);
+}
+
+static size_t lex_list(lex_context *ctx, String prog);
+
+lex_output do_lex(lex_input in)
+{
+    lex_context ctx = (lex_context) {
+        .tokens = Vector_new(),
+    };
+    lex_list(&ctx, in.source);
+    return (lex_output) {.tokens = ctx.tokens};
+}
+
+typedef enum {
+    CHAR_INVALID,
+
+    CHAR_WS,
+#define CHAR_WS(_) \
     _('\t') \
     _('\r') \
     _('\n') \
     _(' ') \
     /**/
 
-#define PARSE_SPECIAL(_) \
+    CHAR_SPECIAL,
+#define CHAR_SPECIAL(_) \
     _('_') \
     _('$') \
     _('#') \
@@ -110,7 +74,8 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
     _('.') \
     /**/
 
-#define PARSE_SYM(_) \
+    CHAR_SYM,
+#define CHAR_SYM(_) \
     _('@') \
     _('+') \
     _('-') \
@@ -127,7 +92,8 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
     _('=') \
     /**/
 
-#define PARSE_DIGIT(_) \
+    CHAR_DIGIT,
+#define CHAR_DIGIT(_) \
     _('0') \
     _('1') \
     _('2') \
@@ -140,7 +106,8 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
     _('9') \
     /**/
 
-#define PARSE_ALPHA(_) \
+    CHAR_ALPHA,
+#define CHAR_ALPHA(_) \
     _('a') _('A') \
     _('b') _('B') \
     _('c') _('C') \
@@ -168,49 +135,41 @@ static void ctx_list_pop(parse_ctx_t *ctx, ctx_list_memo memo)
     _('y') _('Y') \
     _('z') _('Z') \
     /**/
+} lex_char_rule_e;
 
-typedef enum {
-    CHAR_INVALID,
-    CHAR_WS,
-    CHAR_SPECIAL,
-    CHAR_SYM,
-    CHAR_DIGIT,
-    CHAR_ALPHA,
-} parse_char_rule_e;
-
-static parse_char_rule_e parse_chars[] = {
+static lex_char_rule_e lex_chars[] = {
 #define CASE(_) [_] = CHAR_WS,
-        PARSE_WS(CASE)
+        CHAR_WS(CASE)
 #undef CASE
 #define CASE(_) [_] = CHAR_SPECIAL,
-        PARSE_SPECIAL(CASE)
+        CHAR_SPECIAL(CASE)
 #undef CASE
 #define CASE(_) [_] = CHAR_SYM,
-        PARSE_SYM(CASE)
+        CHAR_SYM(CASE)
 #undef CASE
 #define CASE(_) [_] = CHAR_DIGIT,
-        PARSE_DIGIT(CASE)
+        CHAR_DIGIT(CASE)
 #undef CASE
 #define CASE(_) [_] = CHAR_ALPHA,
-        PARSE_ALPHA(CASE)
+        CHAR_ALPHA(CASE)
 #undef CASE
 };
 
-static parse_char_rule_e parse_char(size_t c)
+static lex_char_rule_e lex_char(size_t c)
 {
-    return c < ARRAY_LEN(parse_chars)
-           ? parse_chars[c]
+    return c < ARRAY_LEN(lex_chars)
+           ? lex_chars[c]
            : CHAR_INVALID;
 }
 
-static size_t parse_atom(parse_ctx_t *ctx, String prog)
+static size_t lex_atom(lex_context *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
     bool number = true;
     Slice(uint8_t) it = prog.bytes;
     for (; Slice_begin(&it) != Slice_end(&it); it = enc->next(it)) {
         const size_t c = enc->get(it);
-        const parse_char_rule_e r = parse_char(c);
+        const lex_char_rule_e r = lex_char(c);
         if (r <= CHAR_WS) {
             break;
         }
@@ -231,12 +190,12 @@ static size_t parse_atom(parse_ctx_t *ctx, String prog)
             const size_t c = enc->get(d);
             val = 10 * val + (c - '0');
         }
-        ctx_list_add(ctx, (token_t) {
+        lex_yield(ctx, (token_t) {
                 .kind = TOKEN_INTEGRAL,
                 .u.integral.value = val,
         });
     } else {
-        ctx_list_add(ctx, (token_t) {
+        lex_yield(ctx, (token_t) {
                 .kind = TOKEN_ATOM,
                 .u.atom.value = atom,
         });
@@ -244,7 +203,7 @@ static size_t parse_atom(parse_ctx_t *ctx, String prog)
     return String_sizeUnits(atom);
 }
 
-static size_t parse_string(parse_ctx_t *ctx, String prog)
+static size_t lex_string(lex_context *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
     const uint8_t *begin = String_begin(prog);
@@ -278,23 +237,25 @@ static size_t parse_string(parse_ctx_t *ctx, String prog)
     }
     done:;
     const String value = String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = (const uint8_t *) out}, enc);
-    ctx_list_add(ctx, (token_t) {
+    lex_yield(ctx, (token_t) {
             .kind = TOKEN_STRING,
             .u.string.value = value,
     });
     return 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
 }
 
-static size_t parse_list(parse_ctx_t *ctx, String prog)
+static size_t lex_list(lex_context *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
-    const ctx_list_memo memo = ctx_list_push(ctx);
+    lex_yield(ctx, (token_t) {
+            .kind = TOKEN_LIST_BEGIN,
+    });
     const uint8_t *begin = String_begin(prog);
     size_t ret;
     Slice(uint8_t) it = prog.bytes;
     for (Slice(uint8_t) next; (void) (next = enc->next(it)), Slice_begin(&it) != Slice_end(&it); it = next) {
         size_t c = enc->get(it);
-        if (parse_char(c) == CHAR_WS) {
+        if (lex_char(c) == CHAR_WS) {
             continue;
         }
         switch (c) {
@@ -310,7 +271,7 @@ static size_t parse_list(parse_ctx_t *ctx, String prog)
             case '(':
             case '[': // sugar
             case '{': // sugar
-                next = enc->skip_units(it, parse_list(ctx, String_fromSlice(next, enc)));
+                next = enc->skip_units(it, lex_list(ctx, String_fromSlice(next, enc)));
                 break;
             case ')':
             case ']': // sugar
@@ -318,15 +279,17 @@ static size_t parse_list(parse_ctx_t *ctx, String prog)
                 ret = 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
                 goto done;
             case '"':
-                next = enc->skip_units(it, parse_string(ctx, String_fromSlice(next, enc)));
+                next = enc->skip_units(it, lex_string(ctx, String_fromSlice(next, enc)));
                 break;
             default:
-                next = enc->skip_units(it, parse_atom(ctx, String_fromSlice(it, enc)));
+                next = enc->skip_units(it, lex_atom(ctx, String_fromSlice(it, enc)));
                 break;
         }
     }
     ret = enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}); // EOF
     done:;
-    ctx_list_pop(ctx, memo);
+    lex_yield(ctx, (token_t) {
+            .kind = TOKEN_LIST_END,
+    });
     return ret;
 }

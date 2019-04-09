@@ -10,7 +10,4 @@ typedef struct {
     struct symbols_s *symbols;
     // todo: bind to intrinsic instances
     File *out;
-    // todo: bind to intrinsic instances
-    Buffer *preludeBuf;
-    File *prelude;
 } Env;

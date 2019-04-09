@@ -4,8 +4,8 @@
 #include <lib/fs.h>
 #include <lib/stdio.h>
 
-#include <compiler/phases/01-parse/parse.h>
-#include <compiler/phases/02-flatten/flatten.h>
+#include <compiler/phases/01-lex/lex.h>
+#include <compiler/phases/02-parse/parse.h>
 #include <compiler/phases/03-eval/eval.h>
 
 void compilation_file_t_delete(compilation_file_t *self)
@@ -53,32 +53,32 @@ compilation_file_ref compilation_include(compilation_t *self, FilePath path)
     if (self->flags.print_parse) {
         fprintf_s(self->debug, STR("PARSE:\n-----\n"));
     }
-    parse_output parse = do_parse((parse_input) {
+    lex_output lex = do_lex((lex_input) {
             .source = fileStr,
     });
     if (self->flags.print_parse) {
-        token_print(self->debug, Vector_toSlice(token_t, &parse.tokens));
+        token_print(self->debug, Vector_toSlice(token_t, &lex.tokens));
         fprintf_s(self->debug, STR("\n\n"));
     }
 
     if (self->flags.print_flatten) {
         fprintf_s(self->debug, STR("FLATTEN:\n-------\n"));
     }
-    flatten_output flatten = do_flatten((flatten_input) {
+    parse_output parse = do_parse((parse_input) {
             .file = ret,
-            .tokens = parse.tokens,
+            .tokens = lex.tokens,
     });
     if (self->flags.print_flatten) {
-        node_print(self->debug, Vector_toSlice(node_t, &flatten.nodes));
+        node_print(self->debug, Vector_toSlice(node_t, &parse.nodes));
         fprintf_s(self->debug, STR("\n"));
     }
     compilation_file_t *file = realloc(NULL, sizeof(*file));
     *file = (compilation_file_t) {
             .path = path,
             .content = read,
-            .tokens = parse.tokens,
-            .nodes = flatten.nodes,
-            .entry = {.file = ret, .node = {.id = flatten.entry}},
+            .tokens = lex.tokens,
+            .nodes = parse.nodes,
+            .entry = {.file = ret, .node = {.id = parse.root}},
     };
     Vector_push(&self->files, file);
 

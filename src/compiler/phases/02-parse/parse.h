@@ -6,13 +6,13 @@
 typedef struct {
     compilation_file_ref file;
     const Vector(token_t) tokens;
-} flatten_input;
+} parse_input;
 
 typedef struct {
     /// ordered list of expressions to be evaluated at runtime
     /// starting from 1
     const Vector(node_t) nodes;
-    const size_t entry;
-} flatten_output;
+    const size_t root;
+} parse_output;
 
-flatten_output do_flatten(flatten_input in);
+parse_output do_parse(parse_input in);

@@ -6,7 +6,7 @@
 
 #include "compilation.h"
 #include "env.h"
-#include "phases/04-compile/compile.h"
+#include "phases/04-emit/emit.h"
 
 #include <compiler/targets/c.h>
 
@@ -107,15 +107,11 @@ size_t main(Vector(String)
             {.id = STR("#while"), .value = &intrin_while},
     }));
     symbols_t *symbols = &_symbols;
-    Buffer prelude = Buffer_new();
-    File *preludeFile = Buffer_asFile(&prelude);
     Env env = (Env) {
             .compilation = compilation,
             .types = types,
             .symbols = symbols,
             .out = out,
-            .preludeBuf = &prelude,
-            .prelude = preludeFile,
     };
     compilation_begin(compilation, mainFile, env);
 
@@ -135,7 +131,7 @@ size_t main(Vector(String)
         }
         Buffer outBuf = Buffer_new();
         File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
-        compile_output ret = do_compile((compile_input) {
+        emit_output ret = do_emit((emit_input) {
                 .target = &target_c,
                 .env = env,
         });
@@ -166,7 +162,5 @@ size_t main(Vector(String)
     Vector_delete(compilation_file_ptr_t, &env.compilation->files);
     Vector_delete(type_t, &env.types->all);
     Vector_delete(sym_scope_t, &env.symbols->scopes);
-    fs_close(preludeFile);
-    Buffer_delete(&prelude);
     return EXIT_SUCCESS;
 }

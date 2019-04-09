@@ -6,10 +6,10 @@
 typedef struct {
     struct Target_s *target;
     Env env;
-} compile_input;
+} emit_input;
 
 typedef struct {
     Vector(compile_file) files;
-} compile_output;
+} emit_output;
 
-compile_output do_compile(compile_input in);
+emit_output do_emit(emit_input in);

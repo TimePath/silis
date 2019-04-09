@@ -1,5 +1,5 @@
 #include <system.h>
-#include "compile.h"
+#include "emit.h"
 
 #include <lib/stdio.h>
 
@@ -57,7 +57,7 @@ typedef struct {
 
 static void visit_node(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret, compilation_node_ref it);
 
-compile_output do_compile(compile_input in)
+emit_output do_emit(emit_input in)
 {
     Vector(compile_file) files = Vector_new();
 
@@ -73,33 +73,22 @@ compile_output do_compile(compile_input in)
     (void) hasMain;
     assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION && "main is a function");
 
-    fs_flush(ctx->env.prelude);
-    String prelude = String_fromSlice(Buffer_toSlice(ctx->env.preludeBuf), ENCODING_DEFAULT);
-
     Vector_loop(compilation_file_ptr_t, &in.env.compilation->files, i) {
-        Buffer *content = realloc(NULL, sizeof(*content));
-        *content = Buffer_new();
-        compile_file x = (compile_file) {
-                .file = {i + 1},
-                .content = content,
-                .out = Buffer_asFile(content),
-        };
+        compile_file x = compile_file_new((compilation_file_ref) {i + 1});
         Vector_push(&files, x);
     }
 
     Vector_loop(compile_file, &files, i) {
         const compile_file *file = Vector_at(&files, i);
         ctx->target->file_begin(ctx, file);
-        fprintf_s(file->out, prelude);
     }
 
     visit_state_t state = (visit_state_t) {.depth = 0};
 
     const sym_scope_t *globals = Vector_at(&ctx->env.symbols->scopes, 0);
     Vector_loop(compile_file, &files, j) {
+        const compile_file *file = Vector_at(&files, j);
         Vector_loop(TrieEntry, &globals->t.entries, i) {
-            const compile_file *file = Vector_at(&files, j);
-
             const TrieEntry *e = Vector_at(&globals->t.entries, i);
             const TrieNode(sym_t) *n = Vector_at(&globals->t.nodes, e->value);
             const sym_t _it = n->value;
@@ -164,7 +153,7 @@ compile_output do_compile(compile_input in)
         ctx->target->file_end(ctx, file);
     }
 
-    return (compile_output) {
+    return (emit_output) {
             .files = files,
     };
 }

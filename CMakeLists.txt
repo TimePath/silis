@@ -57,10 +57,10 @@ set(SOURCE_FILES
         src/compiler/types.c
         src/compiler/value.c
 
-        src/compiler/phases/01-parse/parse.c
-        src/compiler/phases/02-flatten/flatten.c
+        src/compiler/phases/01-lex/lex.c
+        src/compiler/phases/02-parse/parse.c
         src/compiler/phases/03-eval/eval.c
-        src/compiler/phases/04-compile/compile.c
+        src/compiler/phases/04-emit/emit.c
 
         src/compiler/targets/_.c
         src/compiler/targets/c.c

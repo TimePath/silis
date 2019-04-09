@@ -1,18 +1,23 @@
 #include <system.h>
-#include "flatten.h"
+#include "parse.h"
 
 typedef struct {
     compilation_file_ref file;
     Vector(token_t) tokens;
     Vector(node_t) nodes;
     Vector(node_t) stack;
-} flatten_ctx_t;
+} parse_ctx;
 
-static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it);
-
-flatten_output do_flatten(flatten_input in)
+static void parse_yield(parse_ctx *ctx, node_t it)
 {
-    flatten_ctx_t ctx = (flatten_ctx_t) {
+    Vector_push(&ctx->nodes, it);
+}
+
+static size_t do_parse_rec(parse_ctx *ctx, const token_t *it);
+
+parse_output do_parse(parse_input in)
+{
+    parse_ctx ctx = (parse_ctx) {
             .file = in.file,
             .tokens = in.tokens,
             .nodes = Vector_new(),
@@ -20,20 +25,20 @@ flatten_output do_flatten(flatten_input in)
     };
     Vector_loop(token_t, &ctx.tokens, i) {
         const token_t *it = Vector_at(&ctx.tokens, i);
-        const size_t skip = do_flatten_rec(&ctx, it);
+        const size_t skip = do_parse_rec(&ctx, it);
         Vector_pop(&ctx.stack); // ignore the final ref
         assert(Vector_size(&ctx.stack) == 0 && "stack is empty");
         i += skip;
     }
     const node_t *it = Vector_at(&ctx.nodes, Vector_size(&ctx.nodes) - 1);
     assert(it->kind == NODE_LIST_END);
-    return (flatten_output) {.nodes = ctx.nodes, .entry = it->u.list_end.begin};
+    return (parse_output) {.nodes = ctx.nodes, .root = it->u.list_end.begin};
 }
 
 static node_t convert(const token_t *it);
 
 // depth-first search
-static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
+static size_t do_parse_rec(parse_ctx *ctx, const token_t *it)
 {
     const token_t *begin = it;
     if (it->kind != TOKEN_LIST_BEGIN) {
@@ -45,7 +50,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
     {
         ++it; // skip begin
         while (it->kind != TOKEN_LIST_END) {
-            it += do_flatten_rec(ctx, it);
+            it += do_parse_rec(ctx, it);
         }
     }
     const token_t *end = it;
@@ -60,9 +65,9 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
                 .u.list.end = !argc ? 0 : autoid + argc,
                 .u.list.size = argc,
         };
-        Vector_push(&ctx->nodes, header);
+        parse_yield(ctx, header);
         for (size_t i = 0; i < argc; ++i) {
-            Vector_push(&ctx->nodes, *Vector_at(&ctx->stack, argv_begin + i));
+            parse_yield(ctx, *Vector_at(&ctx->stack, argv_begin + i));
         }
         for (size_t i = 0; i < argc; ++i) {
             Vector_pop(&ctx->stack);
@@ -72,7 +77,7 @@ static size_t do_flatten_rec(flatten_ctx_t *ctx, const token_t *it)
             .token = end,
             .u.list_end.begin = autoid,
         };
-        Vector_push(&ctx->nodes, footer);
+        parse_yield(ctx, footer);
     }
     const node_t ret = (node_t) {
             .kind = NODE_REF,
