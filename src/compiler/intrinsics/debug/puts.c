@@ -3,7 +3,7 @@
 
 #include <lib/stdio.h>
 
-#include "../_.h"
+#include <compiler/intrinsics/_.h>
 
 INTRINSIC_IMPL(debug_puts, ((type_id[]) {
         types->t_string,

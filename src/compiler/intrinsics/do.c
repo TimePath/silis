@@ -2,7 +2,7 @@
 #include "do.h"
 
 #include "_.h"
-#include "../phases/03-eval/eval.h"
+#include <compiler/phases/03-eval/eval.h>
 
 INTRINSIC_IMPL(do, ((type_id[]) {
         types->t_expr,

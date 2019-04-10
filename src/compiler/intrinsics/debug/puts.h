@@ -1,5 +1,5 @@
 #pragma once
 
-#include "../_.h"
+#include <compiler/intrinsics/_.h>
 
 INTRINSIC(debug_puts);

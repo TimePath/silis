@@ -4,28 +4,29 @@
 #include <lib/stdio.h>
 #include <lib/string.h>
 
-#include "compilation.h"
-#include "env.h"
-#include "phases/04-emit/emit.h"
+#include <compiler/intrinsics/debug/puti.h>
+#include <compiler/intrinsics/debug/puts.h>
+#include <compiler/intrinsics/types/func.h>
+#include <compiler/intrinsics/cond.h>
+#include <compiler/intrinsics/define.h>
+#include <compiler/intrinsics/do.h>
+#include <compiler/intrinsics/emit.h>
+#include <compiler/intrinsics/extern.h>
+#include <compiler/intrinsics/func.h>
+#include <compiler/intrinsics/if.h>
+#include <compiler/intrinsics/include.h>
+#include <compiler/intrinsics/minus.h>
+#include <compiler/intrinsics/plus.h>
+#include <compiler/intrinsics/set.h>
+#include <compiler/intrinsics/untyped.h>
+#include <compiler/intrinsics/while.h>
+
+#include <compiler/phases/04-emit/emit.h>
 
 #include <compiler/targets/c.h>
 
-#include "intrinsics/debug/puti.h"
-#include "intrinsics/debug/puts.h"
-#include "intrinsics/types/func.h"
-#include "intrinsics/cond.h"
-#include "intrinsics/define.h"
-#include "intrinsics/do.h"
-#include "intrinsics/emit.h"
-#include "intrinsics/extern.h"
-#include "intrinsics/func.h"
-#include "intrinsics/if.h"
-#include "intrinsics/include.h"
-#include "intrinsics/minus.h"
-#include "intrinsics/plus.h"
-#include "intrinsics/set.h"
-#include "intrinsics/untyped.h"
-#include "intrinsics/while.h"
+#include "compilation.h"
+#include "env.h"
 #include "symbols.h"
 
 MAIN(main)
@@ -41,19 +42,19 @@ size_t main(Vector(String)
 {
     struct {
         bool run : 1;
+        bool print_lex : 1;
         bool print_parse : 1;
-        bool print_flatten : 1;
         bool print_eval : 1;
-        bool print_compile : 1;
+        bool print_emit : 1;
         bool print_run : 1;
         bool buffer : 1;
         uint8_t _padding : 1;
     } flags = {
             .run = false,
+            .print_lex = true,
             .print_parse = true,
-            .print_flatten = true,
             .print_eval = true,
-            .print_compile = true,
+            .print_emit = true,
             .print_run = true,
             .buffer = OUTPUT_BUFFER,
     };
@@ -64,8 +65,8 @@ size_t main(Vector(String)
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
+            .flags.print_lex = flags.print_lex,
             .flags.print_parse = flags.print_parse,
-            .flags.print_flatten = flags.print_flatten,
             .flags.print_eval = flags.print_eval,
             .files = Vector_new(),
     };
@@ -126,8 +127,8 @@ size_t main(Vector(String)
         assert(hasMain && type_lookup(types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
         func_call(env, entry.value, (Slice(value_t)) {._begin = NULL, ._end = NULL,}, (compilation_node_ref) {.file = {0}, .node = {0}});
     } else {
-        if (flags.print_compile) {
-            fprintf_s(out, STR("COMPILE:\n-------\n"));
+        if (flags.print_emit) {
+            fprintf_s(out, STR("EMIT:\n----\n"));
         }
         Buffer outBuf = Buffer_new();
         File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;

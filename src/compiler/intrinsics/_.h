@@ -2,9 +2,9 @@
 
 #include <lib/macro.h>
 
-#include "../intrinsic.h"
-#include "../types.h"
-#include "compiler/env.h"
+#include <compiler/intrinsic.h>
+#include <compiler/types.h>
+#include <compiler/env.h>
 
 #define INTRINSIC(id) \
 extern Intrinsic CAT2(intrin_, id) \

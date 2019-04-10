@@ -50,25 +50,25 @@ compilation_file_ref compilation_include(compilation_t *self, FilePath path)
     }
     compilation_file_ref ret = {.id = Vector_size(&self->files) + 1};
 
-    if (self->flags.print_parse) {
-        fprintf_s(self->debug, STR("PARSE:\n-----\n"));
+    if (self->flags.print_lex) {
+        fprintf_s(self->debug, STR("LEX:\n---\n"));
     }
     lex_output lex = do_lex((lex_input) {
             .source = fileStr,
     });
-    if (self->flags.print_parse) {
+    if (self->flags.print_lex) {
         token_print(self->debug, Vector_toSlice(token_t, &lex.tokens));
         fprintf_s(self->debug, STR("\n\n"));
     }
 
-    if (self->flags.print_flatten) {
-        fprintf_s(self->debug, STR("FLATTEN:\n-------\n"));
+    if (self->flags.print_parse) {
+        fprintf_s(self->debug, STR("PARSE:\n-----\n"));
     }
     parse_output parse = do_parse((parse_input) {
             .file = ret,
             .tokens = lex.tokens,
     });
-    if (self->flags.print_flatten) {
+    if (self->flags.print_parse) {
         node_print(self->debug, Vector_toSlice(node_t, &parse.nodes));
         fprintf_s(self->debug, STR("\n"));
     }

@@ -2,9 +2,9 @@
 
 #include <compiler/env.h>
 #include <compiler/symbols.h>
-#include "../../types.h"
-#include "../../node.h"
-#include "../../value.h"
+#include <compiler/types.h>
+#include <compiler/node.h>
+#include <compiler/value.h>
 
 typedef struct {
     Env env;

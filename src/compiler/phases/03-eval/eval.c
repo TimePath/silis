@@ -2,7 +2,7 @@
 #include "eval.h"
 
 #include <compiler/value.h>
-#include "../../intrinsics/func.h"
+#include <compiler/intrinsics/func.h>
 
 typedef struct {
     Env env;

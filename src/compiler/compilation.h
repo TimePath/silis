@@ -13,8 +13,8 @@ struct compilation_s {
     File *debug;
     Vector(compilation_file_ptr_t) files;
     const struct {
+        bool print_lex : 1;
         bool print_parse : 1;
-        bool print_flatten : 1;
         bool print_eval: 1;
         uint8_t _padding : 5;
     } flags;

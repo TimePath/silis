@@ -23,16 +23,13 @@ parse_output do_parse(parse_input in)
             .nodes = Vector_new(),
             .stack = Vector_new(),
     };
-    Vector_loop(token_t, &ctx.tokens, i) {
-        const token_t *it = Vector_at(&ctx.tokens, i);
-        const size_t skip = do_parse_rec(&ctx, it);
-        Vector_pop(&ctx.stack); // ignore the final ref
-        assert(Vector_size(&ctx.stack) == 0 && "stack is empty");
-        i += skip;
-    }
-    const node_t *it = Vector_at(&ctx.nodes, Vector_size(&ctx.nodes) - 1);
-    assert(it->kind == NODE_LIST_END);
-    return (parse_output) {.nodes = ctx.nodes, .root = it->u.list_end.begin};
+    do_parse_rec(&ctx, Vector_at(&ctx.tokens, 0));
+    assert(Vector_size(&ctx.stack) == 1 && "stack contains result");
+    node_t *it = Vector_at(&ctx.stack, 0);
+    assert(it->kind == NODE_REF && "result is a reference");
+    size_t root = it->u.ref.value.node.id;
+    Vector_pop(&ctx.stack);
+    return (parse_output) {.nodes = ctx.nodes, .root = root};
 }
 
 static node_t convert(const token_t *it);

@@ -1,8 +1,8 @@
 #include <system.h>
 #include "func.h"
 
-#include "../_.h"
-#include "../../phases/03-eval/eval.h"
+#include <compiler/intrinsics/_.h>
+#include <compiler/phases/03-eval/eval.h>
 
 static void types_func_args_types(Env env, nodelist iter, type_id out[]);
 
