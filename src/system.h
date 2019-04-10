@@ -163,7 +163,7 @@ typedef long native_long_t;
 
 #define main(...) _main(__VA_ARGS__)
 #define MAIN(impl) \
-size_t main(Vector(String) args); \
+size_t main(Slice(String) args); \
 native_int_t (main)(native_int_t argc, native_string_t argv[]) \
 { \
     extern size_t strlen(native_string_t __s); \
@@ -174,7 +174,7 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) \
         String s = String_fromSlice(slice, ENCODING_SYSTEM); \
         Vector_push(&args, s); \
     } \
-    size_t ret = impl(args); \
+    size_t ret = impl(Vector_toSlice(String, &args)); \
     Vector_delete(String, &args); \
     return (native_int_t) ret; \
 }

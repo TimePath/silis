@@ -37,7 +37,7 @@ MAIN(main)
 #define OUTPUT_BUFFER 0
 #endif
 
-size_t main(Vector(String)
+size_t main(Slice(String)
                     args)
 {
     struct {
@@ -60,8 +60,8 @@ size_t main(Vector(String)
     };
 
     File *out = fs_stdout();
-    FilePath inputFilePath = fs_path_from_native(*Vector_at(&args, 1));
-    File *outputFile = Vector_size(&args) >= 3 ? fs_open(fs_path_from_native(*Vector_at(&args, 2)), STR("w")) : out;
+    FilePath inputFilePath = fs_path_from_native(*Slice_at(&args, 1));
+    File *outputFile = Slice_size(&args) >= 3 ? fs_open(fs_path_from_native(*Slice_at(&args, 2)), STR("w")) : out;
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
