@@ -38,7 +38,7 @@ void Vector_pop(void *self);
 MACRO_BEGIN \
 Vector_loop(T, self, __i) { \
     T *__it = Vector_at(self, __i); \
-    T##_delete(__it); \
+    CAT2(T, _delete)(__it); \
 } \
 _Vector_delete(self); \
 MACRO_END

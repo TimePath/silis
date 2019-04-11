@@ -39,8 +39,8 @@ set(SOURCE_FILES
         src/lib/encoding/ascii.c
         src/lib/buffer.c
         src/lib/fs.c
-        src/lib/macro.h
-        src/lib/slice.h
+        src/lib/macro.c
+        src/lib/slice.c
         src/lib/stdio.c
         src/lib/string.c
         src/lib/trie.c

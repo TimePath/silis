@@ -1,8 +1,8 @@
 #pragma once
 
 #include "macro.h"
-#include "vector.h"
 #include "slice.h"
+#include "vector.h"
 
 #define TrieNode(T) CAT2(TrieNode__, T)
 #define TrieNode_instantiate(T) typedef TrieNode_(T) TrieNode(T)

@@ -18,7 +18,7 @@ typedef struct {
     ssize_t (*close)(void *self);
 } File_class;
 
-typedef struct File_s {
+typedef struct File {
     File_class class;
     void *self;
 } File;

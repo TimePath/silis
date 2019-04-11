@@ -1,6 +1,7 @@
 #include <system.h>
-#include "buffer.h"
 #include "fs.h"
+
+#include "buffer.h"
 #include "stdio.h"
 
 // todo: create multiple filesystem roots
