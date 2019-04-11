@@ -134,7 +134,7 @@ emit_output do_emit(emit_input in)
         LINE();
         nodelist argv = nodelist_iterator(ctx->env.compilation, it->value.u.func.arglist);
         size_t argc = argv._n;
-        String *argnames = realloc(NULL, sizeof(String) * argc);
+        String *argnames = malloc(sizeof(String) * argc);
         func_args_names(ctx->env, argv, argnames);
         ctx->target->func_declare(ctx, file, type, ident, argnames);
         free(argnames);

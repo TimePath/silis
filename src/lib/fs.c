@@ -120,7 +120,7 @@ static String fs_path_to_native_win(FilePath path, Buffer *buf)
 
 File *fs_open_(File_class class, void *self)
 {
-    File *ret = realloc(NULL, sizeof(*ret));
+    File *ret = malloc(sizeof(*ret));
     *ret = (File) {
             .class = class,
             .self = self,
@@ -183,7 +183,7 @@ ssize_t fs_close(File *self)
 fs_dirtoken fs_pushd(FilePath path)
 {
     size_t size = 1024;
-    native_char_t *cwd = getcwd(realloc(NULL, size), size);
+    native_char_t *cwd = getcwd(malloc(size), size);
     assert(cwd && "cwd is large enough");
     Buffer buf = Buffer_new();
     native_char_t *s = String_cstr(fs_path_to_native(path, &buf));
@@ -213,7 +213,7 @@ uint8_t *fs_read_all(FilePath path, String *out)
     }
     const size_t len = (size_t) ret;
     fs_seek(file, 0, SEEK_SET);
-    uint8_t *buf = realloc(NULL, len + 1);
+    uint8_t *buf = malloc(len + 1);
     Slice(uint8_t) slice = (Slice(uint8_t)) {._begin = buf, ._end = buf + len};
     fs_read(file, slice);
     buf[len] = 0;

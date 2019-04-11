@@ -34,7 +34,7 @@ String String_indent(size_t n)
 native_char_t *String_cstr(String self)
 {
     size_t n = String_sizeBytes(self);
-    native_char_t *buf = realloc(NULL, n + 1);
+    native_char_t *buf = malloc(n + 1);
     memcpy(buf, String_begin(self), n);
     buf[n] = 0;
     return buf;

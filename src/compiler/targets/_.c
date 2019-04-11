@@ -3,7 +3,7 @@
 
 compile_file compile_file_new(compilation_file_ref file)
 {
-    Buffer *content = realloc(NULL, sizeof(*content));
+    Buffer *content = malloc(sizeof(*content));
     *content = Buffer_new();
     return (compile_file) {
             .file = file,

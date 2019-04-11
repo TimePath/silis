@@ -15,7 +15,7 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     nodelist children = nodelist_iterator(env.compilation, arg_args->u.expr.value);
     const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
-    type_id *Ts = realloc(NULL, sizeof(type_id) * argc);
+    type_id *Ts = malloc(sizeof(type_id) * argc);
     func_args_types(env, children, Ts);
     type_id T = type_func_new(env.types, Ts, argc);
     free(Ts);

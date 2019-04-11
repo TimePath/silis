@@ -72,7 +72,7 @@ compilation_file_ref compilation_include(compilation_t *self, FilePath path)
         node_print(self->debug, Vector_toSlice(node_t, &parse.nodes));
         fprintf_s(self->debug, STR("\n"));
     }
-    compilation_file_t *file = realloc(NULL, sizeof(*file));
+    compilation_file_t *file = malloc(sizeof(*file));
     *file = (compilation_file_t) {
             .path = path,
             .content = read,
