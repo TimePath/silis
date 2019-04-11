@@ -48,7 +48,6 @@ set(SOURCE_FILES
 
         src/compiler/compilation.c
         src/compiler/env.c
-        src/compiler/intrinsic.c
         src/compiler/node.c
         src/compiler/symbol.c
         src/compiler/symbols.c
@@ -66,7 +65,7 @@ set(SOURCE_FILES
         src/compiler/targets/c.c
         src/compiler/targets/js.c
 
-        src/compiler/intrinsics/_.h
+        src/compiler/intrinsics/_.c
         src/compiler/intrinsics/debug/puti.c
         src/compiler/intrinsics/debug/puts.c
         src/compiler/intrinsics/cond.c

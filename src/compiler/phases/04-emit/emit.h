@@ -1,11 +1,11 @@
 #pragma once
 
+#include <compiler/compilation.h>
 #include <compiler/env.h>
-#include <compiler/targets/_.h>
 
 typedef struct {
-    struct Target_s *target;
     Env env;
+    struct Target *target;
 } emit_input;
 
 typedef struct {

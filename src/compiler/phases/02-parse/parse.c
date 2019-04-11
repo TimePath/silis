@@ -27,9 +27,9 @@ parse_output do_parse(parse_input in)
     assert(Vector_size(&ctx.stack) == 1 && "stack contains result");
     node_t *it = Vector_at(&ctx.stack, 0);
     assert(it->kind == NODE_REF && "result is a reference");
-    size_t root = it->u.ref.value.node.id;
+    size_t root_id = it->u.ref.value.node.id;
     Vector_pop(&ctx.stack);
-    return (parse_output) {.nodes = ctx.nodes, .root = root};
+    return (parse_output) {.nodes = ctx.nodes, .root_id = root_id};
 }
 
 static node_t convert(const token_t *it);

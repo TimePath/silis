@@ -7,29 +7,36 @@
 typedef struct {
     Env env;
     Vector(value_t) stack;
-} eval_ctx_t;
+} eval_ctx;
 
-static value_t do_eval_list_block(eval_ctx_t *ctx, compilation_node_ref it);
+#define eval_ctx_new(_env) ((eval_ctx) { \
+    .env = _env, \
+    .stack = Vector_new(), \
+})
 
-static value_t do_eval_node(eval_ctx_t *ctx, compilation_node_ref it);
+static value_t do_eval_list_block(eval_ctx *ctx, compilation_node_ref it);
+
+static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it);
 
 eval_output do_eval(eval_input in)
 {
-    eval_ctx_t ctx = {.env = in.env};
+    eval_ctx ctx = eval_ctx_new(in.env);
     do_eval_list_block(&ctx, in.entry);
 }
 
 value_t eval_node(Env env, compilation_node_ref it)
 {
-    return do_eval_node(&(eval_ctx_t) {.env = env}, it);
+    eval_ctx ctx = eval_ctx_new(env);
+    return do_eval_node(&ctx, it);
 }
 
 value_t eval_list_block(Env env, compilation_node_ref it)
 {
-    return do_eval_list_block(&(eval_ctx_t) {.env = env}, it);
+    eval_ctx ctx = eval_ctx_new(env);
+    return do_eval_list_block(&ctx, it);
 }
 
-static value_t do_eval_list_block(eval_ctx_t *ctx, compilation_node_ref it)
+static value_t do_eval_list_block(eval_ctx *ctx, compilation_node_ref it)
 {
     assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN);
     value_t ret = (value_t) {.type = ctx->env.types->t_unit, .node = it};
@@ -42,7 +49,7 @@ static value_t do_eval_list_block(eval_ctx_t *ctx, compilation_node_ref it)
     return ret;
 }
 
-static value_t do_eval_node(eval_ctx_t *ctx, compilation_node_ref it)
+static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
 {
     const node_t *node = compilation_node(ctx->env.compilation, it);
     assert(node->kind != NODE_REF);

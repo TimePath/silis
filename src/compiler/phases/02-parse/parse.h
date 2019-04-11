@@ -1,7 +1,7 @@
 #pragma once
 
-#include <compiler/token.h>
 #include <compiler/node.h>
+#include <compiler/token.h>
 
 typedef struct {
     compilation_file_ref file;
@@ -9,10 +9,9 @@ typedef struct {
 } parse_input;
 
 typedef struct {
-    /// ordered list of expressions to be evaluated at runtime
-    /// starting from 1
     const Vector(node_t) nodes;
-    const size_t root;
+    /// id of root node
+    const size_t root_id;
 } parse_output;
 
 parse_output do_parse(parse_input in);

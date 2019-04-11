@@ -3,8 +3,15 @@
 
 #include <lib/stdio.h>
 
+#include <compiler/compilation.h>
+#include <compiler/env.h>
 #include <compiler/symbols.h>
+#include <compiler/targets/_.h>
+#include <compiler/type.h>
 #include <compiler/value.h>
+
+#include <compiler/phases/03-eval/eval.h>
+
 #include <compiler/intrinsics/define.h>
 #include <compiler/intrinsics/do.h>
 #include <compiler/intrinsics/func.h>
@@ -12,23 +19,20 @@
 #include <compiler/intrinsics/set.h>
 #include <compiler/intrinsics/untyped.h>
 #include <compiler/intrinsics/while.h>
-#include <compiler/phases/03-eval/eval.h>
-#include <compiler/targets/_.h>
-#include <compiler/env.h>
-#include <compiler/type.h>
-#include <compiler/compilation.h>
+
+typedef struct {
+    Env env;
+    struct Target *target;
+    size_t depth;
+} emit_ctx;
 
 #define LINE(...) MACRO_BEGIN \
-    state.depth = state.depth __VA_ARGS__; \
+    ctx->depth = ctx->depth __VA_ARGS__; \
     fprintf_s(file->out, STR("\n")); \
-    fprintf_s(file->out, String_indent(state.depth * 4)); \
+    fprintf_s(file->out, String_indent(ctx->depth * 4)); \
 MACRO_END
 
 #define SEMI() fprintf_s(file->out, STR(";"))
-
-static void print_node(const compile_ctx_t *ctx, const compile_file *file, compilation_node_ref it);
-
-static void print_value(const compile_ctx_t *ctx, const compile_file *file, const value_t *it);
 
 typedef enum {
     RETURN_NO,
@@ -51,21 +55,20 @@ typedef struct {
     } u;
 } return_t;
 
-typedef struct {
-    size_t depth;
-} visit_state_t;
+static void emit_value(emit_ctx *ctx, const compile_file *file, const value_t *it);
 
-static void visit_node(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret, compilation_node_ref it);
+static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it);
 
 emit_output do_emit(emit_input in)
 {
     Vector(compile_file) files = Vector_new();
 
-    compile_ctx_t _ctx = {
-            .target = in.target,
+    emit_ctx _ctx = {
             .env = in.env,
+            .target = in.target,
+            .depth = 0,
     };
-    compile_ctx_t *ctx = &_ctx;
+    emit_ctx *ctx = &_ctx;
 
     sym_t entry;
     bool hasMain = sym_lookup(ctx->env.symbols, STR("main"), &entry);
@@ -80,10 +83,8 @@ emit_output do_emit(emit_input in)
 
     Vector_loop(compile_file, &files, i) {
         const compile_file *file = Vector_at(&files, i);
-        ctx->target->file_begin(ctx, file);
+        ctx->target->file_begin(ctx->target, ctx->env, file);
     }
-
-    visit_state_t state = (visit_state_t) {.depth = 0};
 
     const sym_scope_t *globals = Vector_at(&ctx->env.symbols->scopes, 0);
     Vector_loop(compile_file, &files, j) {
@@ -102,14 +103,14 @@ emit_output do_emit(emit_input in)
                 fprintf_s(file->out, STR("extern "));
             }
             if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
-                ctx->target->func_forward(ctx, file, type, ident);
+                ctx->target->func_forward(ctx->target, ctx->env, file, type, ident);
             } else {
-                ctx->target->var_begin(ctx, file, type);
+                ctx->target->var_begin(ctx->target, ctx->env, file, type);
                 fprintf_s(file->out, ident);
-                ctx->target->var_end(ctx, file, type);
+                ctx->target->var_end(ctx->target, ctx->env, file, type);
                 if (!it->value.flags.native) {
                     fprintf_s(file->out, STR(" = "));
-                    print_value(ctx, file, &it->value);
+                    emit_value(ctx, file, &it->value);
                 }
                 SEMI();
             }
@@ -136,13 +137,13 @@ emit_output do_emit(emit_input in)
         size_t argc = argv._n;
         String *argnames = malloc(sizeof(String) * argc);
         func_args_names(ctx->env, argv, argnames);
-        ctx->target->func_declare(ctx, file, type, ident, argnames);
+        ctx->target->func_declare(ctx->target, ctx->env, file, type, ident, argnames);
         free(argnames);
         LINE();
         fprintf_s(file->out, STR("{"));
         LINE(+1);
         compilation_node_ref body = it->value.u.func.value;
-        visit_node(ctx, file, state, (return_t) {.kind = RETURN_FUNC}, body);
+        visit_node(ctx, file, (return_t) {.kind = RETURN_FUNC}, body);
         LINE(-1);
         fprintf_s(file->out, STR("}"));
         LINE();
@@ -150,7 +151,7 @@ emit_output do_emit(emit_input in)
 
     Vector_loop(compile_file, &files, i) {
         const compile_file *file = Vector_at(&files, i);
-        ctx->target->file_end(ctx, file);
+        ctx->target->file_end(ctx->target, ctx->env, file);
     }
 
     return (emit_output) {
@@ -158,15 +159,13 @@ emit_output do_emit(emit_input in)
     };
 }
 
-// print
+static void emit_atom(emit_ctx *ctx, const compile_file *file, String value);
 
-static void print_atom(const compile_ctx_t *ctx, const compile_file *file, String value);
+static void emit_integral(emit_ctx *ctx, const compile_file *file, size_t value);
 
-static void print_integral(const compile_ctx_t *ctx, const compile_file *file, size_t value);
+static void emit_string(emit_ctx *ctx, const compile_file *file, String value);
 
-static void print_string(const compile_ctx_t *ctx, const compile_file *file, String value);
-
-static void print_node(const compile_ctx_t *ctx, const compile_file *file, compilation_node_ref it)
+static void emit_node(emit_ctx *ctx, const compile_file *file, compilation_node_ref it)
 {
     const node_t *node = compilation_node(ctx->env.compilation, it);
     switch (node->kind) {
@@ -176,42 +175,42 @@ static void print_node(const compile_ctx_t *ctx, const compile_file *file, compi
         case NODE_REF:
             assert(false);
         case NODE_ATOM:
-            print_atom(ctx, file, node->u.atom.value);
+            emit_atom(ctx, file, node->u.atom.value);
             break;
         case NODE_INTEGRAL:
-            print_integral(ctx, file, node->u.integral.value);
+            emit_integral(ctx, file, node->u.integral.value);
             break;
         case NODE_STRING:
-            print_string(ctx, file, node->u.string.value);
+            emit_string(ctx, file, node->u.string.value);
             break;
     }
 }
 
-static void print_value(const compile_ctx_t *ctx, const compile_file *file, const value_t *it)
+static void emit_value(emit_ctx *ctx, const compile_file *file, const value_t *it)
 {
     if (it->type.value == ctx->env.types->t_int.value) {
-        print_integral(ctx, file, it->u.integral.value);
+        emit_integral(ctx, file, it->u.integral.value);
         return;
     }
     if (it->type.value == ctx->env.types->t_string.value) {
-        print_string(ctx, file, it->u.string.value);
+        emit_string(ctx, file, it->u.string.value);
         return;
     }
     assert(false);
 }
 
-static void print_atom(const compile_ctx_t *ctx, const compile_file *file, String value)
+static void emit_atom(emit_ctx *ctx, const compile_file *file, String value)
 {
-    ctx->target->identifier(ctx, file, value);
+    ctx->target->identifier(ctx->target, ctx->env, file, value);
 }
 
-static void print_integral(const compile_ctx_t *ctx, const compile_file *file, size_t value)
+static void emit_integral(emit_ctx *ctx, const compile_file *file, size_t value)
 {
     (void) ctx;
     fprintf_zu(file->out, value);
 }
 
-static void print_string(const compile_ctx_t *ctx, const compile_file *file, String value)
+static void emit_string(emit_ctx *ctx, const compile_file *file, String value)
 {
     (void) ctx;
     fprintf_s(file->out, STR("\""));
@@ -238,31 +237,30 @@ static void print_string(const compile_ctx_t *ctx, const compile_file *file, Str
     fprintf_s(file->out, STR("\""));
 }
 
-static void print_ref(const compile_ctx_t *ctx, const compile_file *file, compilation_node_ref ref)
+static void emit_ref(emit_ctx *ctx, const compile_file *file, compilation_node_ref ref)
 {
     (void) ctx;
     fprintf_s(file->out, STR("_"));
     fprintf_zu(file->out, ref.node.id);
 }
 
-static void print_return_ref(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret)
+static void emit_return_ref(emit_ctx *ctx, const compile_file *file, return_t ret)
 {
-    (void) state;
     switch (ret.kind) {
         case RETURN_NO:
         case RETURN_FUNC:
             return;
         case RETURN_TEMPORARY:
-            print_ref(ctx, file, ret.u.temporary.val);
+            emit_ref(ctx, file, ret.u.temporary.val);
             return;
         case RETURN_NAMED:
-            print_atom(ctx, file, ret.u.named.val);
+            emit_atom(ctx, file, ret.u.named.val);
             return;
     }
     assert(false);
 }
 
-static void print_return_declare(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, type_id T, return_t ret)
+static void emit_return_declare(emit_ctx *ctx, const compile_file *file, type_id T, return_t ret)
 {
     switch (ret.kind) {
         case RETURN_NO:
@@ -270,9 +268,9 @@ static void print_return_declare(const compile_ctx_t *ctx, const compile_file *f
             return;
         case RETURN_TEMPORARY:
         case RETURN_NAMED: {
-            ctx->target->var_begin(ctx, file, T);
-            print_return_ref(ctx, file, state, ret);
-            ctx->target->var_end(ctx, file, T);
+            ctx->target->var_begin(ctx->target, ctx->env, file, T);
+            emit_return_ref(ctx, file, ret);
+            ctx->target->var_end(ctx->target, ctx->env, file, T);
             SEMI();
             return;
         }
@@ -280,9 +278,8 @@ static void print_return_declare(const compile_ctx_t *ctx, const compile_file *f
     assert(false);
 }
 
-static void print_return_assign(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret)
+static void emit_return_assign(emit_ctx *ctx, const compile_file *file, return_t ret)
 {
-    (void) state;
     switch (ret.kind) {
         case RETURN_NO:
             return;
@@ -291,7 +288,7 @@ static void print_return_assign(const compile_ctx_t *ctx, const compile_file *fi
             return;
         case RETURN_TEMPORARY:
         case RETURN_NAMED:
-            print_return_ref(ctx, file, state, ret);
+            emit_return_ref(ctx, file, ret);
             fprintf_s(file->out, STR(" = "));
             return;
     }
@@ -300,22 +297,22 @@ static void print_return_assign(const compile_ctx_t *ctx, const compile_file *fi
 
 // visit
 
-static void visit_node_primary(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret, compilation_node_ref it);
+static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it);
 
-static void visit_node_list(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret, compilation_node_ref it);
+static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it);
 
-static void visit_node(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret, compilation_node_ref it)
+static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it)
 {
     const node_t *node = compilation_node(ctx->env.compilation, it);
     if (node->kind != NODE_LIST_BEGIN) {
-        visit_node_primary(ctx, file, state, ret, it);
+        visit_node_primary(ctx, file, ret, it);
         SEMI();
         return;
     }
-    visit_node_list(ctx, file, state, ret, it);
+    visit_node_list(ctx, file, ret, it);
 }
 
-static void visit_node_primary(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret, compilation_node_ref it)
+static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it)
 {
     const node_t *node = compilation_node(ctx->env.compilation, it);
     switch (node->kind) {
@@ -327,20 +324,20 @@ static void visit_node_primary(const compile_ctx_t *ctx, const compile_file *fil
         case NODE_ATOM:
         case NODE_INTEGRAL:
         case NODE_STRING:
-            print_return_assign(ctx, file, state, ret);
-            print_node(ctx, file, it);
+            emit_return_assign(ctx, file, ret);
+            emit_node(ctx, file, it);
             return;
     }
     assert(false);
 }
 
-static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret,
+static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t ret,
                              compilation_node_ref func, Slice(compilation_node_ref) children);
 
-static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret,
+static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t ret,
                             compilation_node_ref func, Slice(compilation_node_ref) children);
 
-static void visit_node_list(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret,
+static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t ret,
                             compilation_node_ref it)
 {
     assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN && "it is list");
@@ -349,7 +346,7 @@ static void visit_node_list(const compile_ctx_t *ctx, const compile_file *file, 
     compilation_node_ref ref = nodelist_get(&childrenRaw, 0);
     compilation_node_ref first = node_deref(ctx->env.compilation, ref);
     if (n == 1) {
-        visit_node(ctx, file, state, ret, first);
+        visit_node(ctx, file, ret, first);
         return;
     }
     Vector(compilation_node_ref) _children = Vector_new();
@@ -361,15 +358,15 @@ static void visit_node_list(const compile_ctx_t *ctx, const compile_file *file, 
     }
     const Slice(compilation_node_ref) children = Vector_toSlice(compilation_node_ref, &_children);
     do {
-        if (visit_node_macro(ctx, file, state, ret, first, children)) {
+        if (visit_node_macro(ctx, file, ret, first, children)) {
             break;
         }
-        visit_node_expr(ctx, file, state, ret, first, children);
+        visit_node_expr(ctx, file, ret, first, children);
     } while (false);
     Vector_delete(compilation_node_ref, &_children);
 }
 
-static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret,
+static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t ret,
                             compilation_node_ref func, Slice(compilation_node_ref) children)
 {
     const size_t n = Slice_size(&children);
@@ -382,9 +379,9 @@ static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, 
     assert(type->kind == TYPE_FUNCTION);
 
     const return_t outFunc = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = func};
-    print_return_declare(ctx, file, state, f.type, outFunc);
+    emit_return_declare(ctx, file, f.type, outFunc);
     LINE();
-    visit_node(ctx, file, state, outFunc, func);
+    visit_node(ctx, file, outFunc, func);
     LINE();
 
     const type_t *argp = type;
@@ -395,9 +392,9 @@ static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, 
         if (arg.value != ctx->env.types->t_unit.value) {
             compilation_node_ref ref = *Slice_at(&children, i);
             const return_t outArg = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = ref};
-            print_return_declare(ctx, file, state, arg, outArg);
+            emit_return_declare(ctx, file, arg, outArg);
             LINE();
-            visit_node(ctx, file, state, outArg, ref);
+            visit_node(ctx, file, outArg, ref);
             LINE();
         }
         const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
@@ -408,8 +405,8 @@ static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, 
     }
     assert(i == (n - 1) && "consumed all arguments");
 
-    print_return_assign(ctx, file, state, ret);
-    print_ref(ctx, file, func);
+    emit_return_assign(ctx, file, ret);
+    emit_ref(ctx, file, func);
     fprintf_s(file->out, STR("("));
 
     argp = type;
@@ -422,7 +419,7 @@ static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, 
             if (!first) {
                 fprintf_s(file->out, STR(", "));
             }
-            print_ref(ctx, file, *Slice_at(&children, i));
+            emit_ref(ctx, file, *Slice_at(&children, i));
             first = false;
         }
         const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
@@ -439,7 +436,7 @@ static void visit_node_expr(const compile_ctx_t *ctx, const compile_file *file, 
     fprintf_s(file->out, STR("}"));
 }
 
-static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file, visit_state_t state, return_t ret,
+static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t ret,
                              compilation_node_ref func, Slice(compilation_node_ref) children)
 {
     const node_t *funcNode = compilation_node(ctx->env.compilation, func);
@@ -454,7 +451,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
     if (!entry.value.flags.intrinsic) {
         return false;
     }
-    struct Intrinsic_s *intrin = entry.value.u.intrinsic.value;
+    struct Intrinsic *intrin = entry.value.u.intrinsic.value;
 
     if (intrin == &intrin_define) {
         const node_t *name = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
@@ -466,9 +463,9 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
                 .kind = RETURN_NAMED,
                 .u.named.val = name->u.atom.value,
         };
-        print_return_declare(ctx, file, state, v.type, out);
+        emit_return_declare(ctx, file, v.type, out);
         LINE();
-        visit_node(ctx, file, state, out, ref);
+        visit_node(ctx, file, out, ref);
         return true;
     }
     if (intrin == &intrin_set) {
@@ -482,7 +479,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
                 .kind = RETURN_NAMED,
                 .u.named.val = name->u.atom.value,
         };
-        visit_node(ctx, file, state, out, ref);
+        visit_node(ctx, file, out, ref);
         return true;
     }
     if (intrin == &intrin_do) {
@@ -502,10 +499,10 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
             };
             value_t v = eval_node(ctx->env, ref);
             if (!last && v.type.value != ctx->env.types->t_unit.value) {
-                print_return_declare(ctx, file, state, v.type, out);
+                emit_return_declare(ctx, file, v.type, out);
                 LINE();
             }
-            visit_node(ctx, file, state, out, ref);
+            visit_node(ctx, file, out, ref);
         }
         sym_pop(ctx->env.symbols);
         return true;
@@ -517,17 +514,17 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
                 .kind = RETURN_TEMPORARY,
                 .u.temporary.val = predRef,
         };
-        print_return_declare(ctx, file, state, ctx->env.types->t_int, out);
+        emit_return_declare(ctx, file, ctx->env.types->t_int, out);
         LINE();
-        visit_node(ctx, file, state, out, predRef);
+        visit_node(ctx, file, out, predRef);
         LINE();
         fprintf_s(file->out, STR("if ("));
-        print_ref(ctx, file, predRef);
+        emit_ref(ctx, file, predRef);
         fprintf_s(file->out, STR(") {"));
         LINE(+1);
         {
             // todo: same as #do
-            visit_node(ctx, file, state, (return_t) {
+            visit_node(ctx, file, (return_t) {
                     .kind = RETURN_NO,
             }, bodyRef);
         }
@@ -538,7 +535,7 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
     if (intrin == &intrin_untyped) {
         const node_t *code = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
         assert(code->kind == NODE_STRING);
-        print_return_assign(ctx, file, state, ret);
+        emit_return_assign(ctx, file, ret);
         fprintf_s(file->out, code->u.string.value);
         SEMI();
         return true;
@@ -553,20 +550,20 @@ static bool visit_node_macro(const compile_ctx_t *ctx, const compile_file *file,
         fprintf_s(file->out, STR("for (;;) {"));
         LINE(+1);
         {
-            print_return_declare(ctx, file, state, ctx->env.types->t_int, out);
+            emit_return_declare(ctx, file, ctx->env.types->t_int, out);
             LINE();
 
-            visit_node(ctx, file, state, out, predRef);
+            visit_node(ctx, file, out, predRef);
             LINE();
 
             fprintf_s(file->out, STR("if (!"));
-            print_ref(ctx, file, predRef);
+            emit_ref(ctx, file, predRef);
             fprintf_s(file->out, STR(") break"));
             SEMI();
             LINE();
 
             // todo: same as #do
-            visit_node(ctx, file, state, (return_t) {
+            visit_node(ctx, file, (return_t) {
                     .kind = RETURN_NO,
             }, bodyRef);
         }

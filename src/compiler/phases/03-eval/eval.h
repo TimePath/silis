@@ -1,9 +1,9 @@
 #pragma once
 
 #include <compiler/env.h>
+#include <compiler/node.h>
 #include <compiler/symbols.h>
 #include <compiler/types.h>
-#include <compiler/node.h>
 #include <compiler/value.h>
 
 typedef struct {

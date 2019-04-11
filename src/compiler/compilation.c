@@ -17,6 +17,24 @@ void compilation_file_t_delete(compilation_file_t *self)
     free(self);
 }
 
+compile_file compile_file_new(compilation_file_ref file)
+{
+    Buffer *content = malloc(sizeof(*content));
+    *content = Buffer_new();
+    return (compile_file) {
+            .file = file,
+            .content = content,
+            .out = Buffer_asFile(content),
+    };
+}
+
+void compile_file_delete(compile_file *self)
+{
+    fs_close(self->out);
+    Buffer_delete(self->content);
+    free(self->content);
+}
+
 const compilation_file_t *compilation_file(const compilation_t *self, compilation_file_ref ref)
 {
     assert(ref.id && "file exists");
@@ -78,7 +96,7 @@ compilation_file_ref compilation_include(compilation_t *self, FilePath path)
             .content = read,
             .tokens = lex.tokens,
             .nodes = parse.nodes,
-            .entry = {.file = ret, .node = {.id = parse.root}},
+            .entry = {.file = ret, .node = {.id = parse.root_id}},
     };
     Vector_push(&self->files, file);
 

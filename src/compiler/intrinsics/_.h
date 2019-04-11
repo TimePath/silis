@@ -2,9 +2,15 @@
 
 #include <lib/macro.h>
 
-#include <compiler/intrinsic.h>
-#include <compiler/types.h>
 #include <compiler/env.h>
+#include <compiler/types.h>
+#include <compiler/value.h>
+
+typedef struct Intrinsic {
+    type_id (*load)(types_t *types);
+
+    value_t (*call)(Env env, compilation_node_ref self, const Slice(value_t) argv);
+} Intrinsic;
 
 #define INTRINSIC(id) \
 extern Intrinsic CAT2(intrin_, id) \

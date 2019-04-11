@@ -23,7 +23,7 @@ typedef struct {
         } string;
 
         struct {
-            struct Intrinsic_s *value;
+            struct Intrinsic *value;
         } intrinsic;
 
         struct {

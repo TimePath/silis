@@ -3,7 +3,8 @@
 #include <lib/slice.h>
 #include <lib/trie.h>
 
-#include "intrinsic.h"
+#include <compiler/intrinsics/_.h>
+
 #include "symbol.h"
 #include "types.h"
 

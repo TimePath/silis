@@ -133,8 +133,8 @@ size_t main(Slice(String)
         Buffer outBuf = Buffer_new();
         File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
         emit_output ret = do_emit((emit_input) {
-                .target = &target_c,
                 .env = env,
+                .target = &target_c,
         });
         Vector_loop(compile_file, &ret.files, i) {
             compile_file *it = Vector_at(&ret.files, i);
