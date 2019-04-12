@@ -77,51 +77,46 @@ emit_output do_emit(emit_input in)
     assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION && "main is a function");
 
     Vector_loop(compilation_file_ptr_t, &in.env.compilation->files, i) {
-        compile_file x = compile_file_new((compilation_file_ref) {i + 1});
-        Vector_push(&files, x);
-    }
-
-    Vector_loop(compile_file, &files, i) {
-        const compile_file *file = Vector_at(&files, i);
-        ctx->target->file_begin(ctx->target, ctx->env, file);
+        Target_file_begin(ctx->target, ctx->env, (compilation_file_ref) {i + 1}, &files);
     }
 
     const sym_scope_t *globals = Vector_at(&ctx->env.symbols->scopes, 0);
-    Vector_loop(compile_file, &files, j) {
-        const compile_file *file = Vector_at(&files, j);
-        Vector_loop(TrieEntry, &globals->t.entries, i) {
-            const TrieEntry *e = Vector_at(&globals->t.entries, i);
-            const TrieNode(sym_t) *n = Vector_at(&globals->t.nodes, e->value);
-            const sym_t _it = n->value;
-            const sym_t *it = &_it;
-            if (it->value.flags.intrinsic) {
-                continue;
-            }
-            const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-            const type_id type = it->type;
-            if (it->value.flags.native) {
-                fprintf_s(file->out, STR("extern "));
-            }
-            if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
-                ctx->target->func_forward(ctx->target, ctx->env, file, type, ident);
-            } else {
-                ctx->target->var_begin(ctx->target, ctx->env, file, type);
-                fprintf_s(file->out, ident);
-                ctx->target->var_end(ctx->target, ctx->env, file, type);
-                if (!it->value.flags.native) {
-                    fprintf_s(file->out, STR(" = "));
-                    emit_value(ctx, file, &it->value);
-                }
-                SEMI();
-            }
-            LINE();
-        }
-    }
+    // first pass: emit function prototypes and globals
     Vector_loop(TrieEntry, &globals->t.entries, i) {
         const TrieEntry *e = Vector_at(&globals->t.entries, i);
         const TrieNode(sym_t) *n = Vector_at(&globals->t.nodes, e->value);
         const sym_t _it = n->value;
         const sym_t *it = &_it;
+        const compile_file *file = Vector_at(&files, (it->file.id - 1) * 2 + 0); // FIXME
+        if (it->value.flags.intrinsic) {
+            continue;
+        }
+        const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
+        const type_id type = it->type;
+        if (it->value.flags.native) {
+            fprintf_s(file->out, STR("extern ")); // FIXME
+        }
+        if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
+            Target_func_forward(ctx->target, ctx->env, file, type, ident);
+        } else {
+            Target_var_begin(ctx->target, ctx->env, file, type);
+            fprintf_s(file->out, ident);
+            Target_var_end(ctx->target, ctx->env, file, type);
+            if (!it->value.flags.native) {
+                fprintf_s(file->out, STR(" = "));
+                emit_value(ctx, file, &it->value);
+            }
+            SEMI();
+        }
+        LINE();
+    }
+    // second pass: emit functions
+    Vector_loop(TrieEntry, &globals->t.entries, i) {
+        const TrieEntry *e = Vector_at(&globals->t.entries, i);
+        const TrieNode(sym_t) *n = Vector_at(&globals->t.nodes, e->value);
+        const sym_t _it = n->value;
+        const sym_t *it = &_it;
+        const compile_file *file = Vector_at(&files, (it->file.id - 1) * 2 + 1); // FIXME
         if (it->value.flags.intrinsic || it->value.flags.native) {
             continue;
         }
@@ -131,13 +126,12 @@ emit_output do_emit(emit_input in)
             continue;
         }
         assert(it->file.id && "global is user-defined");
-        const compile_file *file = Vector_at(&files, it->file.id - 1);
         LINE();
         nodelist argv = nodelist_iterator(ctx->env.compilation, it->value.u.func.arglist);
         size_t argc = argv._n;
         String *argnames = malloc(sizeof(String) * argc);
         func_args_names(ctx->env, argv, argnames);
-        ctx->target->func_declare(ctx->target, ctx->env, file, type, ident, argnames);
+        Target_func_declare(ctx->target, ctx->env, file, type, ident, argnames);
         free(argnames);
         LINE();
         fprintf_s(file->out, STR("{"));
@@ -151,7 +145,7 @@ emit_output do_emit(emit_input in)
 
     Vector_loop(compile_file, &files, i) {
         const compile_file *file = Vector_at(&files, i);
-        ctx->target->file_end(ctx->target, ctx->env, file);
+        Target_file_end(ctx->target, ctx->env, file);
     }
 
     return (emit_output) {
@@ -201,7 +195,7 @@ static void emit_value(emit_ctx *ctx, const compile_file *file, const value_t *i
 
 static void emit_atom(emit_ctx *ctx, const compile_file *file, String value)
 {
-    ctx->target->identifier(ctx->target, ctx->env, file, value);
+    Target_identifier(ctx->target, ctx->env, file, value);
 }
 
 static void emit_integral(emit_ctx *ctx, const compile_file *file, size_t value)
@@ -268,9 +262,9 @@ static void emit_return_declare(emit_ctx *ctx, const compile_file *file, type_id
             return;
         case RETURN_TEMPORARY:
         case RETURN_NAMED: {
-            ctx->target->var_begin(ctx->target, ctx->env, file, T);
+            Target_var_begin(ctx->target, ctx->env, file, T);
             emit_return_ref(ctx, file, ret);
-            ctx->target->var_end(ctx->target, ctx->env, file, T);
+            Target_var_end(ctx->target, ctx->env, file, T);
             SEMI();
             return;
         }

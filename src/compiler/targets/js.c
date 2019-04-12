@@ -8,7 +8,7 @@
 
 static const bool types = false;
 
-static void tgt_js_file_begin(struct Target *target, Env env, const compile_file *file);
+static void tgt_js_file_begin(struct Target *target, Env env, compilation_file_ref file_ref, Vector(compile_file) *files);
 
 static void tgt_js_file_end(struct Target *target, Env env, const compile_file *file);
 
@@ -23,13 +23,13 @@ static void tgt_js_var_end(struct Target *target, Env env, const compile_file *f
 static void tgt_js_identifier(struct Target *target, Env env, const compile_file *file, String name);
 
 Target target_js = {
-        .file_begin = tgt_js_file_begin,
-        .file_end = tgt_js_file_end,
-        .func_forward = tgt_js_func_forward,
-        .func_declare = tgt_js_func_declare,
-        .var_begin = tgt_js_var_begin,
-        .var_end = tgt_js_var_end,
-        .identifier = tgt_js_identifier,
+        ._file_begin = tgt_js_file_begin,
+        ._file_end = tgt_js_file_end,
+        ._func_forward = tgt_js_func_forward,
+        ._func_declare = tgt_js_func_declare,
+        ._var_begin = tgt_js_var_begin,
+        ._var_end = tgt_js_var_end,
+        ._identifier = tgt_js_identifier,
 };
 
 typedef struct {
@@ -43,11 +43,12 @@ static void tgt_js_print_decl_post(struct Target *target, Env env, const compile
 
 static void tgt_js_print_function(struct Target *target, Env env, const compile_file *file, type_id T, String ident, const String idents[]);
 
-static void tgt_js_file_begin(struct Target *target, Env env, const compile_file *file)
+static void tgt_js_file_begin(struct Target *target, Env env, compilation_file_ref file_ref, Vector(compile_file) *files)
 {
     (void) target;
     (void) env;
-    (void) file;
+    compile_file _file = compile_file_new(file_ref, types ? STR("ts") : STR("js"), 0);
+    Vector_push(files, _file);
 }
 
 static void tgt_js_file_end(struct Target *target, Env env, const compile_file *file)

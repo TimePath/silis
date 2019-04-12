@@ -35,9 +35,11 @@ typedef struct {
     compilation_file_ref file;
     Buffer *content;
     File *out;
+    String ext;
+    size_t flags;
 } compile_file;
 
-compile_file compile_file_new(compilation_file_ref file);
+compile_file compile_file_new(compilation_file_ref file, String ext, size_t flags);
 
 void compile_file_delete(compile_file *self);
 

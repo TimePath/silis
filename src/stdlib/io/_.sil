@@ -2,6 +2,8 @@
     "#include <stdio.h>"
 ])
 
+(#extern puts (#types/func [#types/string #types/int]))
+
 (#define print (#func [(#types/string s) ()] {
     (#untyped "puts(s)")
 }))

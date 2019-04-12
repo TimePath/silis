@@ -17,7 +17,7 @@ void compilation_file_t_delete(compilation_file_t *self)
     free(self);
 }
 
-compile_file compile_file_new(compilation_file_ref file)
+compile_file compile_file_new(compilation_file_ref file, String ext, size_t flags)
 {
     Buffer *content = malloc(sizeof(*content));
     *content = Buffer_new();
@@ -25,6 +25,8 @@ compile_file compile_file_new(compilation_file_ref file)
             .file = file,
             .content = content,
             .out = Buffer_asFile(content),
+            .ext = ext,
+            .flags = flags,
     };
 }
 

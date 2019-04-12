@@ -24,6 +24,7 @@
 #include <compiler/phases/04-emit/emit.h>
 
 #include <compiler/targets/c.h>
+#include <compiler/targets/js.h>
 
 #include "compilation.h"
 #include "env.h"
@@ -36,6 +37,17 @@ MAIN(main)
 #else
 #define OUTPUT_BUFFER 0
 #endif
+
+Target *target(String targetName)
+{
+#define X(id) if (String_equals(targetName, STR(#id))) return &target_##id;
+    X(c);
+    X(js);
+#undef X
+    assert(false);
+}
+
+void emit(Env env, File *f, compile_file *it);
 
 size_t main(Slice(String)
                     args)
@@ -60,8 +72,9 @@ size_t main(Slice(String)
     };
 
     File *out = fs_stdout();
-    FilePath inputFilePath = fs_path_from_native(*Slice_at(&args, 1));
-    File *outputFile = Slice_size(&args) >= 3 ? fs_open(fs_path_from_native(*Slice_at(&args, 2)), STR("w")) : out;
+    String targetName = *Slice_at(&args, 1);
+    FilePath inputFilePath = fs_path_from_native(*Slice_at(&args, 2));
+    File *outputFile = Slice_size(&args) >= 4 ? fs_open(fs_path_from_native(*Slice_at(&args, 3)), STR("w")) : out;
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
@@ -134,20 +147,17 @@ size_t main(Slice(String)
         File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
         emit_output ret = do_emit((emit_input) {
                 .env = env,
-                .target = &target_c,
+                .target = target(targetName),
         });
         Vector_loop(compile_file, &ret.files, i) {
             compile_file *it = Vector_at(&ret.files, i);
-            const compilation_file_t *file = compilation_file(compilation, it->file);
-            if (i) {
-                fprintf_s(f, STR("\n"));
-            }
-            fprintf_s(f, STR("// file://"));
-            Buffer buf = Buffer_new();
-            fprintf_s(f, fs_path_to_native(file->path, &buf));
-            Buffer_delete(&buf);
-            fprintf_s(f, STR("\n\n"));
-            fprintf_raw(f, Buffer_toSlice(it->content));
+            if (!String_equals(it->ext, STR("h"))) continue; // FIXME
+            emit(env, f, it);
+        }
+        Vector_loop(compile_file, &ret.files, i) {
+            compile_file *it = Vector_at(&ret.files, i);
+            if (!String_equals(it->ext, STR("c"))) continue; // FIXME
+            emit(env, f, it);
         }
         Vector_delete(compile_file, &ret.files);
         if (flags.buffer) {
@@ -164,4 +174,20 @@ size_t main(Slice(String)
     Vector_delete(type_t, &env.types->all);
     Vector_delete(sym_scope_t, &env.symbols->scopes);
     return EXIT_SUCCESS;
+}
+
+void emit(Env env, File *f, compile_file *it)
+{
+    fprintf_s(f, STR("// file://"));
+    Buffer buf = Buffer_new();
+    const compilation_file_t *infile = compilation_file(env.compilation, it->file);
+    fs_path_to_native(infile->path, &buf);
+    String dot = STR(".");
+    Vector_push(&buf, *Slice_at(&dot.bytes, 0));
+    _Vector_push(sizeof(uint8_t), &buf, String_sizeBytes(it->ext), String_begin(it->ext), String_sizeBytes(it->ext));
+    fprintf_s(f, String_fromSlice(Buffer_toSlice(&buf), ENCODING_DEFAULT));
+    Buffer_delete(&buf);
+    fprintf_s(f, STR("\n\n"));
+    fprintf_raw(f, Buffer_toSlice(it->content));
+    fprintf_s(f, STR("\n"));
 }
