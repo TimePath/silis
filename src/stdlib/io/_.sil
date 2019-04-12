@@ -4,6 +4,6 @@
 
 (#extern puts (#types/func [#types/string #types/int]))
 
-(#define print (#func [(#types/string s) ()] {
+(#define print (#func [(#types/string s) (#types/int)] {
     (#untyped "puts(s)")
 }))

@@ -30,7 +30,7 @@ Target target_c = {
         ._identifier = tgt_c_identifier,
 };
 
-const size_t FLAG_HEADER = 1 << 0;
+static const size_t FLAG_HEADER = 1 << 0;
 
 typedef struct {
     bool local;

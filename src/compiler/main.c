@@ -38,16 +38,17 @@ MAIN(main)
 #define OUTPUT_BUFFER 0
 #endif
 
-Target *target(String targetName)
+static Target *target(String targetName)
 {
 #define X(id) if (String_equals(targetName, STR(#id))) return &target_##id;
     X(c);
     X(js);
 #undef X
     assert(false);
+    return NULL;
 }
 
-void emit(Env env, File *f, compile_file *it);
+static void emit(Env env, File *f, compile_file *it);
 
 size_t main(Slice(String)
                     args)
@@ -176,7 +177,7 @@ size_t main(Slice(String)
     return EXIT_SUCCESS;
 }
 
-void emit(Env env, File *f, compile_file *it)
+static void emit(Env env, File *f, compile_file *it)
 {
     fprintf_s(f, STR("// file://"));
     Buffer buf = Buffer_new();
