@@ -12,7 +12,7 @@ in
 let
 inherit (pkgs) lib stdenv;
 identity = it: it;
-m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" "cc" "type" ]; } (with pkgs; {
+m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "libc" "cc" "type" "link" ]; } (with pkgs; {
     cc = {
         default = identity;
 
@@ -20,7 +20,7 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
             nativeBuildInputs = [ pkgs.cmake ] ++ old.nativeBuildInputs;
             installPhase = ''
                 mkdir -p $out/bin
-                mv silis.js $out/bin
+                mv silisc.js $out/bin
             '';
             NIX_CFLAGS_COMPILE = "";
             configurePhase = ''
@@ -61,6 +61,9 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
         clang7 = pkg: pkg.override { stdenv = overrideCC stdenv clang_7; };
 
         tcc = pkg: (pkg.override { stdenv = overrideCC stdenv tinycc; }).overrideAttrs (oldAttrs: {
+            cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [
+                " -DTinyCC:BOOL=ON"
+            ];
             CC = "tcc";
             patchPhase = ''
                 grep -l -R "#pragma once" src | while read f; do
@@ -75,9 +78,6 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
                 ++ lib.optionals (pkg.stdenv.isStatic or false) [ pkgs.glibc.static ];
         });
         musl = pkg: pkg.overrideAttrs (oldAttrs: {
-            cmakeFlags = [
-                " -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON"
-            ];
             CFLAGS = [
                 "-isystem ${pkgs.musl}/include"
                 "-L${pkgs.musl}/lib"
@@ -87,20 +87,7 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "link" "libc" 
     };
     link = {
         default = identity;
-        static = pkg: let
-            makeStaticBinaries = stdenv: stdenv // {
-                mkDerivation = args:
-                if stdenv.hostPlatform.isDarwin
-                then throw "Cannot build fully static binaries on Darwin/macOS"
-                else stdenv.mkDerivation (args // {
-                    NIX_CFLAGS_LINK = toString (args.NIX_CFLAGS_LINK or "") + "-static";
-                    configureFlags = (args.configureFlags or []) ++ [
-                        "--disable-shared" # brrr...
-                    ];
-                });
-            };
-            stdenv = makeStaticBinaries pkg.stdenv;
-        in (pkg.override { inherit stdenv; }) // { inherit stdenv; };
+        static = pkg: pkgs.pkgsStatic.stdenv.mkDerivation pkg.drvAttrs;
     };
     type = {
         default = identity;
@@ -162,9 +149,11 @@ targets = removeAttrs (m "silis" pkgs.silis) [
     "silis-tcc-musl-static"
     "silis-tcc-musl-static-debug"
 
-    # default-*-static-*
-    "silis-static"
-    "silis-static-debug"
+    # tcc-default-static-*
+    "silis-tcc-static"
+    "silis-tcc-static-debug"
+
+    # default-musl-static-*
     "silis-musl-static"
     "silis-musl-static-debug"
 

@@ -6,20 +6,20 @@ static interchange lisp in stages
 
 ```bash
 cmake -H. -Bcmake-build-debug && cmake --build cmake-build-debug -- -j$(nproc) 
-./cmake-build-debug/silis c . . tests/hello.sil
+./cmake-build-debug/silisc c . . tests/hello.sil
 ```
 
 ## benchmark
 
 ```
-nix-build -A silis-gcc-static release.nix && time ./result/bin/silis c . . tests/hello.sil | wc -l
-nix-build -A silis-gcc-musl-static release.nix && time ./result/bin/silis c . . tests/hello.sil | wc -l
+nix-build -A silis-gcc-static release.nix && time ./result/bin/silisc c . . tests/hello.sil | wc -l
+nix-build -A silis-gcc-musl-static release.nix && time ./result/bin/silisc c . . tests/hello.sil | wc -l
 ```
 
 ## profile
 
 ```
-valgrind --tool=callgrind ./cmake-build-debug/silis c . . tests/hello.sil >/dev/null
+valgrind --tool=callgrind ./cmake-build-debug/silisc c . . tests/hello.sil >/dev/null
 ```
 
 `kcachegrind` the generated `callgrind.out.${PID}` file

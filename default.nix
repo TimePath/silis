@@ -17,7 +17,7 @@ stdenv.mkDerivation {
     nativeBuildInputs = [ pkgs.cmake_2_8 ];
     installPhase = ''
         mkdir -p $out/bin
-        mv silis $out/bin
+        mv silisc $out/bin
     '';
     dontStrip = if debug then true else false;
     cmakeBuildType = if debug then "Debug" else "Release";
