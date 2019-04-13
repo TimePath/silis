@@ -46,6 +46,6 @@ void compile_file_delete(compile_file *self);
 Slice_instantiate(compile_file);
 Vector_instantiate(compile_file);
 
-compilation_file_ref compilation_include(compilation_t *self, FilePath path);
+compilation_file_ref compilation_include(compilation_t *self, FileSystem *fs, FilePath path);
 
 void compilation_begin(compilation_t *self, compilation_file_ref file, Env env);

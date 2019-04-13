@@ -4,11 +4,21 @@
 #include "buffer.h"
 #include "stdio.h"
 
-// todo: create multiple filesystem roots
-
 void FilePath_delete(FilePath *self)
 {
     Vector_delete(String, &self->parts);
+}
+
+void FileSystem_delete(FileSystem *self)
+{
+    FilePath_delete(&self->root);
+}
+
+FileSystem fs_root(FilePath root)
+{
+    return (FileSystem) {
+            .root = root,
+    };
 }
 
 FilePath fs_dirname(FilePath self)
@@ -129,11 +139,11 @@ File *fs_open_(File_class class, void *self)
     return ret;
 }
 
-static File *fs_open_native(FilePath path, String mode);
+static File *fs_open_native(FileSystem *fs, FilePath path, String mode);
 
-File *fs_open(FilePath path, String mode)
+File *fs_open(FileSystem *fs, FilePath path, String mode)
 {
-    return fs_open_native(path, mode);
+    return fs_open_native(fs, path, mode);
 }
 
 ssize_t fs_read(File *self, Slice(uint8_t) out)
@@ -201,9 +211,9 @@ void fs_popd(fs_dirtoken tok)
     free(s);
 }
 
-uint8_t *fs_read_all(FilePath path, String *out)
+uint8_t *fs_read_all(FileSystem *fs, FilePath path, String *out)
 {
-    File *file = fs_open(path, STR("rb"));
+    File *file = fs_open(fs, path, STR("rb"));
     if (!file) {
         return false;
     }
@@ -271,9 +281,12 @@ File *fs_stdout(void)
     return ret;
 }
 
-static File *fs_open_native(FilePath path, String mode)
+static File *fs_open_native(FileSystem *fs, FilePath path, String mode)
 {
     Buffer buf = Buffer_new();
+    fs_path_to_native(fs->root, &buf);
+    String slash = STR("/");
+    Vector_push(&buf, *Slice_at(&slash.bytes, 0));
     native_char_t *p = String_cstr(fs_path_to_native(path, &buf));
     Buffer_delete(&buf);
     native_char_t *m = String_cstr(mode);

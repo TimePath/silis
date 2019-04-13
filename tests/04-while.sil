@@ -1,4 +1,4 @@
-(#include "../src/stdlib/_.sil")
+(#include "src/stdlib/_.sil")
 
 (#extern puts (#types/func [#types/string #types/int]))
 

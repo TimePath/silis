@@ -32,6 +32,14 @@ typedef struct {
 
 void FilePath_delete(FilePath *self);
 
+typedef struct {
+    FilePath root;
+} FileSystem;
+
+void FileSystem_delete(FileSystem *self);
+
+FileSystem fs_root(FilePath root);
+
 FilePath fs_dirname(FilePath self);
 
 FilePath fs_path_from(String path);
@@ -48,7 +56,7 @@ File *fs_open_(File_class class, void *self);
 
 File *fs_stdout(void);
 
-File *fs_open(FilePath path, String mode);
+File *fs_open(FileSystem *fs, FilePath path, String mode);
 
 ssize_t fs_read(File *self, Slice(uint8_t) out);
 
@@ -62,7 +70,7 @@ ssize_t fs_flush(File *self);
 
 ssize_t fs_close(File *self);
 
-uint8_t *fs_read_all(FilePath path, String *out);
+uint8_t *fs_read_all(FileSystem *fs, FilePath path, String *out);
 
 typedef struct {
     native_char_t *prev;

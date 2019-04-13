@@ -53,6 +53,11 @@ static void emit(Env env, File *f, compile_file *it);
 size_t main(Slice(String)
                     args)
 {
+    #define arg(name) 1
+    #define opt(name) 0
+    assert(Slice_size(&args) >= arg(self) + arg(target) + arg(dir_in) + arg(dir_out) + arg(main) + opt(out));
+    #undef opt
+    #undef arg
     struct {
         bool run : 1;
         bool print_lex : 1;
@@ -74,8 +79,12 @@ size_t main(Slice(String)
 
     File *out = fs_stdout();
     String targetName = *Slice_at(&args, 1);
-    FilePath inputFilePath = fs_path_from_native(*Slice_at(&args, 2));
-    File *outputFile = Slice_size(&args) >= 4 ? fs_open(fs_path_from_native(*Slice_at(&args, 3)), STR("w")) : out;
+    FileSystem _fs_in = fs_root(fs_path_from_native(*Slice_at(&args, 2)));
+    FileSystem *fs_in = &_fs_in;
+    FileSystem _fs_out = fs_root(fs_path_from_native(*Slice_at(&args, 3)));
+    FileSystem *fs_out = &_fs_out;
+    FilePath inputFilePath = fs_path_from_native(*Slice_at(&args, 4));
+    File *outputFile = Slice_size(&args) > 5 ? fs_open(fs_out, fs_path_from_native(*Slice_at(&args, 5)), STR("w")) : out;
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
@@ -85,7 +94,7 @@ size_t main(Slice(String)
             .files = Vector_new(),
     };
     compilation_t *compilation = &_compilation;
-    compilation_file_ref mainFile = compilation_include(compilation, inputFilePath);
+    compilation_file_ref mainFile = compilation_include(compilation, fs_in, inputFilePath);
 
     types_t _types = types_new();
     types_t *types = &_types;
@@ -123,6 +132,7 @@ size_t main(Slice(String)
     }));
     symbols_t *symbols = &_symbols;
     Env env = (Env) {
+            .fs_in = fs_in,
             .compilation = compilation,
             .types = types,
             .symbols = symbols,
@@ -174,6 +184,8 @@ size_t main(Slice(String)
     Vector_delete(compilation_file_ptr_t, &env.compilation->files);
     Vector_delete(type_t, &env.types->all);
     Vector_delete(sym_scope_t, &env.symbols->scopes);
+    FileSystem_delete(fs_out);
+    FileSystem_delete(fs_in);
     return EXIT_SUCCESS;
 }
 
@@ -181,6 +193,9 @@ static void emit(Env env, File *f, compile_file *it)
 {
     fprintf_s(f, STR("// file://"));
     Buffer buf = Buffer_new();
+    fs_path_to_native(env.fs_in->root, &buf);
+    String slash = STR("/");
+    Vector_push(&buf, *Slice_at(&slash.bytes, 0));
     const compilation_file_t *infile = compilation_file(env.compilation, it->file);
     fs_path_to_native(infile->path, &buf);
     String dot = STR(".");

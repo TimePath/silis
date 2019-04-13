@@ -60,10 +60,10 @@ const node_t *compilation_node(const compilation_t *self, compilation_node_ref r
     return node;
 }
 
-compilation_file_ref compilation_include(compilation_t *self, FilePath path)
+compilation_file_ref compilation_include(compilation_t *self, FileSystem *fs, FilePath path)
 {
     String fileStr;
-    uint8_t *read = fs_read_all(path, &fileStr);
+    uint8_t *read = fs_read_all(fs, path, &fileStr);
     if (!read) {
         assert(read && "read from file");
         return (compilation_file_ref) {0};

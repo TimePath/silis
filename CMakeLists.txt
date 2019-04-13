@@ -116,7 +116,7 @@ function(test file)
             NAME ${name}
             COMMAND ${ENV}
                 CC=${CMAKE_C_COMPILER}
-                $<TARGET_FILE:silis-test> $<TARGET_FILE:silis> ${pwd}/${file}
+                $<TARGET_FILE:silis-test> $<TARGET_FILE:silis> ${pwd} ${pwd} ${file}
     )
     list(APPEND tests ${pwd}/${file})
     set(tests ${tests} PARENT_SCOPE)

@@ -13,34 +13,40 @@ static char _va_buf[1024];
     printf("run: "); \
     printf(__VA_ARGS__); \
     printf("\n"); \
-    ret = WEXITSTATUS(system(va(__VA_ARGS__))); \
+    ret = system(va(__VA_ARGS__)); \
+    if (WIFEXITED(ret)) printf("run: status: %d\n", WEXITSTATUS(ret)); \
+    if (WIFSIGNALED(ret)) printf("run: signal %d\n", WTERMSIG(ret)); \
+    ret = WEXITSTATUS(ret) || WTERMSIG(ret); \
 } while (0)
 
 #define run_or_exit(...) do { \
     run(__VA_ARGS__); \
-    if (ret) goto exit; \
+    if (ret) return EXIT_FAILURE; \
 } while (0)
 
 int main(int argc, const char *argv[]) {
     (void) argc;
     int ret = 0;
-    char const *target = "c";
     char const *PWD = getenv("PWD");
     char const *CC = getenv("CC");
     char const *silis = argv[1];
-    char const *test = argv[2];
+    char const *target = "c";
+    char const *dir_in = argv[2];
+    char const *dir_out = argv[3];
+    char const *test = argv[4];
     printf("PWD=%s\n", PWD);
     printf("CC=%s\n", CC);
     printf("silis=%s\n", silis);
+    printf("dir_in=%s\n", dir_in);
+    printf("dir_out=%s\n", dir_out);
     printf("test=%s\n", test);
-    run_or_exit("%s %s %s %s.c", silis, target, test, test);
+    run_or_exit("%s %s %s %s %s %s.c", silis, target, dir_in, dir_out, test, test);
 #ifdef _WIN32
-    run_or_exit("\"%s\" %s.c /Fe:%s.exe", CC, test, test);
+    run_or_exit("\"%s\" %s\\%s.c /Fe:%s\\%s.exe", CC, dir_out, test, dir_out, test);
+    run("%s\\%s.exe", dir_out, test);
 #else
-    run_or_exit("%s %s.c -o %s.exe", CC, test, test);
+    run_or_exit("%s %s/%s.c -o %s/%s.exe", CC, dir_out, test, dir_out, test);
+    run("%s/%s.exe", dir_out, test);
 #endif
-    run("%s.exe", test);
-    exit:
-    printf("Exit code: %d\n", ret);
-    return ret;
+    return EXIT_SUCCESS;
 }
