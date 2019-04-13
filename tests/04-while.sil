@@ -1,4 +1,6 @@
-(#include "src/stdlib/_.sil")
+(#define Int.dec (#func [(#types/int self) (#types/int)] {
+    (#untyped "self - 1")
+}))
 
 (#extern puts (#types/func [#types/string #types/int]))
 
