@@ -24,7 +24,7 @@ typedef struct types_s {
     type_id t_int;
 } types_t;
 
-types_t types_new(void);
+types_t types_new(Allocator *allocator);
 
 type_id type_new(types_t *ctx, type_t it);
 

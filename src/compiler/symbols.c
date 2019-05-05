@@ -11,9 +11,9 @@ void sym_scope_t_delete(sym_scope_t *self)
     _Vector_delete(&self->t.entries);
 }
 
-symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin)
+symbols_t symbols_new(Allocator *allocator, types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin)
 {
-    symbols_t ret = symbols_t_new();
+    symbols_t ret = symbols_t_new(allocator);
     symbols_t *self = &ret;
     sym_push(self);
     Slice_loop(&init, i) {
@@ -41,10 +41,10 @@ symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSy
     return ret;
 }
 
-static sym_scope_t sym_trie_new(size_t parent)
+static sym_scope_t sym_trie_new(Allocator *allocator, size_t parent)
 {
     sym_scope_t self = (sym_scope_t) {.parent = parent};
-    Trie_new(sym_t, &self.t);
+    Trie_new(sym_t, allocator, &self.t);
     return self;
 }
 
@@ -60,9 +60,10 @@ static void sym_trie_set(sym_scope_t *self, String ident, sym_t val)
 
 void sym_push(symbols_t *symbols)
 {
+    Allocator *allocator = symbols->_allocator;
     size_t size = Vector_size(&symbols->scopes);
     size_t parent = !size ? 0 : size - 1;
-    sym_scope_t newscope = sym_trie_new(parent);
+    sym_scope_t newscope = sym_trie_new(allocator, parent);
     Vector_push(&symbols->scopes, newscope);
 }
 

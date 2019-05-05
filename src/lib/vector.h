@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocator.h"
 #include "macro.h"
 #include "slice.h"
 
@@ -7,11 +8,13 @@
 #define Vector_instantiate(T) typedef Vector_(T) Vector(T)
 #define Vector_(T) \
 struct { \
+    Allocator *_allocator; \
     size_t _size; \
     T *_data; \
 }
 
-#define Vector_new() { \
+#define Vector_new(allocator) { \
+    ._allocator = allocator, \
     ._size = 0, \
     ._data = NULL, \
 } \

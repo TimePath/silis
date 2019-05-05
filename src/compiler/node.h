@@ -83,4 +83,4 @@ nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_re
 
 compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref node);
 
-void node_print(File *f, Slice(node_t) nodes);
+void node_print(Allocator *allocator, File *f, Slice(node_t) nodes);

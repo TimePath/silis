@@ -4,6 +4,7 @@
 #include <lib/stdio.h>
 
 typedef struct {
+    Allocator *allocator;
     File *out;
     Slice(token_t) tokens;
 } token_print_ctx_t;
@@ -17,9 +18,10 @@ typedef struct {
 
 static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it, size_t id);
 
-void token_print(File *f, Slice(token_t) tokens)
+void token_print(Allocator *allocator, File *f, Slice(token_t) tokens)
 {
     token_print_ctx_t ctx = {
+            .allocator = allocator,
             .out = f,
             .tokens = tokens,
     };
@@ -36,12 +38,13 @@ void token_print(File *f, Slice(token_t) tokens)
 
 static void _token_print_indent(token_print_ctx_t *ctx, token_print_state_t *state)
 {
+    Allocator *allocator = ctx->allocator;
     if (state->needLine) {
         fprintf_s(ctx->out, STR("\n"));
         state->needLine = false;
     }
     if (state->needTab) {
-        fprintf_s(ctx->out, String_indent(2 * state->depth));
+        fprintf_s(ctx->out, String_indent(allocator, 2 * state->depth));
         state->needTab = false;
     }
 }

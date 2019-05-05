@@ -47,8 +47,9 @@ static size_t lex_list(lex_context *ctx, String prog);
 
 lex_output do_lex(lex_input in)
 {
+    Allocator *allocator = in.allocator;
     lex_context ctx = (lex_context) {
-        .tokens = Vector_new(),
+        .tokens = Vector_new(allocator),
     };
     lex_list(&ctx, in.source);
     return (lex_output) {.tokens = ctx.tokens};

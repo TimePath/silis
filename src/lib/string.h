@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocator.h"
 #include "macro.h"
 #include "slice.h"
 #include "vector.h"
@@ -79,8 +80,8 @@ INLINE size_t String_sizeBytes(String self)
 
 bool String_equals(String self, String other);
 
-String String_indent(size_t n);
+String String_indent(Allocator *allocator, size_t n);
 
-native_char_t *String_cstr(String self);
+native_char_t *String_cstr(Allocator *allocator, String self);
 
 bool String_delim(String *tail, String delim, String *head);

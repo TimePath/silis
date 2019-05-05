@@ -50,9 +50,57 @@ static Target *target(String targetName)
 
 static void emit(Env env, File *f, compile_file *it);
 
-size_t main(Slice(String)
-                    args)
+typedef struct {
+    Allocator interface;
+    Allocator *implementation;
+    size_t size;
+    size_t max_size;
+} DebugAllocator;
+
+typedef struct {
+    size_t size;
+} DebugAllocation;
+
+void *DebugAllocator_alloc(void *_self, size_t size)
 {
+    DebugAllocator *self = (DebugAllocator *) _self;
+    DebugAllocation *mem = Allocator_alloc(self->implementation, sizeof(DebugAllocation) + size);
+    mem->size = size;
+    self->size += size;
+    self->max_size = self->size > self->max_size ? self->size : self->max_size;
+    return mem + 1;
+}
+
+void *DebugAllocator_realloc(void *_self, void *ptr, size_t size)
+{
+    DebugAllocator *self = (DebugAllocator *) _self;
+    DebugAllocation *mem = ptr ? ((DebugAllocation *) ptr) - 1 : NULL;
+    if (mem) {
+        self->size -= mem->size;
+    }
+    mem = Allocator_realloc(self->implementation, mem, sizeof(DebugAllocation) + size);
+    mem->size = size;
+    self->size += size;
+    self->max_size = self->size > self->max_size ? self->size : self->max_size;
+    return mem + 1;
+}
+
+void DebugAllocator_free(void *_self, void *ptr)
+{
+    if (!ptr) return;
+    DebugAllocator *self = (DebugAllocator *) _self;
+    DebugAllocation *mem = ((DebugAllocation *) ptr) - 1;
+    self->size -= mem->size;
+    Allocator_free(self->implementation, mem);
+}
+
+size_t main(Allocator *allocator, Slice(String) args)
+{
+    DebugAllocator debugAllocator = (DebugAllocator) {
+            .interface = {.alloc = DebugAllocator_alloc, .realloc = DebugAllocator_realloc, .free = DebugAllocator_free},
+            .implementation = allocator,
+    };
+    allocator = &debugAllocator.interface;
     #define arg(name) 1
     #define opt(name) 0
     assert(Slice_size(&args) >= arg(self) + arg(target) + arg(dir_in) + arg(dir_out) + arg(main) + opt(out));
@@ -77,29 +125,34 @@ size_t main(Slice(String)
             .buffer = OUTPUT_BUFFER,
     };
 
-    File *out = fs_stdout();
+    File *out = fs_stdout(allocator);
     String targetName = *Slice_at(&args, 1);
-    FileSystem _fs_in = fs_root(fs_path_from_native(*Slice_at(&args, 2)));
+    FileSystem _fs_in = fs_root(fs_path_from_native(allocator, *Slice_at(&args, 2)));
     FileSystem *fs_in = &_fs_in;
-    FileSystem _fs_out = fs_root(fs_path_from_native(*Slice_at(&args, 3)));
+    FileSystem _fs_out = fs_root(fs_path_from_native(allocator, *Slice_at(&args, 3)));
     FileSystem *fs_out = &_fs_out;
-    FilePath inputFilePath = fs_path_from_native(*Slice_at(&args, 4));
-    File *outputFile = Slice_size(&args) > 5 ? fs_open(fs_out, fs_path_from_native(*Slice_at(&args, 5)), STR("w")) : out;
+    FilePath inputFilePath = fs_path_from_native(allocator, *Slice_at(&args, 4));
+    FilePath outputFilePath;
+    File *outputFile = out;
+    if (Slice_size(&args) > 5) {
+        outputFilePath = fs_path_from_native(allocator, *Slice_at(&args, 5));
+        outputFile = fs_open(allocator, fs_out, outputFilePath, STR("w"));
+    }
 
     compilation_t _compilation = (compilation_t) {
             .debug = out,
             .flags.print_lex = flags.print_lex,
             .flags.print_parse = flags.print_parse,
             .flags.print_eval = flags.print_eval,
-            .files = Vector_new(),
+            .files = Vector_new(allocator),
     };
     compilation_t *compilation = &_compilation;
-    compilation_file_ref mainFile = compilation_include(compilation, fs_in, inputFilePath);
+    compilation_file_ref mainFile = compilation_include(allocator, compilation, fs_in, inputFilePath);
 
-    types_t _types = types_new();
+    types_t _types = types_new(allocator);
     types_t *types = &_types;
 
-    symbols_t _symbols = symbols_new(types,
+    symbols_t _symbols = symbols_new(allocator, types,
     Slice_of(InitialSymbol, (InitialSymbol[2]) {
             {.id = STR("#types/string"), .value = (value_t) {
                     .type = types->t_type,
@@ -132,13 +185,14 @@ size_t main(Slice(String)
     }));
     symbols_t *symbols = &_symbols;
     Env env = (Env) {
+            .allocator = allocator,
             .fs_in = fs_in,
             .compilation = compilation,
             .types = types,
             .symbols = symbols,
             .out = out,
     };
-    compilation_begin(compilation, mainFile, env);
+    compilation_begin(allocator, compilation, mainFile, env);
 
     if (flags.run) {
         if (flags.print_run) {
@@ -154,8 +208,8 @@ size_t main(Slice(String)
         if (flags.print_emit) {
             fprintf_s(out, STR("EMIT:\n----\n"));
         }
-        Buffer outBuf = Buffer_new();
-        File *f = flags.buffer ? Buffer_asFile(&outBuf) : outputFile;
+        Buffer outBuf = Buffer_new(allocator);
+        File *f = flags.buffer ? Buffer_asFile(allocator, &outBuf) : outputFile;
         emit_output ret = do_emit((emit_input) {
                 .env = env,
                 .target = target(targetName),
@@ -176,6 +230,7 @@ size_t main(Slice(String)
             fprintf_raw(outputFile, Buffer_toSlice(&outBuf));
         }
         if (outputFile != out) {
+            FilePath_delete(&outputFilePath);
             fs_close(outputFile);
         }
     }
@@ -186,18 +241,21 @@ size_t main(Slice(String)
     Vector_delete(sym_scope_t, &env.symbols->scopes);
     FileSystem_delete(fs_out);
     FileSystem_delete(fs_in);
+    fs_close(out);
+    assert(!debugAllocator.size && "no memory leaked");
     return EXIT_SUCCESS;
 }
 
 static void emit(Env env, File *f, compile_file *it)
 {
+    Allocator *allocator = env.allocator;
     fprintf_s(f, STR("// file://"));
-    Buffer buf = Buffer_new();
-    fs_path_to_native(env.fs_in->root, &buf);
+    Buffer buf = Buffer_new(allocator);
+    fs_path_to_native(allocator, env.fs_in->root, &buf);
     String slash = STR("/");
     Vector_push(&buf, *Slice_at(&slash.bytes, 0));
     const compilation_file_t *infile = compilation_file(env.compilation, it->file);
-    fs_path_to_native(infile->path, &buf);
+    fs_path_to_native(allocator, infile->path, &buf);
     String dot = STR(".");
     Vector_push(&buf, *Slice_at(&dot.bytes, 0));
     _Vector_push(sizeof(uint8_t), &buf, String_sizeBytes(it->ext), String_begin(it->ext), String_sizeBytes(it->ext));

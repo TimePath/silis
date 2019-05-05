@@ -10,6 +10,7 @@
 
 void compilation_file_t_delete(compilation_file_t *self)
 {
+    Allocator *allocator = self->allocator;
     FilePath_delete(&self->path);
     free(self->content);
     Vector_delete(token_t, &self->tokens);
@@ -17,14 +18,15 @@ void compilation_file_t_delete(compilation_file_t *self)
     free(self);
 }
 
-compile_file compile_file_new(compilation_file_ref file, String ext, size_t flags)
+compile_file compile_file_new(Allocator *allocator, compilation_file_ref file, String ext, size_t flags)
 {
     Buffer *content = malloc(sizeof(*content));
-    *content = Buffer_new();
+    *content = Buffer_new(allocator);
     return (compile_file) {
+            .allocator = allocator,
             .file = file,
             .content = content,
-            .out = Buffer_asFile(content),
+            .out = Buffer_asFile(allocator, content),
             .ext = ext,
             .flags = flags,
     };
@@ -32,6 +34,7 @@ compile_file compile_file_new(compilation_file_ref file, String ext, size_t flag
 
 void compile_file_delete(compile_file *self)
 {
+    Allocator *allocator = self->allocator;
     fs_close(self->out);
     Buffer_delete(self->content);
     free(self->content);
@@ -60,10 +63,10 @@ const node_t *compilation_node(const compilation_t *self, compilation_node_ref r
     return node;
 }
 
-compilation_file_ref compilation_include(compilation_t *self, FileSystem *fs, FilePath path)
+compilation_file_ref compilation_include(Allocator *allocator, compilation_t *self, FileSystem *fs, FilePath path)
 {
     String fileStr;
-    uint8_t *read = fs_read_all(fs, path, &fileStr);
+    uint8_t *read = fs_read_all(allocator, fs, path, &fileStr);
     if (!read) {
         assert(read && "read from file");
         return (compilation_file_ref) {0};
@@ -74,10 +77,11 @@ compilation_file_ref compilation_include(compilation_t *self, FileSystem *fs, Fi
         fprintf_s(self->debug, STR("LEX:\n---\n"));
     }
     lex_output lex = do_lex((lex_input) {
-            .source = fileStr,
+        .allocator = allocator,
+        .source = fileStr,
     });
     if (self->flags.print_lex) {
-        token_print(self->debug, Vector_toSlice(token_t, &lex.tokens));
+        token_print(allocator, self->debug, Vector_toSlice(token_t, &lex.tokens));
         fprintf_s(self->debug, STR("\n\n"));
     }
 
@@ -85,15 +89,17 @@ compilation_file_ref compilation_include(compilation_t *self, FileSystem *fs, Fi
         fprintf_s(self->debug, STR("PARSE:\n-----\n"));
     }
     parse_output parse = do_parse((parse_input) {
+            .allocator = allocator,
             .file = ret,
             .tokens = lex.tokens,
     });
     if (self->flags.print_parse) {
-        node_print(self->debug, Vector_toSlice(node_t, &parse.nodes));
+        node_print(allocator, self->debug, Vector_toSlice(node_t, &parse.nodes));
         fprintf_s(self->debug, STR("\n"));
     }
     compilation_file_t *file = malloc(sizeof(*file));
     *file = (compilation_file_t) {
+            .allocator = allocator,
             .path = path,
             .content = read,
             .tokens = lex.tokens,
@@ -105,11 +111,11 @@ compilation_file_ref compilation_include(compilation_t *self, FileSystem *fs, Fi
     return ret;
 }
 
-void compilation_begin(compilation_t *self, compilation_file_ref file, Env env)
+void compilation_begin(Allocator *allocator, compilation_t *self, compilation_file_ref file, Env env)
 {
     const compilation_file_t *f = compilation_file(self, file);
-    FilePath dir = fs_dirname(f->path);
-    fs_dirtoken state = fs_pushd(dir);
+    FilePath dir = fs_dirname(allocator, f->path);
+    fs_dirtoken state = fs_pushd(allocator, dir);
     FilePath_delete(&dir);
 
     if (self->flags.print_eval) {

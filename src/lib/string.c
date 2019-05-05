@@ -1,6 +1,8 @@
 #include <system.h>
 #include "string.h"
 
+#include "allocator.h"
+
 bool String_equals(String self, String other)
 {
     const size_t selfSize = String_sizeBytes(self);
@@ -8,30 +10,36 @@ bool String_equals(String self, String other)
     return selfSize == otherSize && memcmp(String_begin(self), String_begin(other), selfSize) == 0;
 }
 
-static native_char_t *spaces(size_t n)
+static native_char_t *spaces(Allocator *allocator, size_t n)
 {
-	static native_char_t *spaces = NULL;
+    static native_char_t *_spaces = NULL;
 	static size_t i = 0;
 	static size_t biggest = 0;
+    if (n == 0) {
+        i = 0;
+        biggest = 0;
+        free(_spaces);
+        return (_spaces = NULL);
+    }
 	if (n > biggest) {
         biggest = n;
-        spaces = realloc(spaces, n + 1);
+        _spaces = realloc(_spaces, n + 1);
         for (; i < n; ++i) {
-            spaces[i] = ' ';
+            _spaces[i] = ' ';
         }
-        spaces[i] = 0;
+        _spaces[i] = 0;
 	}
-	return spaces;
+	return _spaces;
 }
 
-String String_indent(size_t n)
+String String_indent(Allocator *allocator, size_t n)
 {
-    const uint8_t *p = (const uint8_t *) spaces(n);
+    const uint8_t *p = (const uint8_t *) spaces(allocator, n);
     Slice(uint8_t) slice = {._begin = p, ._end = p + n};
     return String_fromSlice(slice, ENCODING_COMPILER);
 }
 
-native_char_t *String_cstr(String self)
+native_char_t *String_cstr(Allocator *allocator, String self)
 {
     size_t n = String_sizeBytes(self);
     native_char_t *buf = malloc(n + 1);

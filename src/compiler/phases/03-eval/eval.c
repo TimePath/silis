@@ -11,7 +11,7 @@ typedef struct {
 
 #define eval_ctx_new(_env) ((eval_ctx) { \
     .env = _env, \
-    .stack = Vector_new(), \
+    .stack = Vector_new(_env.allocator), \
 })
 
 static value_t do_eval_list_block(eval_ctx *ctx, compilation_node_ref it);

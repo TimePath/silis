@@ -46,8 +46,8 @@ static void tgt_js_print_function(struct Target *target, Env env, const compile_
 static void tgt_js_file_begin(struct Target *target, Env env, compilation_file_ref file_ref, Vector(compile_file) *files)
 {
     (void) target;
-    (void) env;
-    compile_file _file = compile_file_new(file_ref, types ? STR("ts") : STR("js"), 0);
+    Allocator *allocator = env.allocator;
+    compile_file _file = compile_file_new(allocator, file_ref, types ? STR("ts") : STR("js"), 0);
     Vector_push(files, _file);
 }
 

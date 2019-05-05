@@ -9,6 +9,7 @@ INTRINSIC_IMPL(func, ((type_id[]) {
         types->t_unit,
 }))
 {
+    Allocator *allocator = env.allocator;
     const value_t *arg_args = Slice_at(&argv, 0);
     const value_t *arg_body = Slice_at(&argv, 1);
 

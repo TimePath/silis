@@ -4,6 +4,7 @@
 #include <compiler/token.h>
 
 typedef struct {
+    Allocator *allocator;
     compilation_file_ref file;
     const Vector(token_t) tokens;
 } parse_input;

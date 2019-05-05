@@ -9,9 +9,9 @@ static File_class File_memory = {
         .write = File_memory_write,
 };
 
-File *Buffer_asFile(Buffer *self)
+File *Buffer_asFile(Allocator *allocator, Buffer *self)
 {
-    return fs_open_(File_memory, self);
+    return fs_open_(allocator, File_memory, self);
 }
 
 static ssize_t File_memory_write(void *_self, Slice(uint8_t) in)

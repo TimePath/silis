@@ -5,6 +5,7 @@
 #include <compiler/token.h>
 
 typedef struct {
+    Allocator *allocator;
     const String source;
 } lex_input;
 

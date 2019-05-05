@@ -15,6 +15,9 @@
 
 #define CAST(T, U, it) ((union { U from; T to; }) { .from = (it) }.to)
 
+#define EMPTY()
+#define NOEXPAND(...) __VA_ARGS__ EMPTY()
+
 #define CAT2(_0, _1) _CAT2(_0, _1)
 #define _CAT2(_0, _1) _0 ## _1
 #define CAT3(_0, _1, _2) _0 ## _1 ## _2

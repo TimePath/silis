@@ -17,11 +17,12 @@ static size_t do_parse_rec(parse_ctx *ctx, const token_t *it);
 
 parse_output do_parse(parse_input in)
 {
+    Allocator *allocator = in.allocator;
     parse_ctx ctx = (parse_ctx) {
             .file = in.file,
             .tokens = in.tokens,
-            .nodes = Vector_new(),
-            .stack = Vector_new(),
+            .nodes = Vector_new(allocator),
+            .stack = Vector_new(allocator),
     };
     do_parse_rec(&ctx, Vector_at(&ctx.tokens, 0));
     assert(Vector_size(&ctx.stack) == 1 && "stack contains result");

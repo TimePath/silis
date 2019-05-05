@@ -133,12 +133,6 @@ enum {
     EXIT_SUCCESS = 0,
 };
 
-extern void *malloc(size_t size);
-
-extern void free(void *ptr);
-
-extern void *realloc(void *ptr, size_t size);
-
 #endif
 
 #if USE_REAL_HEADERS
@@ -163,20 +157,33 @@ typedef int native_int_t;
 typedef long native_long_t;
 #define long __DO_NOT_USE__
 
+#define malloc(size) Allocator_alloc(allocator, size)
+#define realloc(ptr, size) Allocator_realloc(allocator, ptr, size)
+#define free(ptr) Allocator_free(allocator, ptr)
+
 #define main(...) _main(__VA_ARGS__)
 #define MAIN(impl) \
-size_t main(Slice(String) args); \
+size_t main(Allocator *allocator, Slice(String) args); \
+void *CAllocator_alloc(void *self, size_t size) { (void) self; extern void *(malloc)(size_t size); return (malloc)(size); } \
+void *CAllocator_realloc(void *self, void *ptr, size_t size) { (void) self; extern void *(realloc)(void *ptr, size_t size); return (realloc)(ptr, size); } \
+void CAllocator_free(void *self, void *ptr) { (void) self; extern void (free)(void *ptr); (free)(ptr); } \
 native_int_t (main)(native_int_t argc, native_string_t argv[]) \
 { \
+    Allocator _allocator = (Allocator) { \
+        .alloc = CAllocator_alloc, \
+        .realloc = CAllocator_realloc, \
+        .free = CAllocator_free, \
+    }; \
+    Allocator *allocator = &_allocator; \
     extern size_t strlen(native_string_t __s); \
-    Vector(String) args = Vector_new(); \
+    Vector(String) args = Vector_new(allocator); \
     for (size_t i = 0; i < (size_t) argc; ++i) { \
         native_string_t cstr = argv[i]; \
         Slice(uint8_t) slice = {._begin = (const uint8_t *) cstr, ._end = (const uint8_t *) (cstr + strlen(cstr))}; \
         String s = String_fromSlice(slice, ENCODING_SYSTEM); \
         Vector_push(&args, s); \
     } \
-    size_t ret = impl(Vector_toSlice(String, &args)); \
+    size_t ret = impl(allocator, Vector_toSlice(String, &args)); \
     Vector_delete(String, &args); \
     return (native_int_t) ret; \
 }

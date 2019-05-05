@@ -1,10 +1,10 @@
 #include <system.h>
 #include "types.h"
 
-types_t types_new(void)
+types_t types_new(Allocator *allocator)
 {
     types_t _self = {
-            .all = Vector_new(),
+            .all = Vector_new(allocator),
             .t_untyped = {.value = 0},
             .t_unit = {.value = 0},
             .t_type = {.value = 0},

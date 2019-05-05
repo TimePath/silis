@@ -29,7 +29,7 @@ typedef struct {
 #define LINE(...) MACRO_BEGIN \
     ctx->depth = ctx->depth __VA_ARGS__; \
     fprintf_s(file->out, STR("\n")); \
-    fprintf_s(file->out, String_indent(ctx->depth * 4)); \
+    fprintf_s(file->out, String_indent(allocator, ctx->depth * 4)); \
 MACRO_END
 
 #define SEMI() fprintf_s(file->out, STR(";"))
@@ -61,7 +61,8 @@ static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, co
 
 emit_output do_emit(emit_input in)
 {
-    Vector(compile_file) files = Vector_new();
+    Allocator *allocator = in.env.allocator;
+    Vector(compile_file) files = Vector_new(allocator);
 
     emit_ctx _ctx = {
             .env = in.env,
@@ -334,6 +335,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
 static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t ret,
                             compilation_node_ref it)
 {
+    Allocator *allocator = ctx->env.allocator;
     assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN && "it is list");
     nodelist childrenRaw = nodelist_iterator(ctx->env.compilation, it);
     const size_t n = childrenRaw._n;
@@ -343,7 +345,7 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
         visit_node(ctx, file, ret, first);
         return;
     }
-    Vector(compilation_node_ref) _children = Vector_new();
+    Vector(compilation_node_ref) _children = Vector_new(allocator);
     Vector_push(&_children, first);
     for (size_t i = 1; i < n; ++i) {
         compilation_node_ref childref = nodelist_get(&childrenRaw, i);
@@ -363,6 +365,7 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
 static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t ret,
                             compilation_node_ref func, Slice(compilation_node_ref) children)
 {
+    Allocator *allocator = ctx->env.allocator;
     const size_t n = Slice_size(&children);
     (void) n;
     fprintf_s(file->out, STR("{"));
@@ -433,6 +436,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
 static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t ret,
                              compilation_node_ref func, Slice(compilation_node_ref) children)
 {
+    Allocator *allocator = ctx->env.allocator;
     const node_t *funcNode = compilation_node(ctx->env.compilation, func);
     if (funcNode->kind != NODE_ATOM) {
         return false;

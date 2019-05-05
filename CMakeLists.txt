@@ -39,6 +39,7 @@ function(main)
             src/system.h
 
             src/lib/encoding/ascii.c
+            src/lib/allocator.c
             src/lib/buffer.c
             src/lib/fs.c
             src/lib/macro.c

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocator.h"
 #include "buffer.h"
 #include "string.h"
 #include "vector.h"
@@ -19,6 +20,7 @@ typedef struct {
 } File_class;
 
 typedef struct File {
+    Allocator *allocator;
     File_class class;
     void *self;
 } File;
@@ -40,23 +42,23 @@ void FileSystem_delete(FileSystem *self);
 
 FileSystem fs_root(FilePath root);
 
-FilePath fs_dirname(FilePath self);
+FilePath fs_dirname(Allocator *allocator, FilePath self);
 
-FilePath fs_path_from(String path);
+FilePath fs_path_from(Allocator *allocator, String path);
 
-#define fs_path_from_native(path) fs_path_from_native_(path, !TARGET_OS_WIN)
+#define fs_path_from_native(allocator, path) fs_path_from_native_(allocator, path, !TARGET_OS_WIN)
 
-FilePath fs_path_from_native_(String path, bool nix);
+FilePath fs_path_from_native_(Allocator *allocator, String path, bool nix);
 
-#define fs_path_to_native(path, buf) fs_path_to_native_(path, buf, !TARGET_OS_WIN)
+#define fs_path_to_native(allocator, path, buf) fs_path_to_native_(allocator, path, buf, !TARGET_OS_WIN)
 
-String fs_path_to_native_(FilePath path, Buffer *buf, bool nix);
+String fs_path_to_native_(Allocator *allocator, FilePath path, Buffer *buf, bool nix);
 
-File *fs_open_(File_class class, void *self);
+File *fs_open_(Allocator *allocator, File_class class, void *self);
 
-File *fs_stdout(void);
+File *fs_stdout(Allocator *allocator);
 
-File *fs_open(FileSystem *fs, FilePath path, String mode);
+File *fs_open(Allocator *allocator, FileSystem *fs, FilePath path, String mode);
 
 ssize_t fs_read(File *self, Slice(uint8_t) out);
 
@@ -70,12 +72,13 @@ ssize_t fs_flush(File *self);
 
 ssize_t fs_close(File *self);
 
-uint8_t *fs_read_all(FileSystem *fs, FilePath path, String *out);
+uint8_t *fs_read_all(Allocator *allocator, FileSystem *fs, FilePath path, String *out);
 
 typedef struct {
+    Allocator *allocator;
     native_char_t *prev;
 } fs_dirtoken;
 
-fs_dirtoken fs_pushd(FilePath path);
+fs_dirtoken fs_pushd(Allocator *allocator, FilePath path);
 
 void fs_popd(fs_dirtoken tok);

@@ -47,6 +47,7 @@ compilation_node_ref node_deref(const compilation_t *compilation, compilation_no
 }
 
 typedef struct {
+    Allocator *allocator;
     File *out;
     Slice(node_t) nodes;
 } node_print_ctx_t;
@@ -60,9 +61,10 @@ typedef struct {
 
 static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it, size_t id);
 
-void node_print(File *f, Slice(node_t) nodes)
+void node_print(Allocator *allocator, File *f, Slice(node_t) nodes)
 {
     node_print_ctx_t ctx = {
+            .allocator = allocator,
             .out = f,
             .nodes = nodes,
     };
@@ -87,12 +89,13 @@ void node_print(File *f, Slice(node_t) nodes)
 
 static void _node_print_indent(node_print_ctx_t *ctx, node_print_state_t *state)
 {
+    Allocator *allocator = ctx->allocator;
     if (state->needLine) {
         fprintf_s(ctx->out, STR("\n"));
         state->needLine = false;
     }
     if (state->needTab) {
-        fprintf_s(ctx->out, String_indent(2 * state->depth));
+        fprintf_s(ctx->out, String_indent(allocator, 2 * state->depth));
         state->needTab = false;
     }
 }

@@ -19,11 +19,13 @@ void sym_scope_t_delete(sym_scope_t *self);
 Slice_instantiate(sym_scope_t);
 Vector_instantiate(sym_scope_t);
 typedef struct symbols_s {
+    Allocator *_allocator;
     Vector(sym_scope_t) scopes;
 } symbols_t;
 
-#define symbols_t_new() (symbols_t) { \
-    .scopes = Vector_new(), \
+#define symbols_t_new(allocator) (symbols_t) { \
+    ._allocator = allocator, \
+    .scopes = Vector_new(allocator), \
 } \
 /**/
 
@@ -44,7 +46,7 @@ typedef struct {
 } InitialSymbol_intrin;
 Slice_instantiate(InitialSymbol_intrin);
 
-symbols_t symbols_new(types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin);
+symbols_t symbols_new(Allocator *allocator, types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin);
 
 void sym_push(symbols_t *symbols);
 

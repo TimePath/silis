@@ -47,10 +47,10 @@ struct { \
     Vector(TrieEntry) entries; \
 }
 
-#define Trie_new(T, self) \
+#define Trie_new(T, allocator, self) \
 MACRO_BEGIN \
+*(self) = (Trie(T)) { .t_size = sizeof (T), .nodes = Vector_new(allocator), .entries = Vector_new(allocator), }; \
 const TrieNode(T) root = (TrieNode(T)) {.children = {0}, .initialised = false}; \
-(self)->t_size = sizeof (T); \
 Vector_push(&(self)->nodes, root); \
 MACRO_END
 
