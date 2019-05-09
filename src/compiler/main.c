@@ -61,7 +61,7 @@ typedef struct {
     size_t size;
 } DebugAllocation;
 
-void *DebugAllocator_alloc(void *_self, size_t size)
+static void *DebugAllocator_alloc(void *_self, size_t size)
 {
     DebugAllocator *self = (DebugAllocator *) _self;
     DebugAllocation *mem = Allocator_alloc(self->implementation, sizeof(DebugAllocation) + size);
@@ -71,7 +71,7 @@ void *DebugAllocator_alloc(void *_self, size_t size)
     return mem + 1;
 }
 
-void *DebugAllocator_realloc(void *_self, void *ptr, size_t size)
+static void *DebugAllocator_realloc(void *_self, void *ptr, size_t size)
 {
     DebugAllocator *self = (DebugAllocator *) _self;
     DebugAllocation *mem = ptr ? ((DebugAllocation *) ptr) - 1 : NULL;
@@ -85,7 +85,7 @@ void *DebugAllocator_realloc(void *_self, void *ptr, size_t size)
     return mem + 1;
 }
 
-void DebugAllocator_free(void *_self, void *ptr)
+static void DebugAllocator_free(void *_self, void *ptr)
 {
     if (!ptr) return;
     DebugAllocator *self = (DebugAllocator *) _self;

@@ -164,9 +164,9 @@ typedef long native_long_t;
 #define main(...) _main(__VA_ARGS__)
 #define MAIN(impl) \
 size_t main(Allocator *allocator, Slice(String) args); \
-void *CAllocator_alloc(void *self, size_t size) { (void) self; extern void *(malloc)(size_t size); return (malloc)(size); } \
-void *CAllocator_realloc(void *self, void *ptr, size_t size) { (void) self; extern void *(realloc)(void *ptr, size_t size); return (realloc)(ptr, size); } \
-void CAllocator_free(void *self, void *ptr) { (void) self; extern void (free)(void *ptr); (free)(ptr); } \
+static void *CAllocator_alloc(void *self, size_t size) { (void) self; extern void *(malloc)(size_t size); return (malloc)(size); } \
+static void *CAllocator_realloc(void *self, void *ptr, size_t size) { (void) self; extern void *(realloc)(void *ptr, size_t size); return (realloc)(ptr, size); } \
+static void CAllocator_free(void *self, void *ptr) { (void) self; extern void (free)(void *ptr); (free)(ptr); } \
 native_int_t (main)(native_int_t argc, native_string_t argv[]) \
 { \
     Allocator _allocator = (Allocator) { \
