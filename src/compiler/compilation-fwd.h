@@ -2,8 +2,8 @@
 
 #include <lib/vector.h>
 
-#include "token-fwd.h"
-#include "node-fwd.h"
+#include <parser/token.h>
+#include <parser/node.h>
 
 typedef struct compilation_s compilation_t;
 typedef struct compilation_file_s compilation_file_t;

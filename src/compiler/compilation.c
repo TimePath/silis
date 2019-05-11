@@ -4,8 +4,8 @@
 #include <lib/fs.h>
 #include <lib/stdio.h>
 
-#include <compiler/phases/01-lex/lex.h>
-#include <compiler/phases/02-parse/parse.h>
+#include <parser/lex.h>
+#include <parser/parse.h>
 #include <compiler/phases/03-eval/eval.h>
 
 void compilation_file_t_delete(compilation_file_t *self)
@@ -90,7 +90,6 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
     }
     parse_output parse = do_parse((parse_input) {
             .allocator = allocator,
-            .file = ret,
             .tokens = lex.tokens,
     });
     if (self->flags.print_parse) {

@@ -2,7 +2,7 @@
 
 #include <lib/string.h>
 
-#include <compiler/token.h>
+#include "token.h"
 
 typedef struct {
     Allocator *allocator;

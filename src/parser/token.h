@@ -1,10 +1,14 @@
 #pragma once
 
-#include "token-fwd.h"
-
 #include <lib/fs.h>
+#include <lib/slice.h>
 #include <lib/string.h>
 #include <lib/vector.h>
+
+typedef struct token_s token_t;
+
+Slice_instantiate(token_t);
+Vector_instantiate(token_t);
 
 typedef enum {
     TOKEN_INVALID,

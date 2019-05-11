@@ -5,8 +5,8 @@
 #include <lib/string.h>
 #include <lib/vector.h>
 
-#include "token-fwd.h"
-#include "node-fwd.h"
+#include <parser/token.h>
+#include <parser/node.h>
 #include "env.h"
 
 struct compilation_s {

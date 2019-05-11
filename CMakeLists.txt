@@ -50,20 +50,25 @@ function(main)
             src/lib/vector.c
             )
 
+    add_library(silis-parser
+            src/parser/lex.c
+            src/parser/node.c
+            src/parser/parse.c
+            src/parser/token.c
+            )
+    target_link_libraries(silis-parser silis-runtime)
+
     add_library(silis-interpreter
             src/compiler/node.c
             src/compiler/symbol.c
             src/compiler/symbols.c
-            src/compiler/token.c
             src/compiler/type.c
             src/compiler/types.c
             src/compiler/value.c
 
-            src/compiler/phases/01-lex/lex.c
-            src/compiler/phases/02-parse/parse.c
             src/compiler/phases/03-eval/eval.c
             )
-    target_link_libraries(silis-interpreter silis-runtime)
+    target_link_libraries(silis-interpreter silis-runtime silis-parser)
 
     add_library(silis-compiler
             src/compiler/compilation.c
@@ -94,10 +99,10 @@ function(main)
 
             src/compiler/intrinsics/types/func.c
             )
-    target_link_libraries(silis-compiler silis-interpreter)
+    target_link_libraries(silis-compiler silis-runtime silis-interpreter)
 
     add_executable(silisc src/compiler/main.c)
-    target_link_libraries(silisc silis-compiler)
+    target_link_libraries(silisc silis-runtime silis-compiler)
 
     add_executable(silisc-test src/test.c)
 

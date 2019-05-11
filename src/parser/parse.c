@@ -2,7 +2,6 @@
 #include "parse.h"
 
 typedef struct {
-    compilation_file_ref file;
     Vector(token_t) tokens;
     Vector(node_t) nodes;
     Vector(node_t) stack;
@@ -19,7 +18,6 @@ parse_output do_parse(parse_input in)
 {
     Allocator *allocator = in.allocator;
     parse_ctx ctx = (parse_ctx) {
-            .file = in.file,
             .tokens = in.tokens,
             .nodes = Vector_new(allocator),
             .stack = Vector_new(allocator),
@@ -28,7 +26,7 @@ parse_output do_parse(parse_input in)
     assert(Vector_size(&ctx.stack) == 1 && "stack contains result");
     node_t *it = Vector_at(&ctx.stack, 0);
     assert(it->kind == NODE_REF && "result is a reference");
-    size_t root_id = it->u.ref.value.node.id;
+    size_t root_id = it->u.ref.value;
     Vector_pop(&ctx.stack);
     return (parse_output) {.nodes = ctx.nodes, .root_id = root_id};
 }
@@ -79,7 +77,7 @@ static size_t do_parse_rec(parse_ctx *ctx, const token_t *it)
     }
     const node_t ret = (node_t) {
             .kind = NODE_REF,
-            .u.ref.value = (compilation_node_ref) {.file = ctx->file, .node = {.id = autoid}},
+            .u.ref.value = autoid,
     };
     Vector_push(&ctx->stack, ret);
     return 1 + (size_t) (end - begin);

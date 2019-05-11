@@ -1,11 +1,10 @@
 #pragma once
 
-#include <compiler/node.h>
-#include <compiler/token.h>
+#include "token.h"
+#include "node.h"
 
 typedef struct {
     Allocator *allocator;
-    compilation_file_ref file;
     const Vector(token_t) tokens;
 } parse_input;
 
