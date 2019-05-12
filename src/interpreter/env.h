@@ -1,8 +1,7 @@
 #pragma once
 
-#include <lib/buffer.h>
-
-#include "node.h"
+#include <lib/allocator.h>
+#include <lib/fs.h>
 
 typedef struct {
     Allocator *allocator;

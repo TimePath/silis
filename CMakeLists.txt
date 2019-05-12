@@ -59,28 +59,26 @@ function(main)
     target_link_libraries(silis-parser silis-runtime)
 
     add_library(silis-interpreter
-            src/compiler/node.c
-            src/compiler/symbol.c
-            src/compiler/symbols.c
-            src/compiler/type.c
-            src/compiler/types.c
-            src/compiler/value.c
-
-            src/compiler/phases/03-eval/eval.c
+            src/interpreter/compilation.c
+            src/interpreter/env.c
+            src/interpreter/eval.c
+            src/interpreter/intrinsic.c
+            src/interpreter/node.c
+            src/interpreter/symbol.c
+            src/interpreter/symbols.c
+            src/interpreter/type.c
+            src/interpreter/types.c
+            src/interpreter/value.c
             )
     target_link_libraries(silis-interpreter silis-runtime silis-parser)
 
     add_library(silis-compiler
-            src/compiler/compilation.c
-            src/compiler/env.c
-
-            src/compiler/phases/04-emit/emit.c
+            src/compiler/emit.c
 
             src/compiler/targets/_.c
             src/compiler/targets/c.c
             src/compiler/targets/js.c
 
-            src/compiler/intrinsics/_.c
             src/compiler/intrinsics/debug/puti.c
             src/compiler/intrinsics/debug/puts.c
             src/compiler/intrinsics/cond.c

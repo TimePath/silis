@@ -1,5 +1,5 @@
 #pragma once
 
-#include "_.h"
+#include <interpreter/intrinsic.h>
 
 INTRINSIC(define);

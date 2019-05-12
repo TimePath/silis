@@ -1,7 +1,6 @@
 #include <system.h>
 #include "node.h"
 #include "env.h"
-#include "compilation-fwd.h"
 
 bool nodelist_next(nodelist *self, compilation_node_ref *out)
 {

@@ -2,9 +2,9 @@
 
 #include <lib/macro.h>
 
-#include <compiler/env.h>
-#include <compiler/types.h>
-#include <compiler/value.h>
+#include "env.h"
+#include "types.h"
+#include "value.h"
 
 typedef struct Intrinsic {
     type_id (*load)(types_t *types);

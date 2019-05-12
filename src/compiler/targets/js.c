@@ -3,8 +3,8 @@
 
 #include <lib/stdio.h>
 
-#include <compiler/type.h>
-#include <compiler/types.h>
+#include <interpreter/type.h>
+#include <interpreter/types.h>
 
 static const bool types = false;
 

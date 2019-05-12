@@ -1,7 +1,7 @@
 #include <system.h>
 #include "untyped.h"
 
-#include "_.h"
+#include <interpreter/intrinsic.h>
 
 INTRINSIC_IMPL(untyped, ((type_id[]) {
         types->t_string,

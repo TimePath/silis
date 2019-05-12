@@ -1,9 +1,9 @@
 #include <system.h>
-#include <compiler/env.h>
+#include <interpreter/env.h>
 #include "set.h"
 
-#include "_.h"
-#include <compiler/phases/03-eval/eval.h>
+#include <interpreter/intrinsic.h>
+#include <interpreter/eval.h>
 
 INTRINSIC_IMPL(set, ((type_id[]) {
         types->t_expr, types->t_expr,

@@ -1,8 +1,7 @@
 #include <system.h>
 #include "eval.h"
 
-#include <compiler/value.h>
-#include <compiler/intrinsics/func.h>
+#include "value.h"
 
 typedef struct {
     Env env;
@@ -116,3 +115,44 @@ static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
     }
     return ret;
 }
+
+static void func_args_load(Env env, compilation_node_ref arglist, Slice(value_t) argv);
+
+value_t func_call(Env env, value_t func, const Slice(value_t) argv, compilation_node_ref it)
+{
+    if (func.flags.intrinsic) {
+        return func.u.intrinsic.value->call(env, it, argv);
+    }
+    sym_push(env.symbols);
+    compilation_node_ref body = func.u.func.value;
+    compilation_node_ref arglist = func.u.func.arglist;
+    func_args_load(env, arglist, argv);
+    const value_t ret = eval_node(env, body);
+    sym_pop(env.symbols);
+    return ret;
+}
+
+static void func_args_load(Env env, compilation_node_ref arglist, const Slice(value_t) argv)
+{
+    nodelist iter = nodelist_iterator(env.compilation, arglist);
+    compilation_node_ref ref;
+    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
+        compilation_node_ref it = node_deref(env.compilation, ref);
+        nodelist children = nodelist_iterator(env.compilation, it);
+        nodelist_next(&children, NULL);
+        compilation_node_ref id;
+        if (nodelist_next(&children, &id)) {
+            const node_t *idNode = compilation_node(env.compilation, id);
+            assert(idNode->kind == NODE_ATOM && "argument is a name");
+
+            const value_t *v = Slice_at(&argv, i);
+            sym_def(env.symbols, idNode->u.atom.value, (sym_t) {
+                    .file = {0},
+                    .type = v->type,
+                    .value = *v,
+                    .flags.eval = true,
+            });
+        }
+    }
+}
+

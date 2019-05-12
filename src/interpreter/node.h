@@ -1,13 +1,10 @@
 #pragma once
 
-#include <parser/node.h>
-
 #include <lib/fs.h>
 #include <lib/string.h>
 #include <lib/vector.h>
 
-#include "compilation-fwd.h"
-#include <parser/token.h>
+#include "compilation.h"
 
 typedef struct {
     const compilation_t *compilation;

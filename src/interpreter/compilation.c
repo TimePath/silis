@@ -6,7 +6,8 @@
 
 #include <parser/lex.h>
 #include <parser/parse.h>
-#include <compiler/phases/03-eval/eval.h>
+
+#include "eval.h"
 
 void compilation_file_t_delete(compilation_file_t *self)
 {

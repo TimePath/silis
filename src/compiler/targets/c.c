@@ -3,8 +3,8 @@
 
 #include <lib/stdio.h>
 
-#include <compiler/type.h>
-#include <compiler/types.h>
+#include <interpreter/type.h>
+#include <interpreter/types.h>
 
 static void tgt_c_file_begin(Target *self, Env env, compilation_file_ref file_ref, Vector(compile_file) *files);
 

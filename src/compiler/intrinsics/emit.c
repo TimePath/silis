@@ -1,9 +1,9 @@
 #include <system.h>
 #include "emit.h"
 
-#include "_.h"
+#include <interpreter/intrinsic.h>
 #include <lib/stdio.h>
-#include <compiler/env.h>
+#include <interpreter/env.h>
 
 INTRINSIC_IMPL(emit, ((type_id[]) {
         types->t_expr,

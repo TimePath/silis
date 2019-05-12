@@ -1,8 +1,8 @@
 #include <system.h>
 #include "do.h"
 
-#include "_.h"
-#include <compiler/phases/03-eval/eval.h>
+#include <interpreter/intrinsic.h>
+#include <interpreter/eval.h>
 
 INTRINSIC_IMPL(do, ((type_id[]) {
         types->t_expr,

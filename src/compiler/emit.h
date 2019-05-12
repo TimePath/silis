@@ -1,7 +1,7 @@
 #pragma once
 
-#include <compiler/compilation.h>
-#include <compiler/env.h>
+#include <interpreter/compilation.h>
+#include <interpreter/env.h>
 
 typedef struct {
     Env env;

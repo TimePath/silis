@@ -1,8 +1,8 @@
 #pragma once
 
-#include <compiler/compilation.h>
-#include <compiler/env.h>
-#include <compiler/type.h>
+#include <interpreter/compilation.h>
+#include <interpreter/env.h>
+#include <interpreter/type.h>
 
 typedef struct Target {
     void (*_file_begin)(struct Target *target, Env env, compilation_file_ref file_ref, Vector(compile_file) *files);

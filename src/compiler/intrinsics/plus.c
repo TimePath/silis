@@ -1,7 +1,7 @@
 #include <system.h>
 #include "plus.h"
 
-#include "_.h"
+#include <interpreter/intrinsic.h>
 
 INTRINSIC_IMPL(plus, ((type_id[]) {
         types->t_int, types->t_int,

@@ -1,5 +1,5 @@
 #pragma once
 
-#include <compiler/intrinsics/_.h>
+#include <interpreter/intrinsic.h>
 
 INTRINSIC(types_func);

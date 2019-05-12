@@ -3,7 +3,7 @@
 
 #include <lib/stdio.h>
 
-#include <compiler/intrinsics/_.h>
+#include <interpreter/intrinsic.h>
 
 INTRINSIC_IMPL(debug_puti, ((type_id[]) {
         types->t_int,

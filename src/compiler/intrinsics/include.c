@@ -1,11 +1,12 @@
 #include <system.h>
 #include "include.h"
 
-#include "_.h"
-#include <compiler/env.h>
 #include <lib/fs.h>
 #include <lib/stdio.h>
-#include <compiler/compilation.h>
+
+#include <interpreter/compilation.h>
+#include <interpreter/env.h>
+#include <interpreter/intrinsic.h>
 
 INTRINSIC_IMPL(include, ((type_id[]) {
         types->t_expr,

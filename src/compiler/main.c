@@ -4,6 +4,10 @@
 #include <lib/stdio.h>
 #include <lib/string.h>
 
+#include <interpreter/compilation.h>
+#include <interpreter/env.h>
+#include <interpreter/symbols.h>
+
 #include <compiler/intrinsics/debug/puti.h>
 #include <compiler/intrinsics/debug/puts.h>
 #include <compiler/intrinsics/types/func.h>
@@ -21,14 +25,10 @@
 #include <compiler/intrinsics/untyped.h>
 #include <compiler/intrinsics/while.h>
 
-#include <compiler/phases/04-emit/emit.h>
-
 #include <compiler/targets/c.h>
 #include <compiler/targets/js.h>
 
-#include "compilation.h"
-#include "env.h"
-#include "symbols.h"
+#include "emit.h"
 
 MAIN(main)
 

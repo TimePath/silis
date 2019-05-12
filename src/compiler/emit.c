@@ -3,14 +3,14 @@
 
 #include <lib/stdio.h>
 
-#include <compiler/compilation.h>
-#include <compiler/env.h>
-#include <compiler/symbols.h>
+#include <interpreter/compilation.h>
+#include <interpreter/env.h>
+#include <interpreter/symbols.h>
 #include <compiler/targets/_.h>
-#include <compiler/type.h>
-#include <compiler/value.h>
+#include <interpreter/type.h>
+#include <interpreter/value.h>
 
-#include <compiler/phases/03-eval/eval.h>
+#include <interpreter/eval.h>
 
 #include <compiler/intrinsics/define.h>
 #include <compiler/intrinsics/do.h>
