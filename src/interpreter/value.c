@@ -12,7 +12,7 @@ value_t value_from(Env env, compilation_node_ref it)
         case NODE_REF:
         case NODE_LIST_BEGIN:
         case NODE_LIST_END:
-            assert(false);
+            unreachable();
             break;
         case NODE_ATOM: {
             const String ident = n->u.atom.value;

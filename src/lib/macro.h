@@ -21,6 +21,7 @@
 #define CAT2(_0, _1) _CAT2(_0, _1)
 #define _CAT2(_0, _1) _0 ## _1
 #define CAT3(_0, _1, _2) _0 ## _1 ## _2
+#define CAT4(_0, _1, _2, _3) _0 ## _1 ## _2 ## _3
 
 #define STRINGIFY(self) #self
 
@@ -43,3 +44,27 @@
 #ifndef DIAG_IGNORE_REDUNDANT_PARENS
 #define DIAG_IGNORE_REDUNDANT_PARENS
 #endif
+
+#if defined(__TINYC__)
+#define ENUM_PADDING PADDING(20)
+#else
+#define ENUM_PADDING
+#endif
+
+#define ENUM(id) \
+typedef enum { \
+    CAT2(id, _INVALID), \
+    id(id, _ENUM_TAG) \
+} CAT3(id, _, e); \
+typedef struct { \
+    union { CAT3(id, _, e) kind; size_t _kind; ENUM_PADDING }; \
+    union { id(id, _ENUM_VARIANT) } u; \
+} id; \
+/**/
+
+#define _ENUM_TAG(id, name, def) CAT3(id, _, name),
+
+#define _ENUM_VARIANT(id, name, def) struct def name;
+
+#define _ENUM_VAL(id, variant) .kind = CAT3(id, _, variant), .u.variant
+#define ENUM_VAL(id, variant, it) (id) { _ENUM_VAL(id, variant) = it }

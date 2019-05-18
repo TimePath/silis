@@ -51,6 +51,7 @@ function(main)
             )
 
     add_library(silis-parser
+            src/parser/error.c
             src/parser/lex.c
             src/parser/node.c
             src/parser/parse.c

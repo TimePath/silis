@@ -1,6 +1,10 @@
 #include <system.h>
 #include "lex.h"
 
+#include <lib/result.h>
+
+#include "error.h"
+
 /*
 
  program: expression* EOF;
@@ -34,6 +38,8 @@
 
 */
 
+Result_instantiate(size_t, ParserError);
+
 typedef struct {
     Vector(token_t) tokens;
 } lex_context;
@@ -43,16 +49,17 @@ static void lex_yield(lex_context *ctx, token_t it)
     Vector_push(&ctx->tokens, it);
 }
 
-static size_t lex_list(lex_context *ctx, String prog);
+static Result(size_t, ParserError) lex_list(lex_context *ctx, String prog);
 
-lex_output do_lex(lex_input in)
+Result(Vector(token_t), ParserError) silis_parser_lex(lex_input in)
 {
     Allocator *allocator = in.allocator;
     lex_context ctx = (lex_context) {
         .tokens = Vector_new(allocator),
     };
-    lex_list(&ctx, in.source);
-    return (lex_output) {.tokens = ctx.tokens};
+    Result(size_t, ParserError) res = lex_list(&ctx, in.source);
+    if (!res.ok) return (Result(Vector(token_t), ParserError)) Result_err(res.err);
+    return (Result(Vector(token_t), ParserError)) Result_ok(ctx.tokens);
 }
 
 typedef enum {
@@ -204,7 +211,7 @@ static size_t lex_atom(lex_context *ctx, String prog)
     return String_sizeUnits(atom);
 }
 
-static size_t lex_string(lex_context *ctx, String prog)
+static Result(size_t, ParserError) lex_string(lex_context *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
     const uint8_t *begin = String_begin(prog);
@@ -222,7 +229,9 @@ static size_t lex_string(lex_context *ctx, String prog)
             case '\\':
                 switch (c = enc->get(it = enc->next(it))) {
                     default:
-                        assert(false);
+                        return (Result(size_t, ParserError)) Result_err(
+                                ((ParserError) {.kind = ParserError_UnexpectedEscape, .u.UnexpectedEscape = {.c = c}})
+                        );
                     case '\\':
                     case '"':
                         /* XXX */ *out++ = (uint8_t) c;
@@ -242,10 +251,11 @@ static size_t lex_string(lex_context *ctx, String prog)
             .kind = TOKEN_STRING,
             .u.string.value = value,
     });
-    return 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
+    size_t ret = 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
+    return (Result(size_t, ParserError)) Result_ok(ret);
 }
 
-static size_t lex_list(lex_context *ctx, String prog)
+static Result(size_t, ParserError) lex_list(lex_context *ctx, String prog)
 {
     const StringEncoding *enc = prog.encoding;
     lex_yield(ctx, (token_t) {
@@ -272,16 +282,24 @@ static size_t lex_list(lex_context *ctx, String prog)
             case '(':
             case '[': // sugar
             case '{': // sugar
-                next = enc->skip_units(it, lex_list(ctx, String_fromSlice(next, enc)));
+            {
+                Result(size_t, ParserError) res = lex_list(ctx, String_fromSlice(next, enc));
+                if (!res.ok) return res;
+                next = enc->skip_units(it, res.val);
                 break;
+            }
             case ')':
             case ']': // sugar
             case '}': // sugar
                 ret = 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
                 goto done;
             case '"':
-                next = enc->skip_units(it, lex_string(ctx, String_fromSlice(next, enc)));
+            {
+                Result(size_t, ParserError) res = lex_string(ctx, String_fromSlice(next, enc));
+                if (!res.ok) return res;
+                next = enc->skip_units(it, res.val);
                 break;
+            }
             default:
                 next = enc->skip_units(it, lex_atom(ctx, String_fromSlice(it, enc)));
                 break;
@@ -292,5 +310,5 @@ static size_t lex_list(lex_context *ctx, String prog)
     lex_yield(ctx, (token_t) {
             .kind = TOKEN_LIST_END,
     });
-    return ret;
+    return (Result(size_t, ParserError)) Result_ok(ret);
 }

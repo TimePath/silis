@@ -89,7 +89,7 @@ static node_t convert(const token_t *it)
         case TOKEN_INVALID:
         case TOKEN_LIST_BEGIN:
         case TOKEN_LIST_END:
-            assert(false);
+            unreachable();
             break;
         case TOKEN_ATOM:
             return (node_t) {

@@ -16,6 +16,8 @@
 #define static_assert(expr, message)
 #endif
 
+#define unreachable() assert(false)
+
 #if !USE_REAL_HEADERS
 #ifndef __WORDSIZE
 #if defined __x86_64__ && !defined __ILP32__

@@ -21,6 +21,7 @@ stdenv.mkDerivation {
     '';
     dontStrip = if debug then true else false;
     cmakeBuildType = if debug then "Debug" else "Release";
+    allowSubstitutes = false; # prefer local builds
     meta = {
         description = "static interchange lisp in stages";
         homepage = "https://github.com/TimePath/silis";

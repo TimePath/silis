@@ -168,7 +168,7 @@ static void emit_node(emit_ctx *ctx, const compile_file *file, compilation_node_
         case NODE_LIST_BEGIN:
         case NODE_LIST_END:
         case NODE_REF:
-            assert(false);
+            unreachable();
         case NODE_ATOM:
             emit_atom(ctx, file, node->u.atom.value);
             break;
@@ -191,7 +191,7 @@ static void emit_value(emit_ctx *ctx, const compile_file *file, const value_t *i
         emit_string(ctx, file, it->u.string.value);
         return;
     }
-    assert(false);
+    unreachable();
 }
 
 static void emit_atom(emit_ctx *ctx, const compile_file *file, String value)
@@ -252,7 +252,7 @@ static void emit_return_ref(emit_ctx *ctx, const compile_file *file, return_t re
             emit_atom(ctx, file, ret.u.named.val);
             return;
     }
-    assert(false);
+    unreachable();
 }
 
 static void emit_return_declare(emit_ctx *ctx, const compile_file *file, type_id T, return_t ret)
@@ -270,7 +270,7 @@ static void emit_return_declare(emit_ctx *ctx, const compile_file *file, type_id
             return;
         }
     }
-    assert(false);
+    unreachable();
 }
 
 static void emit_return_assign(emit_ctx *ctx, const compile_file *file, return_t ret)
@@ -287,7 +287,7 @@ static void emit_return_assign(emit_ctx *ctx, const compile_file *file, return_t
             fprintf_s(file->out, STR(" = "));
             return;
     }
-    assert(false);
+    unreachable();
 }
 
 // visit
@@ -323,7 +323,7 @@ static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t
             emit_node(ctx, file, it);
             return;
     }
-    assert(false);
+    unreachable();
 }
 
 static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t ret,

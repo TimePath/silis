@@ -60,7 +60,7 @@ static void _node_print_indent(node_print_ctx_t *ctx, node_print_state_t *state)
 static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t state, const node_t *it, size_t id)
 {
     if (it->kind == NODE_INVALID) {
-        assert(false);
+        unreachable();
         return state;
     }
     if (it->kind == NODE_LIST_BEGIN) {
@@ -121,7 +121,7 @@ static node_print_state_t _node_print(node_print_ctx_t *ctx, node_print_state_t 
             case NODE_INVALID:
             case NODE_LIST_BEGIN:
             case NODE_LIST_END:
-                assert(false);
+                unreachable();
                 break;
             case NODE_REF:
                 fprintf_s(ctx->out, STR("var_"));

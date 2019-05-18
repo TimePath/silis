@@ -44,7 +44,7 @@ static Target *target(String targetName)
     X(c);
     X(js);
 #undef X
-    assert(false);
+    unreachable();
     return NULL;
 }
 

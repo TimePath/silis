@@ -46,11 +46,13 @@ Slice_instantiate(String);
 Vector_instantiate(String);
 
 #define STR(str) STR_(""str"")
-#define STR_(str) String_fromSlice(CAST(Slice(uint8_t), Slice(void), _Slice_of((str), (sizeof (str) - 1))), ENCODING_COMPILER)
+#define STR_(str) _String_fromSlice(CAST(Slice(uint8_t), Slice(void), _Slice_of((str), (sizeof (str) - 1))), ENCODING_COMPILER)
 
-INLINE String String_fromSlice(Slice(uint8_t) slice, const StringEncoding *encoding)
+#define _String_fromSlice(slice, enc) ((String) {.bytes = slice, .encoding = enc})
+
+INLINE String (String_fromSlice)(Slice(uint8_t) slice, const StringEncoding *encoding)
 {
-    return (String) {.bytes = slice, .encoding = encoding};
+    return _String_fromSlice(slice, encoding);
 }
 
 INLINE const void *String_begin(String self)

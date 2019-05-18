@@ -1,7 +1,9 @@
 #pragma once
 
+#include <lib/result.h>
 #include <lib/string.h>
 
+#include "error.h"
 #include "token.h"
 
 typedef struct {
@@ -9,8 +11,6 @@ typedef struct {
     const String source;
 } lex_input;
 
-typedef struct {
-    const Vector(token_t) tokens;
-} lex_output;
+Result_instantiate(Vector(token_t), ParserError);
 
-lex_output do_lex(lex_input in);
+Result(Vector(token_t), ParserError) silis_parser_lex(lex_input in);

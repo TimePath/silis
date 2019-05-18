@@ -52,7 +52,7 @@ static void _token_print_indent(token_print_ctx_t *ctx, token_print_state_t *sta
 static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it, size_t id)
 {
     if (it->kind == TOKEN_INVALID) {
-        assert(false);
+        unreachable();
         return state;
     }
     if (it->kind == TOKEN_LIST_BEGIN) {
@@ -126,7 +126,7 @@ static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_stat
             case TOKEN_INVALID:
             case TOKEN_LIST_BEGIN:
             case TOKEN_LIST_END:
-                assert(false);
+                unreachable();
                 break;
         }
         state.needTab = true;

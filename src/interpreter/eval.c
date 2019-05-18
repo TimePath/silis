@@ -121,7 +121,7 @@ static void func_args_load(Env env, compilation_node_ref arglist, Slice(value_t)
 value_t func_call(Env env, value_t func, const Slice(value_t) argv, compilation_node_ref it)
 {
     if (func.flags.intrinsic) {
-        return func.u.intrinsic.value->call(env, it, argv);
+        return Intrinsic_call(func.u.intrinsic.value, env, it, argv);
     }
     sym_push(env.symbols);
     compilation_node_ref body = func.u.func.value;

@@ -77,12 +77,18 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
     if (self->flags.print_lex) {
         fprintf_s(self->debug, STR("LEX:\n---\n"));
     }
-    lex_output lex = do_lex((lex_input) {
+    Result(Vector(token_t), ParserError) lex = silis_parser_lex((lex_input) {
         .allocator = allocator,
         .source = fileStr,
     });
+    if (!lex.ok) {
+        ParserError_print(lex.err, self->debug);
+        unreachable();
+        return (compilation_file_ref) {0};
+    }
+    Vector(token_t) tokens = lex.val;
     if (self->flags.print_lex) {
-        token_print(allocator, self->debug, Vector_toSlice(token_t, &lex.tokens));
+        token_print(allocator, self->debug, Vector_toSlice(token_t, &tokens));
         fprintf_s(self->debug, STR("\n\n"));
     }
 
@@ -91,7 +97,7 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
     }
     parse_output parse = do_parse((parse_input) {
             .allocator = allocator,
-            .tokens = lex.tokens,
+            .tokens = tokens,
     });
     if (self->flags.print_parse) {
         node_print(allocator, self->debug, Vector_toSlice(node_t, &parse.nodes));
@@ -102,7 +108,7 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
             .allocator = allocator,
             .path = path,
             .content = read,
-            .tokens = lex.tokens,
+            .tokens = tokens,
             .nodes = parse.nodes,
             .entry = {.file = ret, .node = {.id = parse.root_id}},
     };
