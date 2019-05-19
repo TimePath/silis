@@ -4,8 +4,7 @@
 #include <lib/stdio.h>
 #include <lib/string.h>
 
-#include <interpreter/compilation.h>
-#include <interpreter/env.h>
+#include <interpreter/interpreter.h>
 #include <interpreter/symbols.h>
 
 #include <compiler/intrinsics/debug/puti.h>
@@ -48,7 +47,7 @@ static Target *target(String targetName)
     return NULL;
 }
 
-static void emit(Env env, File *f, compile_file *it);
+static void emit(Interpreter *interpreter, File *f, compile_file *it);
 
 typedef struct {
     Allocator interface;
@@ -139,16 +138,6 @@ size_t main(Allocator *allocator, Slice(String) args)
         outputFile = fs_open(allocator, fs_out, outputFilePath, STR("w"));
     }
 
-    compilation_t _compilation = (compilation_t) {
-            .debug = out,
-            .flags.print_lex = flags.print_lex,
-            .flags.print_parse = flags.print_parse,
-            .flags.print_eval = flags.print_eval,
-            .files = Vector_new(allocator),
-    };
-    compilation_t *compilation = &_compilation;
-    compilation_file_ref mainFile = compilation_include(allocator, compilation, fs_in, inputFilePath);
-
     Types _types = Types_new(allocator);
     Types *types = &_types;
 
@@ -184,15 +173,24 @@ size_t main(Allocator *allocator, Slice(String) args)
             {.id = STR("#while"), .value = &intrin_while},
     })));
     Symbols *symbols = &_symbols;
-    Env env = (Env) {
+    Interpreter _interpreter = (Interpreter) {
             .allocator = allocator,
             .fs_in = fs_in,
-            .compilation = compilation,
+            .compilation = {
+                    .debug = out,
+                    .flags.print_lex = flags.print_lex,
+                    .flags.print_parse = flags.print_parse,
+                    .flags.print_eval = flags.print_eval,
+                    .files = Vector_new(allocator),
+            },
             .types = types,
             .symbols = symbols,
             .out = out,
     };
-    compilation_begin(allocator, compilation, mainFile, env);
+    Interpreter *interpreter = &_interpreter;
+
+    compilation_file_ref mainFile = compilation_include(allocator, interpreter, fs_in, inputFilePath);
+    compilation_begin(allocator, interpreter, mainFile, interpreter);
 
     if (flags.run) {
         if (flags.print_run) {
@@ -203,7 +201,7 @@ size_t main(Allocator *allocator, Slice(String) args)
         &entry);
         (void) hasMain;
         assert(hasMain && Types_lookup(types, entry.type)->kind == Type_Function && "main is a function");
-        func_call(env, entry.value, (Slice(value_t)) {._begin = NULL, ._end = NULL,}, (compilation_node_ref) {.file = {0}, .node = {0}});
+        func_call(interpreter, entry.value, (Slice(value_t)) {._begin = NULL, ._end = NULL,}, (compilation_node_ref) {.file = {0}, .node = {0}});
     } else {
         if (flags.print_emit) {
             fprintf_s(out, STR("EMIT:\n----\n"));
@@ -211,18 +209,18 @@ size_t main(Allocator *allocator, Slice(String) args)
         Buffer outBuf = Buffer_new(allocator);
         File *f = flags.buffer ? Buffer_asFile(allocator, &outBuf) : outputFile;
         emit_output ret = do_emit((emit_input) {
-                .env = env,
+                .interpreter = interpreter,
                 .target = target(targetName),
         });
         Vector_loop(compile_file, &ret.files, i) {
             compile_file *it = Vector_at(&ret.files, i);
             if (!String_equals(it->ext, STR("h"))) continue; // FIXME
-            emit(env, f, it);
+            emit(interpreter, f, it);
         }
         Vector_loop(compile_file, &ret.files, i) {
             compile_file *it = Vector_at(&ret.files, i);
             if (!String_equals(it->ext, STR("c"))) continue; // FIXME
-            emit(env, f, it);
+            emit(interpreter, f, it);
         }
         Vector_delete(compile_file, &ret.files);
         if (flags.buffer) {
@@ -236,9 +234,9 @@ size_t main(Allocator *allocator, Slice(String) args)
     }
 
     fprintf_s(out, STR("\n"));
-    Vector_delete(compilation_file_ptr_t, &env.compilation->files);
-    Vector_delete(Type, &env.types->all);
-    Vector_delete(SymbolScope, &env.symbols->scopes);
+    Vector_delete(compilation_file_ptr_t, &interpreter->compilation.files);
+    Vector_delete(Type, &interpreter->types->all);
+    Vector_delete(SymbolScope, &interpreter->symbols->scopes);
     FileSystem_delete(fs_out);
     FileSystem_delete(fs_in);
     fs_close(out);
@@ -246,15 +244,15 @@ size_t main(Allocator *allocator, Slice(String) args)
     return EXIT_SUCCESS;
 }
 
-static void emit(Env env, File *f, compile_file *it)
+static void emit(Interpreter *interpreter, File *f, compile_file *it)
 {
-    Allocator *allocator = env.allocator;
+    Allocator *allocator = interpreter->allocator;
     fprintf_s(f, STR("// file://"));
     Buffer buf = Buffer_new(allocator);
-    fs_path_to_native(allocator, env.fs_in->root, &buf);
+    fs_path_to_native(allocator, interpreter->fs_in->root, &buf);
     String slash = STR("/");
     Vector_push(&buf, *Slice_at(&slash.bytes, 0));
-    const compilation_file_t *infile = compilation_file(env.compilation, it->file);
+    const compilation_file_t *infile = compilation_file(interpreter, it->file);
     fs_path_to_native(allocator, infile->path, &buf);
     String dot = STR(".");
     Vector_push(&buf, *Slice_at(&dot.bytes, 0));

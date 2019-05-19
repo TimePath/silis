@@ -1,10 +1,9 @@
 #pragma once
 
-#include <interpreter/compilation.h>
-#include <interpreter/env.h>
+#include <interpreter/interpreter.h>
 
 typedef struct {
-    Env env;
+    Interpreter *interpreter;
     struct Target *target;
 } emit_input;
 

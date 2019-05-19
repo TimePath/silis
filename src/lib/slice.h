@@ -3,7 +3,7 @@
 #include "macro.h"
 
 #if defined(__TINYC__)
-#define SLICE_PADDING PADDING(8)
+#define SLICE_PADDING PADDING(32)
 #else
 #define SLICE_PADDING
 #endif

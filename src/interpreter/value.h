@@ -2,7 +2,7 @@
 
 #include <lib/vector.h>
 
-#include "env.h"
+#include "interpreter.h"
 #include "node.h"
 #include "type.h"
 
@@ -54,4 +54,4 @@ typedef struct {
 Slice_instantiate(value_t);
 Vector_instantiate(value_t);
 
-value_t value_from(Env env, compilation_node_ref n);
+value_t value_from(Interpreter *interpreter, compilation_node_ref n);

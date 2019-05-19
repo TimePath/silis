@@ -12,17 +12,17 @@ INTRINSIC_IMPL(extern, ((TypeRef[]) {
     const value_t *arg_name = Slice_at(&argv, 0);
     const value_t *arg_type = Slice_at(&argv, 1);
 
-    const Node *name = compilation_node(env.compilation, arg_name->u.expr.value);
+    const Node *name = compilation_node(interpreter, arg_name->u.expr.value);
     assert(name->kind == Node_Atom);
     compilation_node_ref val = arg_type->u.expr.value;
 
-    const value_t v = eval_node(env, val);
-    assert(v.type.value == env.types->t_type.value && "argument is a type");
+    const value_t v = eval_node(interpreter, val);
+    assert(v.type.value == interpreter->types->t_type.value && "argument is a type");
     TypeRef T = v.u.type.value;
-    Symbols_define(env.symbols, name->u.Atom.value, (Symbol) {
+    Symbols_define(interpreter->symbols, name->u.Atom.value, (Symbol) {
             .file = self.file,
             .type = T,
             .value = {.type = T, .node = self, .flags.abstract = true, .flags.native = true,},
     });
-    return (value_t) {.type = env.types->t_unit, .node = self};
+    return (value_t) {.type = interpreter->types->t_unit, .node = self};
 }

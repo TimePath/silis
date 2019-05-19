@@ -14,9 +14,9 @@ INTRINSIC_IMPL(if, ((TypeRef[]) {
 
     compilation_node_ref predicate = arg_predicate->u.expr.value;
     compilation_node_ref node_body = arg_body->u.expr.value;
-    const value_t ret = eval_node(env, predicate);
+    const value_t ret = eval_node(interpreter, predicate);
     if (ret.u.integral.value != 0) {
-        eval_node(env, node_body);
+        eval_node(interpreter, node_body);
     }
-    return (value_t) {.type = env.types->t_unit, .node = self};
+    return (value_t) {.type = interpreter->types->t_unit, .node = self};
 }

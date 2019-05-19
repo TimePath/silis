@@ -6,17 +6,33 @@
 #include <parser/token.h>
 #include <parser/node.h>
 
-#include "env.h"
-
-typedef struct compilation_s compilation_t;
 typedef struct compilation_file_s compilation_file_t;
-
 typedef compilation_file_t *compilation_file_ptr_t;
 
 #define compilation_file_ptr_t_delete(self) compilation_file_t_delete(*self)
 
 Slice_instantiate(compilation_file_ptr_t);
 Vector_instantiate(compilation_file_ptr_t);
+
+typedef struct {
+    Allocator *allocator;
+    FileSystem *fs_in;
+    struct {
+        File *debug;
+        Vector(compilation_file_ptr_t) files;
+        struct {
+            bool print_lex : 1;
+            bool print_parse : 1;
+            bool print_eval: 1;
+            uint8_t _padding : 5;
+        } flags;
+        PADDING(7)
+    } compilation;
+    struct Types *types;
+    struct Symbols *symbols;
+    // todo: bind to intrinsic instances
+    File *out;
+} Interpreter;
 
 typedef struct {
     size_t id;
@@ -37,23 +53,11 @@ typedef struct {
 Slice_instantiate(compilation_node_ref);
 Vector_instantiate(compilation_node_ref);
 
-const compilation_file_t *compilation_file(const compilation_t *self, compilation_file_ref ref);
+const compilation_file_t *compilation_file(const Interpreter *self, compilation_file_ref ref);
 
-const Token *compilation_token(const compilation_t *self, compilation_token_ref ref);
+const Token *compilation_token(const Interpreter *self, compilation_token_ref ref);
 
-const Node *compilation_node(const compilation_t *self, compilation_node_ref ref);
-
-struct compilation_s {
-    File *debug;
-    Vector(compilation_file_ptr_t) files;
-    const struct {
-        bool print_lex : 1;
-        bool print_parse : 1;
-        bool print_eval: 1;
-        uint8_t _padding : 5;
-    } flags;
-    PADDING(7)
-};
+const Node *compilation_node(const Interpreter *self, compilation_node_ref ref);
 
 struct compilation_file_s {
     Allocator *allocator;
@@ -82,6 +86,6 @@ void compile_file_delete(compile_file *self);
 Slice_instantiate(compile_file);
 Vector_instantiate(compile_file);
 
-compilation_file_ref compilation_include(Allocator *allocator, compilation_t *self, FileSystem *fs, FilePath path);
+compilation_file_ref compilation_include(Allocator *allocator, Interpreter *self, FileSystem *fs, FilePath path);
 
-void compilation_begin(Allocator *allocator, compilation_t *self, compilation_file_ref file, Env env);
+void compilation_begin(Allocator *allocator, Interpreter *self, compilation_file_ref file, Interpreter *interpreter);

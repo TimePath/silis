@@ -10,5 +10,5 @@ INTRINSIC_IMPL(untyped, ((TypeRef[]) {
 {
     (void) argv;
     assert(false && "is never called");
-    return (value_t) {.type = env.types->t_unit, .node = self};
+    return (value_t) {.type = interpreter->types->t_unit, .node = self};
 }

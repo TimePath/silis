@@ -17,6 +17,6 @@ INTRINSIC_IMPL(cond, ((TypeRef[]) {
     compilation_node_ref predicate = arg_predicate->u.expr.value;
     compilation_node_ref node_true = arg_true->u.expr.value;
     compilation_node_ref node_false = arg_false->u.expr.value;
-    const value_t ret = eval_node(env, predicate);
-    return eval_node(env, ret.u.integral.value != 0 ? node_true : node_false);
+    const value_t ret = eval_node(interpreter, predicate);
+    return eval_node(interpreter, ret.u.integral.value != 0 ? node_true : node_false);
 }

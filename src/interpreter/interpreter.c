@@ -1,5 +1,5 @@
 #include <system.h>
-#include "compilation.h"
+#include "interpreter.h"
 
 #include <lib/fs.h>
 #include <lib/stdio.h>
@@ -41,14 +41,14 @@ void compile_file_delete(compile_file *self)
     free(self->content);
 }
 
-const compilation_file_t *compilation_file(const compilation_t *self, compilation_file_ref ref)
+const compilation_file_t *compilation_file(const Interpreter *self, compilation_file_ref ref)
 {
     assert(ref.id && "file exists");
-    const compilation_file_t *file = *Vector_at(&self->files, ref.id - 1);
+    const compilation_file_t *file = *Vector_at(&self->compilation.files, ref.id - 1);
     return file;
 }
 
-const Token *compilation_token(const compilation_t *self, compilation_token_ref ref)
+const Token *compilation_token(const Interpreter *self, compilation_token_ref ref)
 {
     assert(ref.token.id && "token exists");
     const compilation_file_t *file = compilation_file(self, ref.file);
@@ -56,7 +56,7 @@ const Token *compilation_token(const compilation_t *self, compilation_token_ref 
     return token;
 }
 
-const Node *compilation_node(const compilation_t *self, compilation_node_ref ref)
+const Node *compilation_node(const Interpreter *self, compilation_node_ref ref)
 {
     assert(ref.node.id && "node exists");
     const compilation_file_t *file = compilation_file(self, ref.file);
@@ -64,7 +64,7 @@ const Node *compilation_node(const compilation_t *self, compilation_node_ref ref
     return node;
 }
 
-compilation_file_ref compilation_include(Allocator *allocator, compilation_t *self, FileSystem *fs, FilePath path)
+compilation_file_ref compilation_include(Allocator *allocator, Interpreter *self, FileSystem *fs, FilePath path)
 {
     String fileStr;
     uint8_t *read = fs_read_all(allocator, fs, path, &fileStr);
@@ -72,36 +72,36 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
         assert(read && "read from file");
         return (compilation_file_ref) {0};
     }
-    compilation_file_ref ret = {.id = Vector_size(&self->files) + 1};
+    compilation_file_ref ret = {.id = Vector_size(&self->compilation.files) + 1};
 
-    if (self->flags.print_lex) {
-        fprintf_s(self->debug, STR("LEX:\n---\n"));
+    if (self->compilation.flags.print_lex) {
+        fprintf_s(self->compilation.debug, STR("LEX:\n---\n"));
     }
     Result(Vector(Token), ParserError) lex = silis_parser_lex((silis_parser_lex_input) {
         .allocator = allocator,
         .source = fileStr,
     });
     if (!lex.ok) {
-        ParserError_print(lex.err, self->debug);
+        ParserError_print(lex.err, self->compilation.debug);
         unreachable();
         return (compilation_file_ref) {0};
     }
     Vector(Token) tokens = lex.val;
-    if (self->flags.print_lex) {
-        silis_parser_print_tokens(Vector_toSlice(Token, &tokens), self->debug, allocator);
-        fprintf_s(self->debug, STR("\n\n"));
+    if (self->compilation.flags.print_lex) {
+        silis_parser_print_tokens(Vector_toSlice(Token, &tokens), self->compilation.debug, allocator);
+        fprintf_s(self->compilation.debug, STR("\n\n"));
     }
 
-    if (self->flags.print_parse) {
-        fprintf_s(self->debug, STR("PARSE:\n-----\n"));
+    if (self->compilation.flags.print_parse) {
+        fprintf_s(self->compilation.debug, STR("PARSE:\n-----\n"));
     }
     silis_parser_parse_output parse = silis_parser_parse((silis_parser_parse_input) {
             .allocator = allocator,
             .tokens = Vector_toSlice(Token, &tokens),
     });
-    if (self->flags.print_parse) {
-        silis_parser_print_nodes(Vector_toSlice(Node, &parse.nodes), self->debug, allocator);
-        fprintf_s(self->debug, STR("\n"));
+    if (self->compilation.flags.print_parse) {
+        silis_parser_print_nodes(Vector_toSlice(Node, &parse.nodes), self->compilation.debug, allocator);
+        fprintf_s(self->compilation.debug, STR("\n"));
     }
     compilation_file_t *file = malloc(sizeof(*file));
     *file = (compilation_file_t) {
@@ -112,27 +112,27 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
             .nodes = parse.nodes,
             .entry = {.file = ret, .node = {.id = parse.root_id}},
     };
-    Vector_push(&self->files, file);
+    Vector_push(&self->compilation.files, file);
 
     return ret;
 }
 
-void compilation_begin(Allocator *allocator, compilation_t *self, compilation_file_ref file, Env env)
+void compilation_begin(Allocator *allocator, Interpreter *self, compilation_file_ref file, Interpreter *interpreter)
 {
     const compilation_file_t *f = compilation_file(self, file);
     FilePath dir = fs_dirname(allocator, f->path);
     fs_dirtoken state = fs_pushd(allocator, dir);
     FilePath_delete(&dir);
 
-    if (self->flags.print_eval) {
-        fprintf_s(self->debug, STR("EVAL:\n----\n"));
+    if (self->compilation.flags.print_eval) {
+        fprintf_s(self->compilation.debug, STR("EVAL:\n----\n"));
     }
     do_eval((eval_input) {
-            .env = env,
+            .interpreter = interpreter,
             .entry = f->entry,
     });
-    if (self->flags.print_eval) {
-        fprintf_s(self->debug, STR("\n"));
+    if (self->compilation.flags.print_eval) {
+        fprintf_s(self->compilation.debug, STR("\n"));
     }
 
     fs_popd(state);

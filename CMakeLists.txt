@@ -60,9 +60,8 @@ function(main)
     target_link_libraries(silis-parser silis-runtime)
 
     add_library(silis-interpreter
-            src/interpreter/compilation.c
-            src/interpreter/env.c
             src/interpreter/eval.c
+            src/interpreter/interpreter.c
             src/interpreter/intrinsic.c
             src/interpreter/node.c
             src/interpreter/symbol.c

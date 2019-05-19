@@ -1,6 +1,6 @@
 #include <system.h>
 #include "node.h"
-#include "env.h"
+#include "interpreter.h"
 
 bool nodelist_next(nodelist *self, compilation_node_ref *out)
 {
@@ -22,7 +22,7 @@ compilation_node_ref nodelist_get(nodelist *self, size_t index)
     };
 }
 
-nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_ref list)
+nodelist nodelist_iterator(const Interpreter *compilation, compilation_node_ref list)
 {
     const Node *node = compilation_node(compilation, list);
     assert(node->kind == Node_ListBegin);
@@ -34,7 +34,7 @@ nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_re
     };
 }
 
-compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref ref)
+compilation_node_ref node_deref(const Interpreter *compilation, compilation_node_ref ref)
 {
     const Node *it = compilation_node(compilation, ref);
     if (it->kind == Node_Ref) {

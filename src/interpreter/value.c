@@ -1,12 +1,12 @@
 #include <system.h>
 #include "value.h"
 
-#include "env.h"
+#include "interpreter.h"
 #include "symbols.h"
 
-value_t value_from(Env env, compilation_node_ref it)
+value_t value_from(Interpreter *interpreter, compilation_node_ref it)
 {
-    const Node *n = compilation_node(env.compilation, it);
+    const Node *n = compilation_node(interpreter, it);
     switch (n->kind) {
         case Node_INVALID:
         case Node_Ref:
@@ -17,20 +17,20 @@ value_t value_from(Env env, compilation_node_ref it)
         case Node_Atom: {
             const String ident = n->u.Atom.value;
             Symbol symbol;
-            bool defined = Symbols_lookup(env.symbols, ident, &symbol);
+            bool defined = Symbols_lookup(interpreter->symbols, ident, &symbol);
             (void) defined;
             assert(defined && "symbol is defined");
             return symbol.value;
         }
         case Node_Integral:
             return (value_t) {
-                    .type = env.types->t_int,
+                    .type = interpreter->types->t_int,
                     .node = it,
                     .u.integral.value = n->u.Integral.value,
             };
         case Node_String:
             return (value_t) {
-                    .type = env.types->t_string,
+                    .type = interpreter->types->t_string,
                     .node = it,
                     .u.string.value = n->u.String.value,
             };

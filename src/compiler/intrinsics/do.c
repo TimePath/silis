@@ -13,5 +13,5 @@ INTRINSIC_IMPL(do, ((TypeRef[]) {
     const value_t *arg_body = Slice_at(&argv, 0);
 
     compilation_node_ref body = arg_body->u.expr.value;
-    return eval_list_block(env, body);
+    return eval_list_block(interpreter, body);
 }

@@ -12,7 +12,7 @@ INTRINSIC_IMPL(minus, ((TypeRef[]) {
     const size_t b = Slice_at(&argv, 1)->u.integral.value;
     const size_t c = a - b;
     return (value_t) {
-            .type = env.types->t_int,
+            .type = interpreter->types->t_int,
             .node = self,
             .u.integral.value = c,
     };

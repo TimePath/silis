@@ -3,7 +3,7 @@
 #include "symbols.h"
 
 #include "types.h"
-#include "env.h"
+#include "interpreter.h"
 
 void SymbolScope_delete(SymbolScope *self)
 {
