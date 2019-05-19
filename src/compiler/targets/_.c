@@ -11,22 +11,22 @@ void Target_file_end(Target *target, Env env, const compile_file *file)
     target->_file_end(target, env, file);
 }
 
-void Target_func_forward(Target *target, Env env, const compile_file *file, type_id T, String name)
+void Target_func_forward(Target *target, Env env, const compile_file *file, TypeRef T, String name)
 {
     target->_func_forward(target, env, file, T, name);
 }
 
-void Target_func_declare(Target *target, Env env, const compile_file *file, type_id T, String name, const String argnames[])
+void Target_func_declare(Target *target, Env env, const compile_file *file, TypeRef T, String name, const String argnames[])
 {
     target->_func_declare(target, env, file, T, name, argnames);
 }
 
-void Target_var_begin(Target *target, Env env, const compile_file *file, type_id T)
+void Target_var_begin(Target *target, Env env, const compile_file *file, TypeRef T)
 {
     target->_var_begin(target, env, file, T);
 }
 
-void Target_var_end(Target *target, Env env, const compile_file *file, type_id T)
+void Target_var_end(Target *target, Env env, const compile_file *file, TypeRef T)
 {
     target->_var_end(target, env, file, T);
 }

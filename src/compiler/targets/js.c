@@ -12,13 +12,13 @@ static void tgt_js_file_begin(struct Target *target, Env env, compilation_file_r
 
 static void tgt_js_file_end(struct Target *target, Env env, const compile_file *file);
 
-static void tgt_js_func_forward(struct Target *target, Env env, const compile_file *file, type_id T, String name);
+static void tgt_js_func_forward(struct Target *target, Env env, const compile_file *file, TypeRef T, String name);
 
-static void tgt_js_func_declare(struct Target *target, Env env, const compile_file *file, type_id T, String name, const String argnames[]);
+static void tgt_js_func_declare(struct Target *target, Env env, const compile_file *file, TypeRef T, String name, const String argnames[]);
 
-static void tgt_js_var_begin(struct Target *target, Env env, const compile_file *file, type_id T);
+static void tgt_js_var_begin(struct Target *target, Env env, const compile_file *file, TypeRef T);
 
-static void tgt_js_var_end(struct Target *target, Env env, const compile_file *file, type_id T);
+static void tgt_js_var_end(struct Target *target, Env env, const compile_file *file, TypeRef T);
 
 static void tgt_js_identifier(struct Target *target, Env env, const compile_file *file, String name);
 
@@ -37,11 +37,11 @@ typedef struct {
     bool anonymous;
 } tgt_js_print_decl_opts;
 
-static void tgt_js_print_decl_pre(struct Target *target, Env env, const compile_file *file, type_id T, tgt_js_print_decl_opts opts);
+static void tgt_js_print_decl_pre(struct Target *target, Env env, const compile_file *file, TypeRef T, tgt_js_print_decl_opts opts);
 
-static void tgt_js_print_decl_post(struct Target *target, Env env, const compile_file *file, type_id T, const String idents[], tgt_js_print_decl_opts opts);
+static void tgt_js_print_decl_post(struct Target *target, Env env, const compile_file *file, TypeRef T, const String idents[], tgt_js_print_decl_opts opts);
 
-static void tgt_js_print_function(struct Target *target, Env env, const compile_file *file, type_id T, String ident, const String idents[]);
+static void tgt_js_print_function(struct Target *target, Env env, const compile_file *file, TypeRef T, String ident, const String idents[]);
 
 static void tgt_js_file_begin(struct Target *target, Env env, compilation_file_ref file_ref, Vector(compile_file) *files)
 {
@@ -58,7 +58,7 @@ static void tgt_js_file_end(struct Target *target, Env env, const compile_file *
     (void) file;
 }
 
-static void tgt_js_func_forward(struct Target *target, Env env, const compile_file *file, type_id T, String name)
+static void tgt_js_func_forward(struct Target *target, Env env, const compile_file *file, TypeRef T, String name)
 {
     (void) target;
     (void) env;
@@ -67,12 +67,12 @@ static void tgt_js_func_forward(struct Target *target, Env env, const compile_fi
     (void) name;
 }
 
-static void tgt_js_func_declare(struct Target *target, Env env, const compile_file *file, type_id T, String name, const String argnames[])
+static void tgt_js_func_declare(struct Target *target, Env env, const compile_file *file, TypeRef T, String name, const String argnames[])
 {
     tgt_js_print_function(target, env, file, T, name, argnames);
 }
 
-static void tgt_js_var_begin(struct Target *target, Env env, const compile_file *file, type_id T)
+static void tgt_js_var_begin(struct Target *target, Env env, const compile_file *file, TypeRef T)
 {
     tgt_js_print_decl_opts opts = {
             .local = true,
@@ -81,7 +81,7 @@ static void tgt_js_var_begin(struct Target *target, Env env, const compile_file 
     tgt_js_print_decl_pre(target, env, file, T, opts);
 }
 
-static void tgt_js_var_end(struct Target *target, Env env, const compile_file *file, type_id T)
+static void tgt_js_var_end(struct Target *target, Env env, const compile_file *file, TypeRef T)
 {
     tgt_js_print_decl_opts opts = {
             .local = true,
@@ -124,7 +124,7 @@ static void tgt_js_identifier(struct Target *target, Env env, const compile_file
 
 // implementation
 
-static void tgt_js_print_function(struct Target *target, Env env, const compile_file *file, type_id T, String ident, const String idents[])
+static void tgt_js_print_function(struct Target *target, Env env, const compile_file *file, TypeRef T, String ident, const String idents[])
 {
     tgt_js_print_decl_opts opts = {
             .local = false,
@@ -137,7 +137,7 @@ static void tgt_js_print_function(struct Target *target, Env env, const compile_
     tgt_js_print_decl_post(target, env, file, T, idents, opts);
 }
 
-static void tgt_js_print_type(struct Target *target, Env env, const compile_file *file, type_id T)
+static void tgt_js_print_type(struct Target *target, Env env, const compile_file *file, TypeRef T)
 {
 #define CASE(t) if (T.value == env.types->t.value)
     CASE(t_unit) {
@@ -153,16 +153,16 @@ static void tgt_js_print_type(struct Target *target, Env env, const compile_file
         return;
     }
 #undef CASE
-    const type_t *type = type_lookup(env.types, T);
-    if (type->kind == TYPE_FUNCTION) {
+    const Type *type = Types_lookup(env.types, T);
+    if (type->kind == Type_Function) {
         fprintf_s(file->out, STR("("));
-        type_id argT;
-        const type_t *argType = type;
+        TypeRef argT;
+        const Type *argType = type;
         while (true) {
-            tgt_js_print_type(target, env, file, argType->u.func.in);
-            argT = argType->u.func.out;
-            argType = type_lookup(env.types, argT);
-            if (argType->kind != TYPE_FUNCTION) {
+            tgt_js_print_type(target, env, file, argType->u.Function.in);
+            argT = argType->u.Function.out;
+            argType = Types_lookup(env.types, argT);
+            if (argType->kind != Type_Function) {
                 break;
             }
             fprintf_s(file->out, STR(", "));
@@ -176,32 +176,32 @@ static void tgt_js_print_type(struct Target *target, Env env, const compile_file
     fprintf_s(file->out, STR(">"));
 }
 
-static void tgt_js_print_decl_pre(struct Target *target, Env env, const compile_file *file, type_id T, tgt_js_print_decl_opts opts)
+static void tgt_js_print_decl_pre(struct Target *target, Env env, const compile_file *file, TypeRef T, tgt_js_print_decl_opts opts)
 {
     (void) target;
     (void) opts;
-    const type_t *type = type_lookup(env.types, T);
-    if (type->kind != TYPE_FUNCTION || opts.local) {
+    const Type *type = Types_lookup(env.types, T);
+    if (type->kind != Type_Function || opts.local) {
         fprintf_s(file->out, STR("let "));
         return;
     }
     fprintf_s(file->out, STR("function "));
 }
 
-static void tgt_js_print_decl_post(struct Target *target, Env env, const compile_file *file, type_id T, const String idents[], tgt_js_print_decl_opts opts)
+static void tgt_js_print_decl_post(struct Target *target, Env env, const compile_file *file, TypeRef T, const String idents[], tgt_js_print_decl_opts opts)
 {
     (void) opts;
-    const type_t *type = type_lookup(env.types, T);
-    if (type->kind != TYPE_FUNCTION || opts.local) {
+    const Type *type = Types_lookup(env.types, T);
+    if (type->kind != Type_Function || opts.local) {
         fprintf_s(file->out, STR(": "));
         tgt_js_print_type(target, env, file, T);
         return;
     }
     fprintf_s(file->out, STR("("));
-    const type_t *argp = type;
+    const Type *argp = type;
     size_t i = 0;
     while (true) {
-        const type_id arg = argp->u.func.in;
+        const TypeRef arg = argp->u.Function.in;
         if (arg.value == env.types->t_unit.value) {
             break;
         }
@@ -215,8 +215,8 @@ static void tgt_js_print_decl_post(struct Target *target, Env env, const compile
         if (!types) {
             fprintf_s(file->out, STR(" */"));
         }
-        const type_t *next = type_lookup(env.types, argp->u.func.out);
-        if (next->kind != TYPE_FUNCTION) {
+        const Type *next = Types_lookup(env.types, argp->u.Function.out);
+        if (next->kind != Type_Function) {
             break;
         }
         argp = next;
@@ -227,7 +227,7 @@ static void tgt_js_print_decl_post(struct Target *target, Env env, const compile
         fprintf_s(file->out, STR(" /*"));
     }
     fprintf_s(file->out, STR(": "));
-    tgt_js_print_type(target, env, file, type_func_ret(env.types, type));
+    tgt_js_print_type(target, env, file, Types_function_result(env.types, T));
     if (!types) {
         fprintf_s(file->out, STR(" */"));
     }

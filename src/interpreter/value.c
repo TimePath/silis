@@ -16,8 +16,8 @@ value_t value_from(Env env, compilation_node_ref it)
             break;
         case Node_Atom: {
             const String ident = n->u.Atom.value;
-            sym_t symbol;
-            bool defined = sym_lookup(env.symbols, ident, &symbol);
+            Symbol symbol;
+            bool defined = Symbols_lookup(env.symbols, ident, &symbol);
             (void) defined;
             assert(defined && "symbol is defined");
             return symbol.value;

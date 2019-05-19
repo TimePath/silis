@@ -4,36 +4,36 @@
 
 #include "type.h"
 
-typedef struct types_s {
-    Vector(type_t) all;
+typedef struct Types {
+    Vector(Type) all;
     /// result of untyped, assignable to anything
-    type_id t_untyped;
+    TypeRef t_untyped;
     /// can be produced with `()`
-    type_id t_unit;
+    TypeRef t_unit;
     /// typedefs have this type
-    type_id t_type;
+    TypeRef t_type;
     /// unevaluated code has this type
     /// when calling such a function, quasiquote the input
     /// todo: more specific types
     /// expr<void> ; returns void
     /// expr<T> ; returns T, whatever that is
-    type_id t_expr;
+    TypeRef t_expr;
     /// strings
-    type_id t_string;
+    TypeRef t_string;
     /// integers
-    type_id t_int;
-} types_t;
+    TypeRef t_int;
+} Types;
 
-types_t types_new(Allocator *allocator);
+Types Types_new(Allocator *allocator);
 
-type_id type_new(types_t *ctx, type_t it);
+bool Types_assign(Types *self, TypeRef src, TypeRef dst);
 
-bool type_assignable_to(types_t *ctx, type_id self, type_id other);
+TypeRef Types_register(Types *self, Type it);
 
-type_id type_func_new(types_t *ctx, type_id *argv, size_t n);
+TypeRef Types_register_func(Types *self, Slice(TypeRef) types);
 
-type_id type_func_ret(const types_t *ctx, const type_t *T);
+const Type *Types_lookup(const Types *self, TypeRef ref);
 
-size_t type_func_argc(const types_t *ctx, const type_t *T);
+TypeRef Types_function_result(const Types *self, TypeRef T);
 
-const type_t *type_lookup(const types_t *ctx, type_id id);
+size_t Types_function_arity(const Types *self, TypeRef T);

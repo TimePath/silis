@@ -33,10 +33,10 @@ static void _fprintf_hexdump(File *stream, Slice(uint8_t) slice)
     for (size_t i = 0; i < Slice_size(&slice); ++i) {
         if (i) { fprintf_s(stream, STR(" ")); }
         const uint8_t b = *Slice_at(&slice, i);
-        fs_write(stream, Slice_of(uint8_t, (uint8_t[2]) {
+        fs_write(stream, Slice_of(uint8_t, ((uint8_t[2]) {
             (uint8_t) hexdigits[((b & 0xF0) >> 4)],
             (uint8_t) hexdigits[((b & 0x0F) >> 0)],
-        }));
+        })));
     }
 }
 

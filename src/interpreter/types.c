@@ -1,9 +1,9 @@
 #include <system.h>
 #include "types.h"
 
-types_t types_new(Allocator *allocator)
+Types Types_new(Allocator *allocator)
 {
-    types_t _self = {
+    Types _self = {
             .all = Vector_new(allocator),
             .t_untyped = {.value = 0},
             .t_unit = {.value = 0},
@@ -12,86 +12,90 @@ types_t types_new(Allocator *allocator)
             .t_string = {.value = 0},
             .t_int = {.value = 0},
     };
-    types_t *self = &_self;
-    self->t_untyped = type_new(self, (type_t) {
-            .kind = TYPE_OPAQUE,
-            .u.opaque.size = 0,
+    Types *self = &_self;
+    self->t_untyped = Types_register(self, (Type) {
+            .kind = Type_Opaque,
+            .u.Opaque.size = 0,
     });
     assert(self->t_untyped.value == 1 && "untyped has type id 1");
-    self->t_unit = type_new(self, (type_t) {
-            .kind = TYPE_OPAQUE,
-            .u.opaque.size = 0,
+    self->t_unit = Types_register(self, (Type) {
+            .kind = Type_Opaque,
+            .u.Opaque.size = 0,
     });
-    self->t_expr = type_new(self, (type_t) {
-            .kind = TYPE_OPAQUE,
-            .u.opaque.size = 0,
+    self->t_expr = Types_register(self, (Type) {
+            .kind = Type_Opaque,
+            .u.Opaque.size = 0,
     });
-    self->t_type = type_new(self, (type_t) {
-            .kind = TYPE_OPAQUE,
-            .u.opaque.size = sizeof(type_id),
+    self->t_type = Types_register(self, (Type) {
+            .kind = Type_Opaque,
+            .u.Opaque.size = sizeof(TypeRef),
     });
-    self->t_string = type_new(self, (type_t) {
-            .kind = TYPE_OPAQUE,
-            .u.opaque.size = sizeof(const native_char_t *),
+    self->t_string = Types_register(self, (Type) {
+            .kind = Type_Opaque,
+            .u.Opaque.size = sizeof(const native_char_t *),
     });
-    self->t_int = type_new(self, (type_t) {
-            .kind = TYPE_OPAQUE,
-            .u.opaque.size = sizeof(size_t),
+    self->t_int = Types_register(self, (Type) {
+            .kind = Type_Opaque,
+            .u.Opaque.size = sizeof(size_t),
     });
     return _self;
 }
 
-type_id type_new(types_t *ctx, type_t it)
+bool Types_assign(Types *self, TypeRef src, TypeRef dst)
 {
-    Vector_push(&ctx->all, it);
-    return (type_id) {.value = Vector_size(&ctx->all)};
-}
-
-bool type_assignable_to(types_t *ctx, type_id self, type_id other)
-{
-    if (self.value == other.value) {
+    if (src.value == dst.value) {
         return true;
     }
-    if (self.value == ctx->t_untyped.value) {
+    if (dst.value == self->t_untyped.value) {
+        return true;
+    }
+    if (src.value == self->t_untyped.value) {
         return true;
     }
     return false;
 }
 
-type_id type_func_new(types_t *ctx, type_id *argv, size_t n)
+TypeRef Types_register(Types *self, Type it)
 {
+    Vector_push(&self->all, it);
+    return (TypeRef) {.value = Vector_size(&self->all)};
+}
+
+TypeRef Types_register_func(Types *self, Slice(TypeRef) types)
+{
+    size_t n = Slice_size(&types);
     size_t i = n - 1;
-    type_id ret = argv[i];
+    TypeRef ret = *Slice_at(&types, i);
     while (i-- > 0) {
-        type_id in = argv[i];
-        ret = type_new(ctx, (type_t) {
-                .kind = TYPE_FUNCTION,
-                .u.func.in = in,
-                .u.func.out = ret,
+        TypeRef in = *Slice_at(&types, i);
+        ret = Types_register(self, (Type) {
+                .kind = Type_Function,
+                .u.Function.in = in,
+                .u.Function.out = ret,
         });
     }
     return ret;
 }
 
-type_id type_func_ret(const types_t *ctx, const type_t *T)
+const Type *Types_lookup(const Types *self, TypeRef ref)
 {
-    type_id ret = {.value = 0};
-    for (const type_t *it = T; it->kind == TYPE_FUNCTION; it = type_lookup(ctx, it->u.func.out)) {
-        ret = it->u.func.out;
+    return Vector_at(&self->all, ref.value - 1);
+}
+
+TypeRef Types_function_result(const Types *self, TypeRef T)
+{
+    TypeRef ret = {.value = 0};
+    for (const Type *it = Types_lookup(self, T); it->kind == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
+        ret = it->u.Function.out;
     }
     return ret;
 }
 
-size_t type_func_argc(const types_t *ctx, const type_t *T)
+size_t Types_function_arity(const Types *self, TypeRef T)
 {
     size_t argc = 0;
-    for (const type_t *it = T; it->kind == TYPE_FUNCTION; it = type_lookup(ctx, it->u.func.out)) {
+    for (const Type *it = Types_lookup(self, T); it->kind == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
         ++argc;
     }
     return argc;
-}
-
-const type_t *type_lookup(const types_t *ctx, type_id id)
-{
-    return Vector_at(&ctx->all, id.value - 1);
 }

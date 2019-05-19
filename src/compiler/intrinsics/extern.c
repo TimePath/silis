@@ -4,7 +4,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(extern, ((type_id[]) {
+INTRINSIC_IMPL(extern, ((TypeRef[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))
@@ -18,8 +18,8 @@ INTRINSIC_IMPL(extern, ((type_id[]) {
 
     const value_t v = eval_node(env, val);
     assert(v.type.value == env.types->t_type.value && "argument is a type");
-    type_id T = v.u.type.value;
-    sym_def(env.symbols, name->u.Atom.value, (sym_t) {
+    TypeRef T = v.u.type.value;
+    Symbols_define(env.symbols, name->u.Atom.value, (Symbol) {
             .file = self.file,
             .type = T,
             .value = {.type = T, .node = self, .flags.abstract = true, .flags.native = true,},

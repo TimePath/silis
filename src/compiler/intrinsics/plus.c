@@ -3,7 +3,7 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(plus, ((type_id[]) {
+INTRINSIC_IMPL(plus, ((TypeRef[]) {
         types->t_int, types->t_int,
         types->t_int
 }))

@@ -8,7 +8,7 @@
 #include <interpreter/env.h>
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(include, ((type_id[]) {
+INTRINSIC_IMPL(include, ((TypeRef[]) {
         types->t_expr,
         types->t_unit,
 }))

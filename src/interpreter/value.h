@@ -7,7 +7,7 @@
 #include "type.h"
 
 typedef struct {
-    type_id type;
+    TypeRef type;
     compilation_node_ref node;
     union {
         struct {
@@ -31,7 +31,7 @@ typedef struct {
         } expr;
 
         struct {
-            type_id value;
+            TypeRef value;
         } type;
 
         struct {

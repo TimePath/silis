@@ -5,7 +5,7 @@
 #include <lib/stdio.h>
 #include <interpreter/env.h>
 
-INTRINSIC_IMPL(emit, ((type_id[]) {
+INTRINSIC_IMPL(emit, ((TypeRef[]) {
         types->t_expr,
         types->t_unit,
 }))

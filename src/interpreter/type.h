@@ -1,54 +1,41 @@
 #pragma once
 
+#include <lib/slice.h>
 #include <lib/vector.h>
-
-typedef enum {
-    TYPE_INVALID,
-    /**
-     * The leaf types of the type system
-     */ TYPE_OPAQUE,
-    /**
-     * A function, represented as arg0 -> argN -> ret
-     */ TYPE_FUNCTION,
-    /**
-     * Structs. TODO
-     */ TYPE_AGGREGATE,
-    /**
-     * Pointers. TODO
-     */ TYPE_POINTER,
-} type_e;
 
 typedef struct {
     size_t value;
-} type_id;
+} TypeRef;
 
-typedef struct {
-    type_e kind;
-    PADDING(4)
-    union {
-        /// TYPE_OPAQUE
-        struct {
-            size_t size;
-        } opaque;
-        /// TYPE_FUNCTION
-        struct {
-            type_id in, out;
-        } func;
-        /// TYPE_AGGREGATE
-        struct {
-            /// index to self
-            type_id self;
-            /// index to next child, or 0
-            type_id next;
-        } aggregate;
-        /// TYPE_POINTER
-        struct {
-            type_id pointee;
-        } pointer;
-    } u;
-} type_t;
+Slice_instantiate(TypeRef);
+Vector_instantiate(TypeRef);
 
-#define type_t_delete(self) ((void) (self))
+#define Type(id, _) \
+    /** The leaf types of the type system */ \
+    _(id, Opaque, { \
+        size_t size; \
+    }) \
+    /** A function, represented as arg0 -> argN -> ret */ \
+    _(id, Function, { \
+        TypeRef in; \
+        TypeRef out; \
+    }) \
+    /** Structs. TODO */ \
+    _(id, Aggregate, { \
+        /** index to self */ \
+        TypeRef self; \
+        /** index to next child, or 0 */ \
+        TypeRef next; \
+    }) \
+    /** Pointers. TODO */ \
+    _(id, Pointer, { \
+        TypeRef pointee; \
+    }) \
+/**/
 
-Slice_instantiate(type_t);
-Vector_instantiate(type_t);
+ENUM(Type)
+
+Slice_instantiate(Type);
+Vector_instantiate(Type);
+
+#define Type_delete(self) ((void) (self))

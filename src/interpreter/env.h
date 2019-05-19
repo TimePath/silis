@@ -7,8 +7,8 @@ typedef struct {
     Allocator *allocator;
     FileSystem *fs_in;
     struct compilation_s *compilation;
-    struct types_s *types;
-    struct symbols_s *symbols;
+    struct Types *types;
+    struct Symbols *symbols;
     // todo: bind to intrinsic instances
     File *out;
 } Env;

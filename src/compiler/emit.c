@@ -44,7 +44,7 @@ typedef enum {
 typedef struct {
     return_e kind;
     PADDING(4)
-    type_id type;
+    TypeRef type;
     union {
         struct {
             compilation_node_ref val;
@@ -71,33 +71,33 @@ emit_output do_emit(emit_input in)
     };
     emit_ctx *ctx = &_ctx;
 
-    sym_t entry;
-    bool hasMain = sym_lookup(ctx->env.symbols, STR("main"), &entry);
+    Symbol entry;
+    bool hasMain = Symbols_lookup(ctx->env.symbols, STR("main"), &entry);
     (void) entry;
     (void) hasMain;
-    assert(hasMain && type_lookup(ctx->env.types, entry.value.type)->kind == TYPE_FUNCTION && "main is a function");
+    assert(hasMain && Types_lookup(ctx->env.types, entry.value.type)->kind == Type_Function && "main is a function");
 
     Vector_loop(compilation_file_ptr_t, &in.env.compilation->files, i) {
         Target_file_begin(ctx->target, ctx->env, (compilation_file_ref) {i + 1}, &files);
     }
 
-    const sym_scope_t *globals = Vector_at(&ctx->env.symbols->scopes, 0);
+    const SymbolScope *globals = Vector_at(&ctx->env.symbols->scopes, 0);
     // first pass: emit function prototypes and globals
     Vector_loop(TrieEntry, &globals->t.entries, i) {
         const TrieEntry *e = Vector_at(&globals->t.entries, i);
-        const TrieNode(sym_t) *n = Vector_at(&globals->t.nodes, e->value);
-        const sym_t _it = n->value;
-        const sym_t *it = &_it;
+        const TrieNode(Symbol) *n = Vector_at(&globals->t.nodes, e->value);
+        const Symbol _it = n->value;
+        const Symbol *it = &_it;
         const compile_file *file = Vector_at(&files, (it->file.id - 1) * 2 + 0); // FIXME
         if (it->value.flags.intrinsic) {
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const type_id type = it->type;
+        const TypeRef type = it->type;
         if (it->value.flags.native) {
             fprintf_s(file->out, STR("extern ")); // FIXME
         }
-        if (type_lookup(ctx->env.types, type)->kind == TYPE_FUNCTION) {
+        if (Types_lookup(ctx->env.types, type)->kind == Type_Function) {
             Target_func_forward(ctx->target, ctx->env, file, type, ident);
         } else {
             Target_var_begin(ctx->target, ctx->env, file, type);
@@ -114,16 +114,16 @@ emit_output do_emit(emit_input in)
     // second pass: emit functions
     Vector_loop(TrieEntry, &globals->t.entries, i) {
         const TrieEntry *e = Vector_at(&globals->t.entries, i);
-        const TrieNode(sym_t) *n = Vector_at(&globals->t.nodes, e->value);
-        const sym_t _it = n->value;
-        const sym_t *it = &_it;
+        const TrieNode(Symbol) *n = Vector_at(&globals->t.nodes, e->value);
+        const Symbol _it = n->value;
+        const Symbol *it = &_it;
         const compile_file *file = Vector_at(&files, (it->file.id - 1) * 2 + 1); // FIXME
         if (it->value.flags.intrinsic || it->value.flags.native) {
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const type_id type = it->type;
-        if (type_lookup(ctx->env.types, type)->kind != TYPE_FUNCTION) {
+        const TypeRef type = it->type;
+        if (Types_lookup(ctx->env.types, type)->kind != Type_Function) {
             continue;
         }
         assert(it->file.id && "global is user-defined");
@@ -255,7 +255,7 @@ static void emit_return_ref(emit_ctx *ctx, const compile_file *file, return_t re
     unreachable();
 }
 
-static void emit_return_declare(emit_ctx *ctx, const compile_file *file, type_id T, return_t ret)
+static void emit_return_declare(emit_ctx *ctx, const compile_file *file, TypeRef T, return_t ret)
 {
     switch (ret.kind) {
         case RETURN_NO:
@@ -372,8 +372,8 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     LINE(+1);
 
     value_t f = eval_node(ctx->env, func);
-    const type_t *type = type_lookup(ctx->env.types, f.type);
-    assert(type->kind == TYPE_FUNCTION);
+    const Type *type = Types_lookup(ctx->env.types, f.type);
+    assert(type->kind == Type_Function);
 
     const return_t outFunc = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = func};
     emit_return_declare(ctx, file, f.type, outFunc);
@@ -381,11 +381,11 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     visit_node(ctx, file, outFunc, func);
     LINE();
 
-    const type_t *argp = type;
+    const Type *argp = type;
     size_t i = 0;
     while (true) {
         i += 1;
-        const type_id arg = argp->u.func.in;
+        const TypeRef arg = argp->u.Function.in;
         if (arg.value != ctx->env.types->t_unit.value) {
             compilation_node_ref ref = *Slice_at(&children, i);
             const return_t outArg = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = ref};
@@ -394,8 +394,8 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
             visit_node(ctx, file, outArg, ref);
             LINE();
         }
-        const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
-        if (next->kind != TYPE_FUNCTION) {
+        const Type *next = Types_lookup(ctx->env.types, argp->u.Function.out);
+        if (next->kind != Type_Function) {
             break;
         }
         argp = next;
@@ -411,7 +411,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     bool first = true;
     while (true) {
         i += 1;
-        const type_id arg = argp->u.func.in;
+        const TypeRef arg = argp->u.Function.in;
         if (arg.value != ctx->env.types->t_unit.value) {
             if (!first) {
                 fprintf_s(file->out, STR(", "));
@@ -419,8 +419,8 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
             emit_ref(ctx, file, *Slice_at(&children, i));
             first = false;
         }
-        const type_t *next = type_lookup(ctx->env.types, argp->u.func.out);
-        if (next->kind != TYPE_FUNCTION) {
+        const Type *next = Types_lookup(ctx->env.types, argp->u.Function.out);
+        if (next->kind != Type_Function) {
             break;
         }
         argp = next;
@@ -441,8 +441,8 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
     if (funcNode->kind != Node_Atom) {
         return false;
     }
-    sym_t entry;
-    bool found = sym_lookup(ctx->env.symbols, funcNode->u.Atom.value, &entry);
+    Symbol entry;
+    bool found = Symbols_lookup(ctx->env.symbols, funcNode->u.Atom.value, &entry);
     if (!found) {
         return false;
     }
@@ -482,7 +482,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
     }
     if (intrin == &intrin_do) {
         compilation_node_ref bodyRef = *Slice_at(&children, 1);
-        sym_push(ctx->env.symbols);
+        Symbols_push(ctx->env.symbols);
         nodelist iter = nodelist_iterator(ctx->env.compilation, bodyRef);
         compilation_node_ref ref;
         for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
@@ -502,7 +502,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
             }
             visit_node(ctx, file, out, ref);
         }
-        sym_pop(ctx->env.symbols);
+        Symbols_pop(ctx->env.symbols);
         return true;
     }
     if (intrin == &intrin_if) {

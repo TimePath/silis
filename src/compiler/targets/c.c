@@ -10,13 +10,13 @@ static void tgt_c_file_begin(Target *self, Env env, compilation_file_ref file_re
 
 static void tgt_c_file_end(Target *self, Env env, const compile_file *file);
 
-static void tgt_c_func_forward(Target *self, Env env, const compile_file *file, type_id T, String name);
+static void tgt_c_func_forward(Target *self, Env env, const compile_file *file, TypeRef T, String name);
 
-static void tgt_c_func_declare(Target *self, Env env, const compile_file *file, type_id T, String name, const String argnames[]);
+static void tgt_c_func_declare(Target *self, Env env, const compile_file *file, TypeRef T, String name, const String argnames[]);
 
-static void tgt_c_var_begin(Target *self, Env env, const compile_file *file, type_id T);
+static void tgt_c_var_begin(Target *self, Env env, const compile_file *file, TypeRef T);
 
-static void tgt_c_var_end(Target *self, Env env, const compile_file *file, type_id T);
+static void tgt_c_var_end(Target *self, Env env, const compile_file *file, TypeRef T);
 
 static void tgt_c_identifier(Target *self, Env env, const compile_file *file, String name);
 
@@ -37,11 +37,11 @@ typedef struct {
     bool anonymous;
 } tgt_c_print_decl_opts;
 
-static void tgt_c_print_decl_pre(Target *self, Env env, const compile_file *file, type_id T, tgt_c_print_decl_opts opts);
+static void tgt_c_print_decl_pre(Target *self, Env env, const compile_file *file, TypeRef T, tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_decl_post(Target *self, Env env, const compile_file *file, type_id T, const String idents[], tgt_c_print_decl_opts opts);
+static void tgt_c_print_decl_post(Target *self, Env env, const compile_file *file, TypeRef T, const String idents[], tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_function(Target *self, Env env, const compile_file *file, type_id T, String ident, const String idents[]);
+static void tgt_c_print_function(Target *self, Env env, const compile_file *file, TypeRef T, String ident, const String idents[]);
 
 static void tgt_c_file_begin(Target *self, Env env, compilation_file_ref file_ref, Vector(compile_file) *files)
 {
@@ -64,7 +64,7 @@ static void tgt_c_file_end(Target *self, Env env, const compile_file *file)
     (void) file;
 }
 
-static void tgt_c_func_forward(Target *self, Env env, const compile_file *file, type_id T, String name)
+static void tgt_c_func_forward(Target *self, Env env, const compile_file *file, TypeRef T, String name)
 {
     if (!(file->flags & FLAG_HEADER)) {
         return;
@@ -73,12 +73,12 @@ static void tgt_c_func_forward(Target *self, Env env, const compile_file *file, 
     fprintf_s(file->out, STR(";"));
 }
 
-static void tgt_c_func_declare(Target *self, Env env, const compile_file *file, type_id T, String name, const String argnames[])
+static void tgt_c_func_declare(Target *self, Env env, const compile_file *file, TypeRef T, String name, const String argnames[])
 {
     tgt_c_print_function(self, env, file, T, name, argnames);
 }
 
-static void tgt_c_var_begin(Target *self, Env env, const compile_file *file, type_id T)
+static void tgt_c_var_begin(Target *self, Env env, const compile_file *file, TypeRef T)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
@@ -87,7 +87,7 @@ static void tgt_c_var_begin(Target *self, Env env, const compile_file *file, typ
     tgt_c_print_decl_pre(self, env, file, T, opts);
 }
 
-static void tgt_c_var_end(Target *self, Env env, const compile_file *file, type_id T)
+static void tgt_c_var_end(Target *self, Env env, const compile_file *file, TypeRef T)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
@@ -124,7 +124,7 @@ static void tgt_c_identifier(Target *self, Env env, const compile_file *file, St
 
 // implementation
 
-static void tgt_c_print_function(Target *self, Env env, const compile_file *file, type_id T, String ident, const String idents[])
+static void tgt_c_print_function(Target *self, Env env, const compile_file *file, TypeRef T, String ident, const String idents[])
 {
     tgt_c_print_decl_opts opts = {
             .local = false,
@@ -137,7 +137,7 @@ static void tgt_c_print_function(Target *self, Env env, const compile_file *file
     tgt_c_print_decl_post(self, env, file, T, idents, opts);
 }
 
-static void tgt_c_print_declaration(Target *self, Env env, const compile_file *file, type_id T, String ident)
+static void tgt_c_print_declaration(Target *self, Env env, const compile_file *file, TypeRef T, String ident)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
@@ -150,10 +150,10 @@ static void tgt_c_print_declaration(Target *self, Env env, const compile_file *f
     tgt_c_print_decl_post(self, env, file, T, NULL, opts);
 }
 
-static void tgt_c_print_decl_pre(Target *self, Env env, const compile_file *file, type_id T, tgt_c_print_decl_opts opts)
+static void tgt_c_print_decl_pre(Target *self, Env env, const compile_file *file, TypeRef T, tgt_c_print_decl_opts opts)
 {
-    const type_t *type = type_lookup(env.types, T);
-    if (type->kind != TYPE_FUNCTION) {
+    const Type *type = Types_lookup(env.types, T);
+    if (type->kind != Type_Function) {
 #define CASE(t) if (T.value == env.types->t.value)
         CASE(t_unit) {
             fprintf_s(file->out, !opts.anonymous ? STR("void ") : STR("void"));
@@ -173,7 +173,7 @@ static void tgt_c_print_decl_pre(Target *self, Env env, const compile_file *file
         fprintf_s(file->out, !opts.anonymous ? STR("> ") : STR(">"));
         return;
     }
-    tgt_c_print_declaration(self, env, file, type_func_ret(env.types, type), STR(""));
+    tgt_c_print_declaration(self, env, file, Types_function_result(env.types, T), STR(""));
     if (!opts.anonymous) {
         fprintf_s(file->out, STR(" "));
     }
@@ -182,24 +182,24 @@ static void tgt_c_print_decl_pre(Target *self, Env env, const compile_file *file
     }
 }
 
-static void tgt_c_print_decl_post(Target *self, Env env, const compile_file *file, type_id T, const String idents[], tgt_c_print_decl_opts opts)
+static void tgt_c_print_decl_post(Target *self, Env env, const compile_file *file, TypeRef T, const String idents[], tgt_c_print_decl_opts opts)
 {
-    const type_t *type = type_lookup(env.types, T);
-    if (type->kind != TYPE_FUNCTION) {
+    const Type *type = Types_lookup(env.types, T);
+    if (type->kind != Type_Function) {
         return;
     }
     if (opts.local) {
         fprintf_s(file->out, STR(")"));
     }
     fprintf_s(file->out, STR("("));
-    const type_t *argp = type;
+    const Type *argp = type;
     size_t i = 0;
     while (true) {
-        const type_id arg = argp->u.func.in;
+        const TypeRef arg = argp->u.Function.in;
         const String s = idents ? idents[i++] : STR("");
         tgt_c_print_declaration(self, env, file, arg, s);
-        const type_t *next = type_lookup(env.types, argp->u.func.out);
-        if (next->kind != TYPE_FUNCTION) {
+        const Type *next = Types_lookup(env.types, argp->u.Function.out);
+        if (next->kind != Type_Function) {
             break;
         }
         argp = next;

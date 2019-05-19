@@ -5,7 +5,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(set, ((type_id[]) {
+INTRINSIC_IMPL(set, ((TypeRef[]) {
         types->t_expr, types->t_expr,
         types->t_unit
 }))
@@ -18,12 +18,12 @@ INTRINSIC_IMPL(set, ((type_id[]) {
     compilation_node_ref val = arg_val->u.expr.value;
 
     const value_t v = eval_node(env, val);
-    sym_t entry;
-    bool found = sym_lookup(env.symbols, name->u.Atom.value, &entry);
+    Symbol entry;
+    bool found = Symbols_lookup(env.symbols, name->u.Atom.value, &entry);
     (void) found;
     assert(found && "symbol is declared");
-    assert(type_assignable_to(env.types, v.type, entry.type) && "is assignable");
+    assert(Types_assign(env.types, v.type, entry.type) && "is assignable");
     entry.value = v;
-    sym_def(env.symbols, name->u.Atom.value, entry);
+    Symbols_define(env.symbols, name->u.Atom.value, entry);
     return (value_t) {.type = env.types->t_unit, .node = self};
 }

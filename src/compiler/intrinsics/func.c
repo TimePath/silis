@@ -4,7 +4,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(func, ((type_id[]) {
+INTRINSIC_IMPL(func, ((TypeRef[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))
@@ -16,9 +16,9 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     nodelist children = nodelist_iterator(env.compilation, arg_args->u.expr.value);
     const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
-    type_id *Ts = malloc(sizeof(type_id) * argc);
+    TypeRef *Ts = malloc(sizeof(TypeRef) * argc);
     func_args_types(env, children, Ts);
-    type_id T = type_func_new(env.types, Ts, argc);
+    TypeRef T = Types_register_func(env.types, Slice_of_n(TypeRef, Ts, argc));
     free(Ts);
     return (value_t) {
             .type = T,
@@ -28,7 +28,7 @@ INTRINSIC_IMPL(func, ((type_id[]) {
     };
 }
 
-void func_args_types(Env env, nodelist iter, type_id out[])
+void func_args_types(Env env, nodelist iter, TypeRef out[])
 {
     compilation_node_ref ref;
     for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {

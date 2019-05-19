@@ -69,19 +69,19 @@ static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
     }
     // (f args...)
     const value_t func = do_eval_node(ctx, node_deref(ctx->env.compilation, ref));
-    const type_t *funcType = type_lookup(ctx->env.types, func.type);
-    assert(funcType->kind == TYPE_FUNCTION && "function is function");
+    const Type *funcType = Types_lookup(ctx->env.types, func.type);
+    assert(funcType->kind == Type_Function && "function is function");
 
     bool abstract = func.flags.abstract;
     const size_t ofs = Vector_size(&ctx->stack);
-    const type_id expr_t = ctx->env.types->t_expr;
+    const TypeRef expr_t = ctx->env.types->t_expr;
     size_t T_argc = 0;
-    type_id T = func.type;
-    for (const type_t *argType = funcType; argType->kind == TYPE_FUNCTION; T = argType->u.func.out, argType = type_lookup(ctx->env.types, T)) {
+    TypeRef T = func.type;
+    for (const Type *argType = funcType; argType->kind == Type_Function; T = argType->u.Function.out, argType = Types_lookup(ctx->env.types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
         compilation_node_ref arg = nodelist_get(&children, ++T_argc);
         arg = node_deref(ctx->env.compilation, arg);
-        const type_id arg_t = argType->u.func.in;
+        const TypeRef arg_t = argType->u.Function.in;
         value_t v;
         if (arg_t.value == expr_t.value) {
             v = (value_t) {
@@ -91,7 +91,7 @@ static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
             };
         } else {
             v = do_eval_node(ctx, arg);
-            assert(type_assignable_to(ctx->env.types, v.type, arg_t) && "argument matches declared type");
+            assert(Types_assign(ctx->env.types, v.type, arg_t) && "argument matches declared type");
             assert((func.flags.intrinsic ? !v.flags.abstract : true) && "argument is not abstract");
         }
         abstract = abstract || v.flags.abstract;
@@ -123,12 +123,12 @@ value_t func_call(Env env, value_t func, const Slice(value_t) argv, compilation_
     if (func.flags.intrinsic) {
         return Intrinsic_call(func.u.intrinsic.value, env, it, argv);
     }
-    sym_push(env.symbols);
+    Symbols_push(env.symbols);
     compilation_node_ref body = func.u.func.value;
     compilation_node_ref arglist = func.u.func.arglist;
     func_args_load(env, arglist, argv);
     const value_t ret = eval_node(env, body);
-    sym_pop(env.symbols);
+    Symbols_pop(env.symbols);
     return ret;
 }
 
@@ -146,7 +146,7 @@ static void func_args_load(Env env, compilation_node_ref arglist, const Slice(va
             assert(idNode->kind == Node_Atom && "argument is a name");
 
             const value_t *v = Slice_at(&argv, i);
-            sym_def(env.symbols, idNode->u.Atom.value, (sym_t) {
+            Symbols_define(env.symbols, idNode->u.Atom.value, (Symbol) {
                     .file = {0},
                     .type = v->type,
                     .value = *v,

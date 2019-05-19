@@ -4,7 +4,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(define, ((type_id[]) {
+INTRINSIC_IMPL(define, ((TypeRef[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))
@@ -17,7 +17,7 @@ INTRINSIC_IMPL(define, ((type_id[]) {
     compilation_node_ref val = arg_val->u.expr.value;
 
     const value_t v = eval_node(env, val);
-    sym_def(env.symbols, name->u.Atom.value, (sym_t) {
+    Symbols_define(env.symbols, name->u.Atom.value, (Symbol) {
             .file = self.file,
             .type = v.type,
             .value = v,

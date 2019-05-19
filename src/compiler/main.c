@@ -149,11 +149,11 @@ size_t main(Allocator *allocator, Slice(String) args)
     compilation_t *compilation = &_compilation;
     compilation_file_ref mainFile = compilation_include(allocator, compilation, fs_in, inputFilePath);
 
-    types_t _types = types_new(allocator);
-    types_t *types = &_types;
+    Types _types = Types_new(allocator);
+    Types *types = &_types;
 
-    symbols_t _symbols = symbols_new(allocator, types,
-    Slice_of(InitialSymbol, (InitialSymbol[2]) {
+    Symbols _symbols = Symbols_new(allocator, types,
+    Slice_of(SymbolInitializer, ((SymbolInitializer[2]) {
             {.id = STR("#types/string"), .value = (value_t) {
                     .type = types->t_type,
                     .u.type.value = types->t_string,
@@ -164,8 +164,8 @@ size_t main(Allocator *allocator, Slice(String) args)
                     .u.type.value = types->t_int,
                     .flags.intrinsic = true,
             }},
-    }),
-    Slice_of(InitialSymbol_intrin, (InitialSymbol_intrin[16]) {
+    })),
+    Slice_of(SymbolInitializer_intrin, ((SymbolInitializer_intrin[16]) {
             {.id = STR("#puti"), .value = &intrin_debug_puti},
             {.id = STR("#puts"), .value = &intrin_debug_puts},
             {.id = STR("#types/func"), .value = &intrin_types_func},
@@ -182,8 +182,8 @@ size_t main(Allocator *allocator, Slice(String) args)
             {.id = STR("#set"), .value = &intrin_set},
             {.id = STR("#untyped"), .value = &intrin_untyped, .flags.abstract = true},
             {.id = STR("#while"), .value = &intrin_while},
-    }));
-    symbols_t *symbols = &_symbols;
+    })));
+    Symbols *symbols = &_symbols;
     Env env = (Env) {
             .allocator = allocator,
             .fs_in = fs_in,
@@ -198,11 +198,11 @@ size_t main(Allocator *allocator, Slice(String) args)
         if (flags.print_run) {
             fprintf_s(out, STR("RUN:\n---\n"));
         }
-        sym_t entry;
-        bool hasMain = sym_lookup(symbols, STR("main"),
+        Symbol entry;
+        bool hasMain = Symbols_lookup(symbols, STR("main"),
         &entry);
         (void) hasMain;
-        assert(hasMain && type_lookup(types, entry.type)->kind == TYPE_FUNCTION && "main is a function");
+        assert(hasMain && Types_lookup(types, entry.type)->kind == Type_Function && "main is a function");
         func_call(env, entry.value, (Slice(value_t)) {._begin = NULL, ._end = NULL,}, (compilation_node_ref) {.file = {0}, .node = {0}});
     } else {
         if (flags.print_emit) {
@@ -237,8 +237,8 @@ size_t main(Allocator *allocator, Slice(String) args)
 
     fprintf_s(out, STR("\n"));
     Vector_delete(compilation_file_ptr_t, &env.compilation->files);
-    Vector_delete(type_t, &env.types->all);
-    Vector_delete(sym_scope_t, &env.symbols->scopes);
+    Vector_delete(Type, &env.types->all);
+    Vector_delete(SymbolScope, &env.symbols->scopes);
     FileSystem_delete(fs_out);
     FileSystem_delete(fs_in);
     fs_close(out);

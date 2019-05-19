@@ -5,7 +5,7 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(debug_puti, ((type_id[]) {
+INTRINSIC_IMPL(debug_puti, ((TypeRef[]) {
         types->t_int,
         types->t_unit,
 }))

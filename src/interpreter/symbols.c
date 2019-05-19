@@ -5,29 +5,32 @@
 #include "types.h"
 #include "env.h"
 
-void sym_scope_t_delete(sym_scope_t *self)
+void SymbolScope_delete(SymbolScope *self)
 {
     _Vector_delete(&self->t.nodes);
     _Vector_delete(&self->t.entries);
 }
 
-symbols_t symbols_new(Allocator *allocator, types_t *types, Slice(InitialSymbol) init, Slice(InitialSymbol_intrin) initIntrin)
+Symbols Symbols_new(Allocator *allocator, Types *types, Slice(SymbolInitializer) init, Slice(SymbolInitializer_intrin) initIntrin)
 {
-    symbols_t ret = symbols_t_new(allocator);
-    symbols_t *self = &ret;
-    sym_push(self);
+    Symbols ret = (Symbols) {
+            .allocator = allocator,
+            .scopes = Vector_new(allocator)
+    };
+    Symbols *self = &ret;
+    Symbols_push(self);
     Slice_loop(&init, i) {
-        InitialSymbol it = *Slice_at(&init, i);
-        sym_def(self, it.id, (sym_t) {
+        SymbolInitializer it = *Slice_at(&init, i);
+        Symbols_define(self, it.id, (Symbol) {
                 .file = {0},
                 .type = it.value.type,
                 .value = it.value
         });
     }
     Slice_loop(&initIntrin, i) {
-        InitialSymbol_intrin it = *Slice_at(&initIntrin, i);
-        type_id T = it.value->load(types);
-        sym_def(self, it.id, (sym_t) {
+        SymbolInitializer_intrin it = *Slice_at(&initIntrin, i);
+        TypeRef T = it.value->load(types);
+        Symbols_define(self, it.id, (Symbol) {
                 .file = {0},
                 .type = T,
                 .value = {
@@ -41,44 +44,45 @@ symbols_t symbols_new(Allocator *allocator, types_t *types, Slice(InitialSymbol)
     return ret;
 }
 
-static sym_scope_t sym_trie_new(Allocator *allocator, size_t parent)
+static SymbolScope SymbolScope_new(Allocator *allocator, size_t parent)
 {
-    sym_scope_t self = (sym_scope_t) {.parent = parent};
-    Trie_new(sym_t, allocator, &self.t);
-    return self;
+    SymbolScope ret = (SymbolScope) {.parent = parent};
+    SymbolScope *self = &ret;
+    Trie_new(Symbol, allocator, &self->t);
+    return ret;
 }
 
-static bool sym_trie_get(sym_scope_t *self, String ident, sym_t *out)
+static bool SymbolScope_get(SymbolScope *self, String ident, Symbol *out)
 {
     return Trie_get((void *) &self->t, ident.bytes, out);
 }
 
-static void sym_trie_set(sym_scope_t *self, String ident, sym_t val)
+static void SymbolScope_set(SymbolScope *self, String ident, Symbol val)
 {
-    Trie_set((void *) &self->t, ident.bytes, &val, sizeof(TrieNode(sym_t)));
+    Trie_set((void *) &self->t, ident.bytes, &val, sizeof(TrieNode(Symbol)));
 }
 
-void sym_push(symbols_t *symbols)
+void Symbols_push(Symbols *symbols)
 {
-    Allocator *allocator = symbols->_allocator;
+    Allocator *allocator = symbols->allocator;
     size_t size = Vector_size(&symbols->scopes);
     size_t parent = !size ? 0 : size - 1;
-    sym_scope_t newscope = sym_trie_new(allocator, parent);
+    SymbolScope newscope = SymbolScope_new(allocator, parent);
     Vector_push(&symbols->scopes, newscope);
 }
 
-void sym_pop(symbols_t *symbols)
+void Symbols_pop(Symbols *symbols)
 {
-    sym_scope_t_delete(Vector_at(&symbols->scopes, Vector_size(&symbols->scopes) - 1));
+    SymbolScope_delete(Vector_at(&symbols->scopes, Vector_size(&symbols->scopes) - 1));
     Vector_pop(&symbols->scopes);
 }
 
-bool sym_lookup(const symbols_t *symbols, String ident, sym_t *out)
+bool Symbols_lookup(const Symbols *symbols, String ident, Symbol *out)
 {
     size_t i = Vector_size(&symbols->scopes) - 1;
     for (;;) {
-        sym_scope_t *it = Vector_at(&symbols->scopes, i);
-        if (sym_trie_get(it, ident, out)) {
+        SymbolScope *it = Vector_at(&symbols->scopes, i);
+        if (SymbolScope_get(it, ident, out)) {
             return true;
         }
         const size_t next = it->parent;
@@ -89,8 +93,8 @@ bool sym_lookup(const symbols_t *symbols, String ident, sym_t *out)
     }
 }
 
-void sym_def(symbols_t *symbols, String ident, sym_t sym)
+void Symbols_define(Symbols *symbols, String ident, Symbol sym)
 {
-    sym_scope_t *top = Vector_at(&symbols->scopes, Vector_size(&symbols->scopes) - 1);
-    sym_trie_set(top, ident, sym);
+    SymbolScope *top = Vector_at(&symbols->scopes, Vector_size(&symbols->scopes) - 1);
+    SymbolScope_set(top, ident, sym);
 }
