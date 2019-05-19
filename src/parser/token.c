@@ -6,126 +6,97 @@
 typedef struct {
     Allocator *allocator;
     File *out;
-    Slice(token_t) tokens;
-} token_print_ctx_t;
+    Slice(Token) tokens;
+} TokenPrinter;
 
 typedef struct {
     size_t depth;
     bool needLine;
     bool needTab;
     PADDING(6)
-} token_print_state_t;
+} TokenPrinterState;
 
-static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it, size_t id);
+static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterState state, const Token *it, size_t id);
 
-void token_print(Allocator *allocator, File *f, Slice(token_t) tokens)
+static void TokenPrinter_print_indent(TokenPrinter *self, TokenPrinterState *state);
+
+static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterState state, const Token *it, size_t id)
 {
-    token_print_ctx_t ctx = {
-            .allocator = allocator,
-            .out = f,
-            .tokens = tokens,
-    };
-    token_print_state_t state = (token_print_state_t) {
-            .depth = 0,
-            .needLine = false,
-            .needTab = false,
-    };
-    Slice_loop(&tokens, i) {
-        const token_t *it = Slice_at(&tokens, i);
-        state = _token_print(&ctx, state, it, i + 1);
-    }
-}
-
-static void _token_print_indent(token_print_ctx_t *ctx, token_print_state_t *state)
-{
-    Allocator *allocator = ctx->allocator;
-    if (state->needLine) {
-        fprintf_s(ctx->out, STR("\n"));
-        state->needLine = false;
-    }
-    if (state->needTab) {
-        fprintf_s(ctx->out, String_indent(allocator, 2 * state->depth));
-        state->needTab = false;
-    }
-}
-
-static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_state_t state, const token_t *it, size_t id)
-{
-    if (it->kind == TOKEN_INVALID) {
+    if (it->kind == Token_INVALID) {
         unreachable();
         return state;
     }
-    if (it->kind == TOKEN_LIST_BEGIN) {
-        _token_print_indent(ctx, &state);
+    if (it->kind == Token_ListBegin) {
+        TokenPrinter_print_indent(self, &state);
         ++state.depth;
         state.needTab = true;
         state.needLine = true;
-        fprintf_s(ctx->out, STR("("));
-        fprintf_s(ctx->out, STR(" ;"));
+        fprintf_s(self->out, STR("("));
+        fprintf_s(self->out, STR(" ;"));
         {
             {
-                fprintf_s(ctx->out, STR(" .id = "));
-                fprintf_zu(ctx->out, id);
-                fprintf_s(ctx->out, STR(","));
+                fprintf_s(self->out, STR(" .id = "));
+                fprintf_zu(self->out, id);
+                fprintf_s(self->out, STR(","));
             }
         }
-    } else if (it->kind == TOKEN_LIST_END) {
+    } else if (it->kind == Token_ListEnd) {
         --state.depth;
-        _token_print_indent(ctx, &state);
+        TokenPrinter_print_indent(self, &state);
         state.needTab = true;
         state.needLine = true;
-        fprintf_s(ctx->out, STR(")"));
-        fprintf_s(ctx->out, STR(" ;"));
+        fprintf_s(self->out, STR(")"));
+        fprintf_s(self->out, STR(" ;"));
         {
             {
-                fprintf_s(ctx->out, STR(" .id = "));
-                fprintf_zu(ctx->out, id);
-                fprintf_s(ctx->out, STR(","));
+                fprintf_s(self->out, STR(" .id = "));
+                fprintf_zu(self->out, id);
+                fprintf_s(self->out, STR(","));
             }
         }
     } else {
-        _token_print_indent(ctx, &state);
+        TokenPrinter_print_indent(self, &state);
         switch (it->kind) {
-            case TOKEN_ATOM:
-                fprintf_s(ctx->out, STR("`"));
-                fprintf_s(ctx->out, it->u.atom.value);
-                fprintf_s(ctx->out, STR("`"));
-                fprintf_s(ctx->out, STR(" ;"));
+            case Token_Atom:
+                fprintf_s(self->out, STR("`"));
+                fprintf_s(self->out, it->u.Atom.value);
+                fprintf_s(self->out, STR("`"));
+                fprintf_s(self->out, STR(" ;"));
                 {
                     {
-                        fprintf_s(ctx->out, STR(" .id = "));
-                        fprintf_zu(ctx->out, id);
-                        fprintf_s(ctx->out, STR(","));
+                        fprintf_s(self->out, STR(" .id = "));
+                        fprintf_zu(self->out, id);
+                        fprintf_s(self->out, STR(","));
                     }
                 }
                 break;
-            case TOKEN_INTEGRAL:
-                fprintf_zu(ctx->out, it->u.integral.value);
-                fprintf_s(ctx->out, STR(" ;"));
+            case Token_Integral:
+                fprintf_zu(self->out, it->u.Integral.value);
+                fprintf_s(self->out, STR(" ;"));
                 {
                     {
-                        fprintf_s(ctx->out, STR(" .id = "));
-                        fprintf_zu(ctx->out, id);
-                        fprintf_s(ctx->out, STR(","));
+                        fprintf_s(self->out, STR(" .id = "));
+                        fprintf_zu(self->out, id);
+                        fprintf_s(self->out, STR(","));
                     }
                 }
                 break;
-            case TOKEN_STRING:
-                fprintf_s(ctx->out, STR("\""));
-                fprintf_s(ctx->out, it->u.string.value);
-                fprintf_s(ctx->out, STR("\""));
-                fprintf_s(ctx->out, STR(" ;"));
+            case Token_String:
+                fprintf_s(self->out, STR("\""));
+                fprintf_s(self->out, it->u.String.value);
+                fprintf_s(self->out, STR("\""));
+                fprintf_s(self->out, STR(" ;"));
                 {
                     {
-                        fprintf_s(ctx->out, STR(" .id = "));
-                        fprintf_zu(ctx->out, id);
-                        fprintf_s(ctx->out, STR(","));
+                        fprintf_s(self->out, STR(" .id = "));
+                        fprintf_zu(self->out, id);
+                        fprintf_s(self->out, STR(","));
                     }
                 }
                 break;
-            case TOKEN_INVALID:
-            case TOKEN_LIST_BEGIN:
-            case TOKEN_LIST_END:
+            case Token_INVALID:
+            case Token_ListBegin:
+            case Token_ListEnd:
                 unreachable();
                 break;
         }
@@ -133,4 +104,35 @@ static token_print_state_t _token_print(token_print_ctx_t *ctx, token_print_stat
         state.needLine = true;
     }
     return state;
+}
+
+static void TokenPrinter_print_indent(TokenPrinter *self, TokenPrinterState *state)
+{
+    Allocator *allocator = self->allocator;
+    if (state->needLine) {
+        fprintf_s(self->out, STR("\n"));
+        state->needLine = false;
+    }
+    if (state->needTab) {
+        fprintf_s(self->out, String_indent(allocator, 2 * state->depth));
+        state->needTab = false;
+    }
+}
+
+void silis_parser_print_tokens(Slice(Token) tokens, File *f, Allocator *allocator)
+{
+    TokenPrinter printer = {
+            .allocator = allocator,
+            .out = f,
+            .tokens = tokens,
+    };
+    TokenPrinterState state = (TokenPrinterState) {
+            .depth = 0,
+            .needLine = false,
+            .needTab = false,
+    };
+    Slice_loop(&tokens, i) {
+        const Token *it = Slice_at(&tokens, i);
+        state = TokenPrinter_print(&printer, state, it, i + 1);
+    }
 }

@@ -5,49 +5,24 @@
 #include <lib/string.h>
 #include <lib/vector.h>
 
-typedef struct token_s token_t;
+#define Token(id, _) \
+    /** ( */ \
+    _(id, ListBegin, { PADDING(1) }) \
+    /** ) */ \
+    _(id, ListEnd, { PADDING(1) }) \
+    /** A word */ \
+    _(id, Atom, { String value; }) \
+    /** An integer */ \
+    _(id, Integral, { size_t value; }) \
+    /** A string */ \
+    _(id, String, { String value; }) \
+/**/
 
-Slice_instantiate(token_t);
-Vector_instantiate(token_t);
+ENUM(Token)
 
-typedef enum {
-    TOKEN_INVALID,
-    /**
-     * (
-     */ TOKEN_LIST_BEGIN,
-    /**
-     * )
-     */ TOKEN_LIST_END,
-    /**
-     * A word
-     */ TOKEN_ATOM,
-    /**
-     * An integer
-     */ TOKEN_INTEGRAL,
-    /**
-     * A string
-     */ TOKEN_STRING,
-} token_e;
+Slice_instantiate(Token);
+Vector_instantiate(Token);
 
-struct token_s {
-    token_e kind;
-    PADDING(4)
-    union {
-        /// TOKEN_ATOM
-        struct {
-            String value;
-        } atom;
-        /// TOKEN_INTEGRAL
-        struct {
-            size_t value;
-        } integral;
-        /// TOKEN_STRING
-        struct {
-            String value;
-        } string;
-    } u;
-};
+#define Token_delete(self) ((void) (self))
 
-#define token_t_delete(self) ((void) (self))
-
-void token_print(Allocator *allocator, File *f, Slice(token_t) it);
+void silis_parser_print_tokens(Slice(Token) tokens, File *f, Allocator *allocator);

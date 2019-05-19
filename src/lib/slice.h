@@ -2,6 +2,12 @@
 
 #include "macro.h"
 
+#if defined(__TINYC__)
+#define SLICE_PADDING PADDING(8)
+#else
+#define SLICE_PADDING
+#endif
+
 #define Slice(T) CAT2(Slice__, T)
 #define Slice_instantiate(T) typedef Slice_(T) Slice(T)
 #define Slice_(T) \
@@ -11,6 +17,7 @@ struct { \
         T *_begin_mut; \
     }; \
     const T *_end; /** one after the actual last element */ \
+    SLICE_PADDING \
 }
 
 Slice_instantiate(uint8_t);

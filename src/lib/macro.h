@@ -52,12 +52,15 @@
 #endif
 
 #define ENUM(id) \
-typedef enum { \
-    CAT2(id, _INVALID), \
-    id(id, _ENUM_TAG) \
-} CAT3(id, _, e); \
 typedef struct { \
-    union { CAT3(id, _, e) kind; size_t _kind; ENUM_PADDING }; \
+    union { \
+        enum { \
+            CAT2(id, _INVALID), \
+            id(id, _ENUM_TAG) \
+        } kind; \
+        size_t _kind; \
+        ENUM_PADDING \
+    }; \
     union { id(id, _ENUM_VARIANT) } u; \
 } id; \
 /**/

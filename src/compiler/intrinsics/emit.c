@@ -14,9 +14,9 @@ INTRINSIC_IMPL(emit, ((type_id[]) {
     nodelist iter = nodelist_iterator(env.compilation, arg_args->u.expr.value);
     compilation_node_ref ref;
     while (nodelist_next(&iter, &ref)) {
-        const node_t *node = compilation_node(env.compilation, ref);
+        const Node *node = compilation_node(env.compilation, ref);
         (void) node;
-        assert(node->kind == NODE_STRING && "argument is string literal");
+        assert(node->kind == Node_String && "argument is string literal");
     }
     return (value_t) {.type = env.types->t_unit, .node = self};
 }

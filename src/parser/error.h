@@ -9,4 +9,4 @@
 
 ENUM(ParserError)
 
-void ParserError_print(ParserError err, File *out);
+void ParserError_print(ParserError self, File *out);

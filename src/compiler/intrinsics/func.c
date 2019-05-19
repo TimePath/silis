@@ -44,8 +44,8 @@ void func_args_types(Env env, nodelist iter, type_id out[])
         out[i] = type.u.type.value;
         compilation_node_ref id;
         if (nodelist_next(&children, &id)) {
-            const node_t *idNode = compilation_node(env.compilation, id);
-            assert(idNode->kind == NODE_ATOM && "argument is a name");
+            const Node *idNode = compilation_node(env.compilation, id);
+            assert(idNode->kind == Node_Atom && "argument is a name");
             (void) (idNode);
         }
     }
@@ -63,8 +63,8 @@ void func_args_names(Env env, nodelist iter, String out[])
             out[i] = STR("");
             continue;
         }
-        const node_t *idNode = compilation_node(env.compilation, id);
-        assert(idNode->kind == NODE_ATOM && "argument is a name");
-        out[i] = idNode->u.atom.value;
+        const Node *idNode = compilation_node(env.compilation, id);
+        assert(idNode->kind == Node_Atom && "argument is a name");
+        out[i] = idNode->u.Atom.value;
     }
 }

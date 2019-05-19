@@ -162,21 +162,21 @@ static void emit_string(emit_ctx *ctx, const compile_file *file, String value);
 
 static void emit_node(emit_ctx *ctx, const compile_file *file, compilation_node_ref it)
 {
-    const node_t *node = compilation_node(ctx->env.compilation, it);
+    const Node *node = compilation_node(ctx->env.compilation, it);
     switch (node->kind) {
-        case NODE_INVALID:
-        case NODE_LIST_BEGIN:
-        case NODE_LIST_END:
-        case NODE_REF:
+        case Node_INVALID:
+        case Node_ListBegin:
+        case Node_ListEnd:
+        case Node_Ref:
             unreachable();
-        case NODE_ATOM:
-            emit_atom(ctx, file, node->u.atom.value);
+        case Node_Atom:
+            emit_atom(ctx, file, node->u.Atom.value);
             break;
-        case NODE_INTEGRAL:
-            emit_integral(ctx, file, node->u.integral.value);
+        case Node_Integral:
+            emit_integral(ctx, file, node->u.Integral.value);
             break;
-        case NODE_STRING:
-            emit_string(ctx, file, node->u.string.value);
+        case Node_String:
+            emit_string(ctx, file, node->u.String.value);
             break;
     }
 }
@@ -298,8 +298,8 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
 
 static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it)
 {
-    const node_t *node = compilation_node(ctx->env.compilation, it);
-    if (node->kind != NODE_LIST_BEGIN) {
+    const Node *node = compilation_node(ctx->env.compilation, it);
+    if (node->kind != Node_ListBegin) {
         visit_node_primary(ctx, file, ret, it);
         SEMI();
         return;
@@ -309,16 +309,16 @@ static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, co
 
 static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it)
 {
-    const node_t *node = compilation_node(ctx->env.compilation, it);
+    const Node *node = compilation_node(ctx->env.compilation, it);
     switch (node->kind) {
-        case NODE_INVALID:
-        case NODE_REF:
-        case NODE_LIST_BEGIN:
-        case NODE_LIST_END:
+        case Node_INVALID:
+        case Node_Ref:
+        case Node_ListBegin:
+        case Node_ListEnd:
             break;
-        case NODE_ATOM:
-        case NODE_INTEGRAL:
-        case NODE_STRING:
+        case Node_Atom:
+        case Node_Integral:
+        case Node_String:
             emit_return_assign(ctx, file, ret);
             emit_node(ctx, file, it);
             return;
@@ -336,7 +336,7 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
                             compilation_node_ref it)
 {
     Allocator *allocator = ctx->env.allocator;
-    assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN && "it is list");
+    assert(compilation_node(ctx->env.compilation, it)->kind == Node_ListBegin && "it is list");
     nodelist childrenRaw = nodelist_iterator(ctx->env.compilation, it);
     const size_t n = childrenRaw._n;
     compilation_node_ref ref = nodelist_get(&childrenRaw, 0);
@@ -437,12 +437,12 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
                              compilation_node_ref func, Slice(compilation_node_ref) children)
 {
     Allocator *allocator = ctx->env.allocator;
-    const node_t *funcNode = compilation_node(ctx->env.compilation, func);
-    if (funcNode->kind != NODE_ATOM) {
+    const Node *funcNode = compilation_node(ctx->env.compilation, func);
+    if (funcNode->kind != Node_Atom) {
         return false;
     }
     sym_t entry;
-    bool found = sym_lookup(ctx->env.symbols, funcNode->u.atom.value, &entry);
+    bool found = sym_lookup(ctx->env.symbols, funcNode->u.Atom.value, &entry);
     if (!found) {
         return false;
     }
@@ -452,14 +452,14 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
     struct Intrinsic *intrin = entry.value.u.intrinsic.value;
 
     if (intrin == &intrin_define) {
-        const node_t *name = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
-        assert(name->kind == NODE_ATOM);
+        const Node *name = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
+        assert(name->kind == Node_Atom);
         compilation_node_ref ref = *Slice_at(&children, 2);
         value_t v = eval_node(ctx->env, ref);
         assert(v.type.value != ctx->env.types->t_unit.value && "definition is not void");
         const return_t out = (return_t) {
                 .kind = RETURN_NAMED,
-                .u.named.val = name->u.atom.value,
+                .u.named.val = name->u.Atom.value,
         };
         emit_return_declare(ctx, file, v.type, out);
         LINE();
@@ -467,15 +467,15 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_set) {
-        const node_t *name = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
-        assert(name->kind == NODE_ATOM);
+        const Node *name = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
+        assert(name->kind == Node_Atom);
         compilation_node_ref ref = *Slice_at(&children, 2);
         value_t v = eval_node(ctx->env, ref);
         (void) v;
         assert(v.type.value != ctx->env.types->t_unit.value && "definition is not void");
         const return_t out = (return_t) {
                 .kind = RETURN_NAMED,
-                .u.named.val = name->u.atom.value,
+                .u.named.val = name->u.Atom.value,
         };
         visit_node(ctx, file, out, ref);
         return true;
@@ -531,10 +531,10 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_untyped) {
-        const node_t *code = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
-        assert(code->kind == NODE_STRING);
+        const Node *code = compilation_node(ctx->env.compilation, *Slice_at(&children, 1));
+        assert(code->kind == Node_String);
         emit_return_assign(ctx, file, ret);
-        fprintf_s(file->out, code->u.string.value);
+        fprintf_s(file->out, code->u.String.value);
         SEMI();
         return true;
     }

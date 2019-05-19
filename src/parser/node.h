@@ -1,73 +1,52 @@
 #pragma once
 
-#include <lib/vector.h>
+#include <lib/fs.h>
 #include <lib/slice.h>
+#include <lib/string.h>
+#include <lib/vector.h>
 
 #include "token.h"
 
-typedef struct node_s node_t;
+#define Node(id, _) \
+    /** Generated at runtime. Index to address of expression in AST buffer */ \
+    _(id, Ref, { \
+        size_t value; \
+    }) \
+    /** ( */ \
+    _(id, ListBegin, { \
+        const Token *token; \
+        size_t size; \
+        /** indices for first and last child; 0 means null */ \
+        size_t begin; \
+        size_t end; \
+    }) \
+    /** ) */ \
+    _(id, ListEnd, { \
+        const Token *token; \
+        size_t begin; \
+    }) \
+    /** ) */ \
+    _(id, Atom, { \
+        const Token *token; \
+        String value; \
+    }) \
+    /** ) */ \
+    _(id, Integral, { \
+        const Token *token; \
+        size_t value; \
+    }) \
+    /** ) */ \
+    _(id, String, { \
+        const Token *token; \
+        String value; \
+    }) \
+/**/
 
-Slice_instantiate(node_t);
-Vector_instantiate(node_t);
+ENUM(Node)
 
-typedef enum {
-    NODE_INVALID,
-    /**
-     * Generated at runtime
-     * Index to address of expression in flat AST
-     */ NODE_REF,
-    /**
-     * (
-     */ NODE_LIST_BEGIN,
-    /**
-     * )
-     */ NODE_LIST_END,
-    /**
-     * A word
-     */ NODE_ATOM,
-    /**
-     * An integer
-     */ NODE_INTEGRAL,
-    /**
-     * A string
-     */ NODE_STRING,
-} node_e;
+Slice_instantiate(Node);
+Vector_instantiate(Node);
 
-struct node_s {
-    node_e kind;
-    PADDING(4)
-    const token_t *token;
-    union {
-        /// NODE_LIST_BEGIN
-        struct {
-            size_t size;
-            /// indices for first and last child
-            /// 0 means null
-            size_t begin, end;
-        } list;
-        /// NODE_LIST_END
-        struct {
-            size_t begin;
-        } list_end;
-        /// NODE_REF
-        struct {
-            size_t value;
-        } ref;
-        /// NODE_ATOM
-        struct {
-            String value;
-        } atom;
-        /// NODE_INTEGRAL
-        struct {
-            size_t value;
-        } integral;
-        /// NODE_STRING
-        struct {
-            String value;
-        } string;
-    } u;
-};
+#define Node_delete(self) ((void) (self))
 
-#define node_t_delete(self) ((void) (self))
-
-void node_print(Allocator *allocator, File *f, Slice(node_t) nodes);
+void silis_parser_print_nodes(Slice(Node) nodes, File *f, Allocator *allocator);

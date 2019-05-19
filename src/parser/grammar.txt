@@ -1,0 +1,28 @@
+program: expression* EOF;
+
+expression: list | string | number | atom;
+
+list: '(' expression* ')';
+
+string: '"' atom '"';
+
+number: DIGIT+;
+
+atom: (DIGIT | LETTER | SYMBOL)+;
+
+WS: '\t' | '\n' | ' ';
+
+COMMENT: ';' .* '\n';
+
+DIGIT: '0'..'9';
+
+LETTER: 'a'..'z' | 'A'..'Z';
+
+SYMBOL: '@' | '_' | '$' | '#' | '?' | '.'
+   | '+' | '-'
+   | '!' | '~'
+   | '*' | '/' | '%'
+   | '<' | '>'
+   | '&' | '^' | '|'
+   | '='
+   ;

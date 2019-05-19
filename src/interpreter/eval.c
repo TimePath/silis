@@ -37,7 +37,7 @@ value_t eval_list_block(Env env, compilation_node_ref it)
 
 static value_t do_eval_list_block(eval_ctx *ctx, compilation_node_ref it)
 {
-    assert(compilation_node(ctx->env.compilation, it)->kind == NODE_LIST_BEGIN);
+    assert(compilation_node(ctx->env.compilation, it)->kind == Node_ListBegin);
     value_t ret = (value_t) {.type = ctx->env.types->t_unit, .node = it};
     nodelist iter = nodelist_iterator(ctx->env.compilation, it);
     compilation_node_ref ref;
@@ -50,9 +50,9 @@ static value_t do_eval_list_block(eval_ctx *ctx, compilation_node_ref it)
 
 static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
 {
-    const node_t *node = compilation_node(ctx->env.compilation, it);
-    assert(node->kind != NODE_REF);
-    if (node->kind != NODE_LIST_BEGIN) {
+    const Node *node = compilation_node(ctx->env.compilation, it);
+    assert(node->kind != Node_Ref);
+    if (node->kind != Node_ListBegin) {
         return value_from(ctx->env, it);
     }
     nodelist children = nodelist_iterator(ctx->env.compilation, it);
@@ -142,11 +142,11 @@ static void func_args_load(Env env, compilation_node_ref arglist, const Slice(va
         nodelist_next(&children, NULL);
         compilation_node_ref id;
         if (nodelist_next(&children, &id)) {
-            const node_t *idNode = compilation_node(env.compilation, id);
-            assert(idNode->kind == NODE_ATOM && "argument is a name");
+            const Node *idNode = compilation_node(env.compilation, id);
+            assert(idNode->kind == Node_Atom && "argument is a name");
 
             const value_t *v = Slice_at(&argv, i);
-            sym_def(env.symbols, idNode->u.atom.value, (sym_t) {
+            sym_def(env.symbols, idNode->u.Atom.value, (sym_t) {
                     .file = {0},
                     .type = v->type,
                     .value = *v,

@@ -52,9 +52,9 @@ function(main)
 
     add_library(silis-parser
             src/parser/error.c
-            src/parser/lex.c
+            src/parser/lexer.c
             src/parser/node.c
-            src/parser/parse.c
+            src/parser/parser.c
             src/parser/token.c
             )
     target_link_libraries(silis-parser silis-runtime)

@@ -4,8 +4,8 @@
 #include <lib/fs.h>
 #include <lib/stdio.h>
 
-#include <parser/lex.h>
-#include <parser/parse.h>
+#include <parser/lexer.h>
+#include <parser/parser.h>
 
 #include "eval.h"
 
@@ -14,8 +14,8 @@ void compilation_file_t_delete(compilation_file_t *self)
     Allocator *allocator = self->allocator;
     FilePath_delete(&self->path);
     free(self->content);
-    Vector_delete(token_t, &self->tokens);
-    Vector_delete(node_t, &self->nodes);
+    Vector_delete(Token, &self->tokens);
+    Vector_delete(Node, &self->nodes);
     free(self);
 }
 
@@ -48,19 +48,19 @@ const compilation_file_t *compilation_file(const compilation_t *self, compilatio
     return file;
 }
 
-const token_t *compilation_token(const compilation_t *self, compilation_token_ref ref)
+const Token *compilation_token(const compilation_t *self, compilation_token_ref ref)
 {
     assert(ref.token.id && "token exists");
     const compilation_file_t *file = compilation_file(self, ref.file);
-    const token_t *token = Vector_at(&file->tokens, ref.token.id - 1);
+    const Token *token = Vector_at(&file->tokens, ref.token.id - 1);
     return token;
 }
 
-const node_t *compilation_node(const compilation_t *self, compilation_node_ref ref)
+const Node *compilation_node(const compilation_t *self, compilation_node_ref ref)
 {
     assert(ref.node.id && "node exists");
     const compilation_file_t *file = compilation_file(self, ref.file);
-    const node_t *node = Vector_at(&file->nodes, ref.node.id - 1);
+    const Node *node = Vector_at(&file->nodes, ref.node.id - 1);
     return node;
 }
 
@@ -77,7 +77,7 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
     if (self->flags.print_lex) {
         fprintf_s(self->debug, STR("LEX:\n---\n"));
     }
-    Result(Vector(token_t), ParserError) lex = silis_parser_lex((lex_input) {
+    Result(Vector(Token), ParserError) lex = silis_parser_lex((silis_parser_lex_input) {
         .allocator = allocator,
         .source = fileStr,
     });
@@ -86,21 +86,21 @@ compilation_file_ref compilation_include(Allocator *allocator, compilation_t *se
         unreachable();
         return (compilation_file_ref) {0};
     }
-    Vector(token_t) tokens = lex.val;
+    Vector(Token) tokens = lex.val;
     if (self->flags.print_lex) {
-        token_print(allocator, self->debug, Vector_toSlice(token_t, &tokens));
+        silis_parser_print_tokens(Vector_toSlice(Token, &tokens), self->debug, allocator);
         fprintf_s(self->debug, STR("\n\n"));
     }
 
     if (self->flags.print_parse) {
         fprintf_s(self->debug, STR("PARSE:\n-----\n"));
     }
-    parse_output parse = do_parse((parse_input) {
+    silis_parser_parse_output parse = silis_parser_parse((silis_parser_parse_input) {
             .allocator = allocator,
-            .tokens = tokens,
+            .tokens = Vector_toSlice(Token, &tokens),
     });
     if (self->flags.print_parse) {
-        node_print(allocator, self->debug, Vector_toSlice(node_t, &parse.nodes));
+        silis_parser_print_nodes(Vector_toSlice(Node, &parse.nodes), self->debug, allocator);
         fprintf_s(self->debug, STR("\n"));
     }
     compilation_file_t *file = malloc(sizeof(*file));

@@ -39,9 +39,9 @@ Vector_instantiate(compilation_node_ref);
 
 const compilation_file_t *compilation_file(const compilation_t *self, compilation_file_ref ref);
 
-const token_t *compilation_token(const compilation_t *self, compilation_token_ref ref);
+const Token *compilation_token(const compilation_t *self, compilation_token_ref ref);
 
-const node_t *compilation_node(const compilation_t *self, compilation_node_ref ref);
+const Node *compilation_node(const compilation_t *self, compilation_node_ref ref);
 
 struct compilation_s {
     File *debug;
@@ -59,8 +59,8 @@ struct compilation_file_s {
     Allocator *allocator;
     FilePath path;
     uint8_t *content;
-    Vector(token_t) tokens;
-    Vector(node_t) nodes;
+    Vector(Token) tokens;
+    Vector(Node) nodes;
     compilation_node_ref entry;
 };
 

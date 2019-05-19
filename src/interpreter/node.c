@@ -24,22 +24,22 @@ compilation_node_ref nodelist_get(nodelist *self, size_t index)
 
 nodelist nodelist_iterator(const compilation_t *compilation, compilation_node_ref list)
 {
-    const node_t *node = compilation_node(compilation, list);
-    assert(node->kind == NODE_LIST_BEGIN);
+    const Node *node = compilation_node(compilation, list);
+    assert(node->kind == Node_ListBegin);
     return (nodelist) {
             .compilation = compilation,
             .head = (compilation_node_ref) { .file = list.file, .node = { .id = list.node.id + 1 }},
             ._i = 0,
-            ._n = node->u.list.size,
+            ._n = node->u.ListBegin.size,
     };
 }
 
 compilation_node_ref node_deref(const compilation_t *compilation, compilation_node_ref ref)
 {
-    const node_t *it = compilation_node(compilation, ref);
-    if (it->kind == NODE_REF) {
-        ref.node.id = it->u.ref.value;
-        assert(compilation_node(compilation, ref)->kind == NODE_LIST_BEGIN && "references refer to lists");
+    const Node *it = compilation_node(compilation, ref);
+    if (it->kind == Node_Ref) {
+        ref.node.id = it->u.Ref.value;
+        assert(compilation_node(compilation, ref)->kind == Node_ListBegin && "references refer to lists");
     }
     return ref;
 }
