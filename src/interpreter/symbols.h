@@ -3,8 +3,6 @@
 #include <lib/slice.h>
 #include <lib/trie.h>
 
-#include "intrinsic.h"
-
 #include "symbol.h"
 #include "types.h"
 
@@ -25,13 +23,13 @@ typedef struct Symbols {
 
 typedef struct {
     String id;
-    value_t value;
+    Value value;
 } SymbolInitializer;
 Slice_instantiate(SymbolInitializer);
 
 typedef struct {
     String id;
-    Intrinsic *value;
+    struct Intrinsic *value;
     struct {
         bool abstract : 1;
         uint8_t _padding : 7;

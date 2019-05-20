@@ -1,12 +1,13 @@
 #pragma once
 
+#include "interpreter.h"
 #include "type.h"
 #include "value.h"
 
 typedef struct {
-    compilation_file_ref file;
+    InterpreterFileRef file;
     TypeRef type; // could be removed if values could be tagged as undefined
-    value_t value;
+    Value value;
     struct {
         /// interpreter variable (function call)
         bool eval : 1;

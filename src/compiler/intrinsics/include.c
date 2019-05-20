@@ -13,11 +13,11 @@ INTRINSIC_IMPL(include, ((TypeRef[]) {
 }))
 {
     Allocator *allocator = interpreter->allocator;
-    const value_t *arg_args = Slice_at(&argv, 0);
-    const Node *it = compilation_node(interpreter, arg_args->u.expr.value);
+    const Value *arg_args = Slice_at(&argv, 0);
+    const Node *it = Interpreter_lookup_file_node(interpreter, arg_args->u.expr.value);
     assert(it->kind == Node_String && "argument is string literal");
     String path = it->u.String.value;
-    compilation_file_ref next = compilation_include(allocator, interpreter, interpreter->fs_in, fs_path_from(allocator, path));
-    compilation_begin(allocator, interpreter, next, interpreter);
-    return (value_t) {.type = interpreter->types->t_unit, .node = self};
+    InterpreterFileRef next = Interpreter_load(interpreter, interpreter->fs_in, fs_path_from(allocator, path));
+    Interpreter_eval(interpreter, next);
+    return (Value) {.type = interpreter->types->t_unit, .node = self};
 }

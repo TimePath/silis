@@ -143,12 +143,12 @@ size_t main(Allocator *allocator, Slice(String) args)
 
     Symbols _symbols = Symbols_new(allocator, types,
     Slice_of(SymbolInitializer, ((SymbolInitializer[2]) {
-            {.id = STR("#types/string"), .value = (value_t) {
+            {.id = STR("#types/string"), .value = (Value) {
                     .type = types->t_type,
                     .u.type.value = types->t_string,
                     .flags.intrinsic = true,
             }},
-            {.id = STR("#types/int"), .value = (value_t) {
+            {.id = STR("#types/int"), .value = (Value) {
                     .type = types->t_type,
                     .u.type.value = types->t_int,
                     .flags.intrinsic = true,
@@ -189,19 +189,18 @@ size_t main(Allocator *allocator, Slice(String) args)
     };
     Interpreter *interpreter = &_interpreter;
 
-    compilation_file_ref mainFile = compilation_include(allocator, interpreter, fs_in, inputFilePath);
-    compilation_begin(allocator, interpreter, mainFile, interpreter);
+    InterpreterFileRef mainFile = Interpreter_load(interpreter, fs_in, inputFilePath);
+    Interpreter_eval(interpreter, mainFile);
 
     if (flags.run) {
         if (flags.print_run) {
             fprintf_s(out, STR("RUN:\n---\n"));
         }
         Symbol entry;
-        bool hasMain = Symbols_lookup(symbols, STR("main"),
-        &entry);
+        bool hasMain = Symbols_lookup(symbols, STR("main"), &entry);
         (void) hasMain;
         assert(hasMain && Types_lookup(types, entry.type)->kind == Type_Function && "main is a function");
-        func_call(interpreter, entry.value, (Slice(value_t)) {._begin = NULL, ._end = NULL,}, (compilation_node_ref) {.file = {0}, .node = {0}});
+        func_call(interpreter, entry.value, (Slice(Value)) {._begin = NULL, ._end = NULL,}, (InterpreterFileNodeRef) {.file = {0}, .node = {0}});
     } else {
         if (flags.print_emit) {
             fprintf_s(out, STR("EMIT:\n----\n"));
@@ -234,7 +233,7 @@ size_t main(Allocator *allocator, Slice(String) args)
     }
 
     fprintf_s(out, STR("\n"));
-    Vector_delete(compilation_file_ptr_t, &interpreter->compilation.files);
+    Vector_delete(InterpreterFilePtr, &interpreter->compilation.files);
     Vector_delete(Type, &interpreter->types->all);
     Vector_delete(SymbolScope, &interpreter->symbols->scopes);
     FileSystem_delete(fs_out);
@@ -252,7 +251,7 @@ static void emit(Interpreter *interpreter, File *f, compile_file *it)
     fs_path_to_native(allocator, interpreter->fs_in->root, &buf);
     String slash = STR("/");
     Vector_push(&buf, *Slice_at(&slash.bytes, 0));
-    const compilation_file_t *infile = compilation_file(interpreter, it->file);
+    const InterpreterFile *infile = Interpreter_lookup_file(interpreter, it->file);
     fs_path_to_native(allocator, infile->path, &buf);
     String dot = STR(".");
     Vector_push(&buf, *Slice_at(&dot.bytes, 0));

@@ -6,20 +6,51 @@
 #include <parser/token.h>
 #include <parser/node.h>
 
-typedef struct compilation_file_s compilation_file_t;
-typedef compilation_file_t *compilation_file_ptr_t;
+#include "types.h"
 
-#define compilation_file_ptr_t_delete(self) compilation_file_t_delete(*self)
+typedef struct {
+    size_t id;
+} InterpreterFileRef;
 
-Slice_instantiate(compilation_file_ptr_t);
-Vector_instantiate(compilation_file_ptr_t);
+typedef struct {
+    InterpreterFileRef file;
+    struct { size_t id; } token;
+} InterpreterFileTokenRef;
+
+typedef struct {
+    InterpreterFileRef file;
+    struct { size_t id; } node;
+} InterpreterFileNodeRef;
+
+#define InterpreterFileNodeRef_delete(self) ((void) (self))
+
+Slice_instantiate(InterpreterFileNodeRef);
+Vector_instantiate(InterpreterFileNodeRef);
+
+typedef struct {
+    Allocator *allocator;
+    FilePath path;
+    uint8_t *content;
+    Vector(Token) tokens;
+    Vector(Node) nodes;
+    InterpreterFileNodeRef entry;
+} InterpreterFile;
+
+void InterpreterFile_delete(InterpreterFile *self);
+
+typedef InterpreterFile *InterpreterFilePtr;
+
+#define InterpreterFilePtr_delete(self) InterpreterFile_delete(*self)
+
+Slice_instantiate(InterpreterFilePtr);
+Vector_instantiate(InterpreterFilePtr);
 
 typedef struct {
     Allocator *allocator;
     FileSystem *fs_in;
     struct {
         File *debug;
-        Vector(compilation_file_ptr_t) files;
+        Vector(InterpreterFilePtr) files;
         struct {
             bool print_lex : 1;
             bool print_parse : 1;
@@ -28,64 +59,22 @@ typedef struct {
         } flags;
         PADDING(7)
     } compilation;
-    struct Types *types;
+    Types *types;
     struct Symbols *symbols;
     // todo: bind to intrinsic instances
     File *out;
 } Interpreter;
 
-typedef struct {
-    size_t id;
-} compilation_file_ref;
+const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, InterpreterFileRef ref);
 
-typedef struct {
-    compilation_file_ref file;
-    struct { size_t id; } token;
-} compilation_token_ref;
+const Token *Interpreter_lookup_file_token(const Interpreter *self, InterpreterFileTokenRef ref);
 
-typedef struct {
-    compilation_file_ref file;
-    struct { size_t id; } node;
-} compilation_node_ref;
+const Node *Interpreter_lookup_file_node(const Interpreter *self, InterpreterFileNodeRef ref);
 
-#define compilation_node_ref_delete(self) ((void) (self))
+InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, InterpreterFileNodeRef ref);
 
-Slice_instantiate(compilation_node_ref);
-Vector_instantiate(compilation_node_ref);
+InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path);
 
-const compilation_file_t *compilation_file(const Interpreter *self, compilation_file_ref ref);
+InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath path);
 
-const Token *compilation_token(const Interpreter *self, compilation_token_ref ref);
-
-const Node *compilation_node(const Interpreter *self, compilation_node_ref ref);
-
-struct compilation_file_s {
-    Allocator *allocator;
-    FilePath path;
-    uint8_t *content;
-    Vector(Token) tokens;
-    Vector(Node) nodes;
-    compilation_node_ref entry;
-};
-
-void compilation_file_t_delete(compilation_file_t *self);
-
-typedef struct {
-    Allocator *allocator;
-    compilation_file_ref file;
-    Buffer *content;
-    File *out;
-    String ext;
-    size_t flags;
-} compile_file;
-
-compile_file compile_file_new(Allocator *allocator, compilation_file_ref file, String ext, size_t flags);
-
-void compile_file_delete(compile_file *self);
-
-Slice_instantiate(compile_file);
-Vector_instantiate(compile_file);
-
-compilation_file_ref compilation_include(Allocator *allocator, Interpreter *self, FileSystem *fs, FilePath path);
-
-void compilation_begin(Allocator *allocator, Interpreter *self, compilation_file_ref file, Interpreter *interpreter);
+void Interpreter_eval(Interpreter *self, InterpreterFileRef file);

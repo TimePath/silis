@@ -2,8 +2,9 @@
 #include <lib/stdio.h>
 #include "symbols.h"
 
-#include "types.h"
 #include "interpreter.h"
+#include "intrinsic.h"
+#include "types.h"
 
 void SymbolScope_delete(SymbolScope *self)
 {

@@ -63,7 +63,7 @@ function(main)
             src/interpreter/eval.c
             src/interpreter/interpreter.c
             src/interpreter/intrinsic.c
-            src/interpreter/node.c
+            src/interpreter/nodelist.c
             src/interpreter/symbol.c
             src/interpreter/symbols.c
             src/interpreter/type.c
@@ -74,6 +74,7 @@ function(main)
 
     add_library(silis-compiler
             src/compiler/emit.c
+            src/compiler/output.c
 
             src/compiler/targets/_.c
             src/compiler/targets/c.c

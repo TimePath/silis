@@ -1,11 +1,12 @@
 #include <system.h>
 #include "eval.h"
 
+#include "intrinsic.h"
 #include "value.h"
 
 typedef struct {
     Interpreter *interpreter;
-    Vector(value_t) stack;
+    Vector(Value) stack;
 } eval_ctx;
 
 #define eval_ctx_new(_interpreter) ((eval_ctx) { \
@@ -13,9 +14,9 @@ typedef struct {
     .stack = Vector_new(_interpreter->allocator), \
 })
 
-static value_t do_eval_list_block(eval_ctx *ctx, compilation_node_ref it);
+static Value do_eval_list_block(eval_ctx *ctx, InterpreterFileNodeRef it);
 
-static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it);
+static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it);
 
 eval_output do_eval(eval_input in)
 {
@@ -23,52 +24,52 @@ eval_output do_eval(eval_input in)
     do_eval_list_block(&ctx, in.entry);
 }
 
-value_t eval_node(Interpreter *interpreter, compilation_node_ref it)
+Value eval_node(Interpreter *interpreter, InterpreterFileNodeRef it)
 {
     eval_ctx ctx = eval_ctx_new(interpreter);
     return do_eval_node(&ctx, it);
 }
 
-value_t eval_list_block(Interpreter *interpreter, compilation_node_ref it)
+Value eval_list_block(Interpreter *interpreter, InterpreterFileNodeRef it)
 {
     eval_ctx ctx = eval_ctx_new(interpreter);
     return do_eval_list_block(&ctx, it);
 }
 
-static value_t do_eval_list_block(eval_ctx *ctx, compilation_node_ref it)
+static Value do_eval_list_block(eval_ctx *ctx, InterpreterFileNodeRef it)
 {
-    assert(compilation_node(ctx->interpreter, it)->kind == Node_ListBegin);
-    value_t ret = (value_t) {.type = ctx->interpreter->types->t_unit, .node = it};
-    nodelist iter = nodelist_iterator(ctx->interpreter, it);
-    compilation_node_ref ref;
-    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
-        compilation_node_ref stmt = node_deref(ctx->interpreter, ref);
+    assert(Interpreter_lookup_file_node(ctx->interpreter, it)->kind == Node_ListBegin);
+    Value ret = (Value) {.type = ctx->interpreter->types->t_unit, .node = it};
+    NodeList iter = NodeList_iterator(ctx->interpreter, it);
+    InterpreterFileNodeRef ref;
+    for (size_t i = 0; NodeList_next(&iter, &ref); ++i) {
+        InterpreterFileNodeRef stmt = Interpreter_lookup_node_ref(ctx->interpreter, ref);
         ret = do_eval_node(ctx, stmt);
     }
     return ret;
 }
 
-static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
+static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
 {
-    const Node *node = compilation_node(ctx->interpreter, it);
+    const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
     assert(node->kind != Node_Ref);
     if (node->kind != Node_ListBegin) {
-        return value_from(ctx->interpreter, it);
+        return Value_from(ctx->interpreter, it);
     }
-    nodelist children = nodelist_iterator(ctx->interpreter, it);
+    NodeList children = NodeList_iterator(ctx->interpreter, it);
     const size_t n = children._n;
     if (!n) {
         // ()
-        return (value_t) {.type = ctx->interpreter->types->t_unit, .node = it};
+        return (Value) {.type = ctx->interpreter->types->t_unit, .node = it};
     }
-    compilation_node_ref ref;
-    nodelist_next(&children, &ref);
+    InterpreterFileNodeRef ref;
+    NodeList_next(&children, &ref);
     if (n == 1) {
         // (expr)
-        return do_eval_node(ctx, node_deref(ctx->interpreter, ref));
+        return do_eval_node(ctx, Interpreter_lookup_node_ref(ctx->interpreter, ref));
     }
     // (f args...)
-    const value_t func = do_eval_node(ctx, node_deref(ctx->interpreter, ref));
+    const Value func = do_eval_node(ctx, Interpreter_lookup_node_ref(ctx->interpreter, ref));
     const Type *funcType = Types_lookup(ctx->interpreter->types, func.type);
     assert(funcType->kind == Type_Function && "function is function");
 
@@ -79,12 +80,12 @@ static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
     TypeRef T = func.type;
     for (const Type *argType = funcType; argType->kind == Type_Function; T = argType->u.Function.out, argType = Types_lookup(ctx->interpreter->types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
-        compilation_node_ref arg = nodelist_get(&children, ++T_argc);
-        arg = node_deref(ctx->interpreter, arg);
+        InterpreterFileNodeRef arg = NodeList_get(&children, ++T_argc);
+        arg = Interpreter_lookup_node_ref(ctx->interpreter, arg);
         const TypeRef arg_t = argType->u.Function.in;
-        value_t v;
+        Value v;
         if (arg_t.value == expr_t.value) {
-            v = (value_t) {
+            v = (Value) {
                     .type = expr_t,
                     .node = arg,
                     .u.expr.value = arg,
@@ -99,16 +100,16 @@ static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
     }
     assert((n - 1) == T_argc && "argument count matches declared argument count");
 
-    value_t ret;
+    Value ret;
     if (abstract) {
-        ret = (value_t) {
+        ret = (Value) {
             .type = T,
             .node = it,
             .flags.abstract = true,
         };
     } else {
-        const value_t *argv = Vector_at(&ctx->stack, ofs);
-        ret = func_call(ctx->interpreter, func, (Slice(value_t)) {._begin = argv, ._end = argv + n,}, it);
+        const Value *argv = Vector_at(&ctx->stack, ofs);
+        ret = func_call(ctx->interpreter, func, (Slice(Value)) {._begin = argv, ._end = argv + n,}, it);
     }
     for (size_t i = 0; i < n - 1; ++i) {
         Vector_pop(&ctx->stack);
@@ -116,36 +117,36 @@ static value_t do_eval_node(eval_ctx *ctx, compilation_node_ref it)
     return ret;
 }
 
-static void func_args_load(Interpreter *interpreter, compilation_node_ref arglist, Slice(value_t) argv);
+static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef arglist, Slice(Value) argv);
 
-value_t func_call(Interpreter *interpreter, value_t func, const Slice(value_t) argv, compilation_node_ref it)
+Value func_call(Interpreter *interpreter, Value func, const Slice(Value) argv, InterpreterFileNodeRef it)
 {
     if (func.flags.intrinsic) {
         return Intrinsic_call(func.u.intrinsic.value, interpreter, it, argv);
     }
     Symbols_push(interpreter->symbols);
-    compilation_node_ref body = func.u.func.value;
-    compilation_node_ref arglist = func.u.func.arglist;
+    InterpreterFileNodeRef body = func.u.func.value;
+    InterpreterFileNodeRef arglist = func.u.func.arglist;
     func_args_load(interpreter, arglist, argv);
-    const value_t ret = eval_node(interpreter, body);
+    const Value ret = eval_node(interpreter, body);
     Symbols_pop(interpreter->symbols);
     return ret;
 }
 
-static void func_args_load(Interpreter *interpreter, compilation_node_ref arglist, const Slice(value_t) argv)
+static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef arglist, const Slice(Value) argv)
 {
-    nodelist iter = nodelist_iterator(interpreter, arglist);
-    compilation_node_ref ref;
-    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
-        compilation_node_ref it = node_deref(interpreter, ref);
-        nodelist children = nodelist_iterator(interpreter, it);
-        nodelist_next(&children, NULL);
-        compilation_node_ref id;
-        if (nodelist_next(&children, &id)) {
-            const Node *idNode = compilation_node(interpreter, id);
+    NodeList iter = NodeList_iterator(interpreter, arglist);
+    InterpreterFileNodeRef ref;
+    for (size_t i = 0; NodeList_next(&iter, &ref); ++i) {
+        InterpreterFileNodeRef it = Interpreter_lookup_node_ref(interpreter, ref);
+        NodeList children = NodeList_iterator(interpreter, it);
+        NodeList_next(&children, NULL);
+        InterpreterFileNodeRef id;
+        if (NodeList_next(&children, &id)) {
+            const Node *idNode = Interpreter_lookup_file_node(interpreter, id);
             assert(idNode->kind == Node_Atom && "argument is a name");
 
-            const value_t *v = Slice_at(&argv, i);
+            const Value *v = Slice_at(&argv, i);
             Symbols_define(interpreter->symbols, idNode->u.Atom.value, (Symbol) {
                     .file = {0},
                     .type = v->type,

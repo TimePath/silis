@@ -46,7 +46,7 @@ typedef struct {
     TypeRef type;
     union {
         struct {
-            compilation_node_ref val;
+            InterpreterFileNodeRef val;
         } temporary;
         struct {
             String val;
@@ -54,9 +54,9 @@ typedef struct {
     } u;
 } return_t;
 
-static void emit_value(emit_ctx *ctx, const compile_file *file, const value_t *it);
+static void emit_value(emit_ctx *ctx, const compile_file *file, const Value *it);
 
-static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it);
+static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, InterpreterFileNodeRef it);
 
 emit_output do_emit(emit_input in)
 {
@@ -76,8 +76,8 @@ emit_output do_emit(emit_input in)
     (void) hasMain;
     assert(hasMain && Types_lookup(ctx->interpreter->types, entry.value.type)->kind == Type_Function && "main is a function");
 
-    Vector_loop(compilation_file_ptr_t, &in.interpreter->compilation.files, i) {
-        Target_file_begin(ctx->target, ctx->interpreter, (compilation_file_ref) {i + 1}, &files);
+    Vector_loop(InterpreterFilePtr, &in.interpreter->compilation.files, i) {
+        Target_file_begin(ctx->target, ctx->interpreter, (InterpreterFileRef) {i + 1}, &files);
     }
 
     const SymbolScope *globals = Vector_at(&ctx->interpreter->symbols->scopes, 0);
@@ -127,7 +127,7 @@ emit_output do_emit(emit_input in)
         }
         assert(it->file.id && "global is user-defined");
         LINE();
-        nodelist argv = nodelist_iterator(ctx->interpreter, it->value.u.func.arglist);
+        NodeList argv = NodeList_iterator(ctx->interpreter, it->value.u.func.arglist);
         size_t argc = argv._n;
         String *argnames = malloc(sizeof(String) * argc);
         func_args_names(ctx->interpreter, argv, argnames);
@@ -136,7 +136,7 @@ emit_output do_emit(emit_input in)
         LINE();
         fprintf_s(file->out, STR("{"));
         LINE(+1);
-        compilation_node_ref body = it->value.u.func.value;
+        InterpreterFileNodeRef body = it->value.u.func.value;
         visit_node(ctx, file, (return_t) {.kind = RETURN_FUNC}, body);
         LINE(-1);
         fprintf_s(file->out, STR("}"));
@@ -159,9 +159,9 @@ static void emit_integral(emit_ctx *ctx, const compile_file *file, size_t value)
 
 static void emit_string(emit_ctx *ctx, const compile_file *file, String value);
 
-static void emit_node(emit_ctx *ctx, const compile_file *file, compilation_node_ref it)
+static void emit_node(emit_ctx *ctx, const compile_file *file, InterpreterFileNodeRef it)
 {
-    const Node *node = compilation_node(ctx->interpreter, it);
+    const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
     switch (node->kind) {
         case Node_INVALID:
         case Node_ListBegin:
@@ -180,7 +180,7 @@ static void emit_node(emit_ctx *ctx, const compile_file *file, compilation_node_
     }
 }
 
-static void emit_value(emit_ctx *ctx, const compile_file *file, const value_t *it)
+static void emit_value(emit_ctx *ctx, const compile_file *file, const Value *it)
 {
     if (it->type.value == ctx->interpreter->types->t_int.value) {
         emit_integral(ctx, file, it->u.integral.value);
@@ -231,7 +231,7 @@ static void emit_string(emit_ctx *ctx, const compile_file *file, String value)
     fprintf_s(file->out, STR("\""));
 }
 
-static void emit_ref(emit_ctx *ctx, const compile_file *file, compilation_node_ref ref)
+static void emit_ref(emit_ctx *ctx, const compile_file *file, InterpreterFileNodeRef ref)
 {
     (void) ctx;
     fprintf_s(file->out, STR("_"));
@@ -291,13 +291,13 @@ static void emit_return_assign(emit_ctx *ctx, const compile_file *file, return_t
 
 // visit
 
-static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it);
+static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, InterpreterFileNodeRef it);
 
-static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it);
+static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t ret, InterpreterFileNodeRef it);
 
-static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it)
+static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, InterpreterFileNodeRef it)
 {
-    const Node *node = compilation_node(ctx->interpreter, it);
+    const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
     if (node->kind != Node_ListBegin) {
         visit_node_primary(ctx, file, ret, it);
         SEMI();
@@ -306,9 +306,9 @@ static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, co
     visit_node_list(ctx, file, ret, it);
 }
 
-static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, compilation_node_ref it)
+static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, InterpreterFileNodeRef it)
 {
-    const Node *node = compilation_node(ctx->interpreter, it);
+    const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
     switch (node->kind) {
         case Node_INVALID:
         case Node_Ref:
@@ -326,43 +326,43 @@ static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t
 }
 
 static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t ret,
-                             compilation_node_ref func, Slice(compilation_node_ref) children);
+                             InterpreterFileNodeRef func, Slice(InterpreterFileNodeRef) children);
 
 static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t ret,
-                            compilation_node_ref func, Slice(compilation_node_ref) children);
+                            InterpreterFileNodeRef func, Slice(InterpreterFileNodeRef) children);
 
 static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t ret,
-                            compilation_node_ref it)
+                            InterpreterFileNodeRef it)
 {
     Allocator *allocator = ctx->interpreter->allocator;
-    assert(compilation_node(ctx->interpreter, it)->kind == Node_ListBegin && "it is list");
-    nodelist childrenRaw = nodelist_iterator(ctx->interpreter, it);
+    assert(Interpreter_lookup_file_node(ctx->interpreter, it)->kind == Node_ListBegin && "it is list");
+    NodeList childrenRaw = NodeList_iterator(ctx->interpreter, it);
     const size_t n = childrenRaw._n;
-    compilation_node_ref ref = nodelist_get(&childrenRaw, 0);
-    compilation_node_ref first = node_deref(ctx->interpreter, ref);
+    InterpreterFileNodeRef ref = NodeList_get(&childrenRaw, 0);
+    InterpreterFileNodeRef first = Interpreter_lookup_node_ref(ctx->interpreter, ref);
     if (n == 1) {
         visit_node(ctx, file, ret, first);
         return;
     }
-    Vector(compilation_node_ref) _children = Vector_new(allocator);
+    Vector(InterpreterFileNodeRef) _children = Vector_new(allocator);
     Vector_push(&_children, first);
     for (size_t i = 1; i < n; ++i) {
-        compilation_node_ref childref = nodelist_get(&childrenRaw, i);
-        compilation_node_ref d = node_deref(ctx->interpreter, childref);
+        InterpreterFileNodeRef childref = NodeList_get(&childrenRaw, i);
+        InterpreterFileNodeRef d = Interpreter_lookup_node_ref(ctx->interpreter, childref);
         Vector_push(&_children, d);
     }
-    const Slice(compilation_node_ref) children = Vector_toSlice(compilation_node_ref, &_children);
+    const Slice(InterpreterFileNodeRef) children = Vector_toSlice(InterpreterFileNodeRef, &_children);
     do {
         if (visit_node_macro(ctx, file, ret, first, children)) {
             break;
         }
         visit_node_expr(ctx, file, ret, first, children);
     } while (false);
-    Vector_delete(compilation_node_ref, &_children);
+    Vector_delete(InterpreterFileNodeRef, &_children);
 }
 
 static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t ret,
-                            compilation_node_ref func, Slice(compilation_node_ref) children)
+                            InterpreterFileNodeRef func, Slice(InterpreterFileNodeRef) children)
 {
     Allocator *allocator = ctx->interpreter->allocator;
     const size_t n = Slice_size(&children);
@@ -370,7 +370,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     fprintf_s(file->out, STR("{"));
     LINE(+1);
 
-    value_t f = eval_node(ctx->interpreter, func);
+    Value f = eval_node(ctx->interpreter, func);
     const Type *type = Types_lookup(ctx->interpreter->types, f.type);
     assert(type->kind == Type_Function);
 
@@ -386,7 +386,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
         i += 1;
         const TypeRef arg = argp->u.Function.in;
         if (arg.value != ctx->interpreter->types->t_unit.value) {
-            compilation_node_ref ref = *Slice_at(&children, i);
+            InterpreterFileNodeRef ref = *Slice_at(&children, i);
             const return_t outArg = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = ref};
             emit_return_declare(ctx, file, arg, outArg);
             LINE();
@@ -433,10 +433,10 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
 }
 
 static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t ret,
-                             compilation_node_ref func, Slice(compilation_node_ref) children)
+                             InterpreterFileNodeRef func, Slice(InterpreterFileNodeRef) children)
 {
     Allocator *allocator = ctx->interpreter->allocator;
-    const Node *funcNode = compilation_node(ctx->interpreter, func);
+    const Node *funcNode = Interpreter_lookup_file_node(ctx->interpreter, func);
     if (funcNode->kind != Node_Atom) {
         return false;
     }
@@ -451,10 +451,10 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
     struct Intrinsic *intrin = entry.value.u.intrinsic.value;
 
     if (intrin == &intrin_define) {
-        const Node *name = compilation_node(ctx->interpreter, *Slice_at(&children, 1));
+        const Node *name = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
         assert(name->kind == Node_Atom);
-        compilation_node_ref ref = *Slice_at(&children, 2);
-        value_t v = eval_node(ctx->interpreter, ref);
+        InterpreterFileNodeRef ref = *Slice_at(&children, 2);
+        Value v = eval_node(ctx->interpreter, ref);
         assert(v.type.value != ctx->interpreter->types->t_unit.value && "definition is not void");
         const return_t out = (return_t) {
                 .kind = RETURN_NAMED,
@@ -466,10 +466,10 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_set) {
-        const Node *name = compilation_node(ctx->interpreter, *Slice_at(&children, 1));
+        const Node *name = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
         assert(name->kind == Node_Atom);
-        compilation_node_ref ref = *Slice_at(&children, 2);
-        value_t v = eval_node(ctx->interpreter, ref);
+        InterpreterFileNodeRef ref = *Slice_at(&children, 2);
+        Value v = eval_node(ctx->interpreter, ref);
         (void) v;
         assert(v.type.value != ctx->interpreter->types->t_unit.value && "definition is not void");
         const return_t out = (return_t) {
@@ -480,21 +480,21 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_do) {
-        compilation_node_ref bodyRef = *Slice_at(&children, 1);
+        InterpreterFileNodeRef bodyRef = *Slice_at(&children, 1);
         Symbols_push(ctx->interpreter->symbols);
-        nodelist iter = nodelist_iterator(ctx->interpreter, bodyRef);
-        compilation_node_ref ref;
-        for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
+        NodeList iter = NodeList_iterator(ctx->interpreter, bodyRef);
+        InterpreterFileNodeRef ref;
+        for (size_t i = 0; NodeList_next(&iter, &ref); ++i) {
             if (i) {
                 LINE();
             }
             const bool last = i == iter._n - 1;
-            ref = node_deref(ctx->interpreter, ref);
+            ref = Interpreter_lookup_node_ref(ctx->interpreter, ref);
             const return_t out = last ? ret : (return_t) {
                     .kind = RETURN_TEMPORARY,
                     .u.temporary.val = ref,
             };
-            value_t v = eval_node(ctx->interpreter, ref);
+            Value v = eval_node(ctx->interpreter, ref);
             if (!last && v.type.value != ctx->interpreter->types->t_unit.value) {
                 emit_return_declare(ctx, file, v.type, out);
                 LINE();
@@ -505,8 +505,8 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_if) {
-        compilation_node_ref predRef = *Slice_at(&children, 1);
-        compilation_node_ref bodyRef = *Slice_at(&children, 2);
+        InterpreterFileNodeRef predRef = *Slice_at(&children, 1);
+        InterpreterFileNodeRef bodyRef = *Slice_at(&children, 2);
         const return_t out = (return_t) {
                 .kind = RETURN_TEMPORARY,
                 .u.temporary.val = predRef,
@@ -530,7 +530,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_untyped) {
-        const Node *code = compilation_node(ctx->interpreter, *Slice_at(&children, 1));
+        const Node *code = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
         assert(code->kind == Node_String);
         emit_return_assign(ctx, file, ret);
         fprintf_s(file->out, code->u.String.value);
@@ -538,8 +538,8 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_while) {
-        compilation_node_ref predRef = *Slice_at(&children, 1);
-        compilation_node_ref bodyRef = *Slice_at(&children, 2);
+        InterpreterFileNodeRef predRef = *Slice_at(&children, 1);
+        InterpreterFileNodeRef bodyRef = *Slice_at(&children, 2);
         const return_t out = (return_t) {
                 .kind = RETURN_TEMPORARY,
                 .u.temporary.val = predRef,

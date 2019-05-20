@@ -4,8 +4,8 @@
 
 INTRINSIC(func);
 
-value_t func_call(Interpreter *interpreter, value_t func, const Slice(value_t) argv, compilation_node_ref self);
+Value func_call(Interpreter *interpreter, Value func, const Slice(Value) argv, InterpreterFileNodeRef self);
 
-void func_args_types(Interpreter *interpreter, nodelist iter, TypeRef out[]);
+void func_args_types(Interpreter *interpreter, NodeList iter, TypeRef out[]);
 
-void func_args_names(Interpreter *interpreter, nodelist iter, String out[]);
+void func_args_names(Interpreter *interpreter, NodeList iter, String out[]);

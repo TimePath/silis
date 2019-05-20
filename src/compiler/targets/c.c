@@ -6,7 +6,7 @@
 #include <interpreter/type.h>
 #include <interpreter/types.h>
 
-static void tgt_c_file_begin(Target *self, Interpreter *interpreter, compilation_file_ref file_ref, Vector(compile_file) *files);
+static void tgt_c_file_begin(Target *self, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files);
 
 static void tgt_c_file_end(Target *self, Interpreter *interpreter, const compile_file *file);
 
@@ -43,7 +43,7 @@ static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const 
 
 static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String ident, const String idents[]);
 
-static void tgt_c_file_begin(Target *self, Interpreter *interpreter, compilation_file_ref file_ref, Vector(compile_file) *files)
+static void tgt_c_file_begin(Target *self, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files)
 {
     (void) self;
     Allocator *allocator = interpreter->allocator;

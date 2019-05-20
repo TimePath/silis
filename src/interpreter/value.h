@@ -3,12 +3,12 @@
 #include <lib/vector.h>
 
 #include "interpreter.h"
-#include "node.h"
+#include "nodelist.h"
 #include "type.h"
 
 typedef struct {
     TypeRef type;
-    compilation_node_ref node;
+    InterpreterFileNodeRef node;
     union {
         struct {
             void *value;
@@ -27,7 +27,7 @@ typedef struct {
         } intrinsic;
 
         struct {
-            compilation_node_ref value;
+            InterpreterFileNodeRef value;
         } expr;
 
         struct {
@@ -35,8 +35,8 @@ typedef struct {
         } type;
 
         struct {
-            compilation_node_ref value;
-            compilation_node_ref arglist;
+            InterpreterFileNodeRef value;
+            InterpreterFileNodeRef arglist;
         } func;
     } u;
     struct {
@@ -49,9 +49,9 @@ typedef struct {
         uint8_t _padding : 5;
     } flags;
     PADDING(7)
-} value_t;
+} Value;
 
-Slice_instantiate(value_t);
-Vector_instantiate(value_t);
+Slice_instantiate(Value);
+Vector_instantiate(Value);
 
-value_t value_from(Interpreter *interpreter, compilation_node_ref n);
+Value Value_from(Interpreter *interpreter, InterpreterFileNodeRef n);

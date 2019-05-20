@@ -1,6 +1,6 @@
 #pragma once
 
-#include <interpreter/interpreter.h>
+#include "targets/_.h"
 
 typedef struct {
     Interpreter *interpreter;

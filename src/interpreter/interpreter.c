@@ -9,7 +9,7 @@
 
 #include "eval.h"
 
-void compilation_file_t_delete(compilation_file_t *self)
+void InterpreterFile_delete(InterpreterFile *self)
 {
     Allocator *allocator = self->allocator;
     FilePath_delete(&self->path);
@@ -19,72 +19,67 @@ void compilation_file_t_delete(compilation_file_t *self)
     free(self);
 }
 
-compile_file compile_file_new(Allocator *allocator, compilation_file_ref file, String ext, size_t flags)
-{
-    Buffer *content = malloc(sizeof(*content));
-    *content = Buffer_new(allocator);
-    return (compile_file) {
-            .allocator = allocator,
-            .file = file,
-            .content = content,
-            .out = Buffer_asFile(allocator, content),
-            .ext = ext,
-            .flags = flags,
-    };
-}
-
-void compile_file_delete(compile_file *self)
-{
-    Allocator *allocator = self->allocator;
-    fs_close(self->out);
-    Buffer_delete(self->content);
-    free(self->content);
-}
-
-const compilation_file_t *compilation_file(const Interpreter *self, compilation_file_ref ref)
+const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, InterpreterFileRef ref)
 {
     assert(ref.id && "file exists");
-    const compilation_file_t *file = *Vector_at(&self->compilation.files, ref.id - 1);
+    const InterpreterFile *file = *Vector_at(&self->compilation.files, ref.id - 1);
     return file;
 }
 
-const Token *compilation_token(const Interpreter *self, compilation_token_ref ref)
+const Token *Interpreter_lookup_file_token(const Interpreter *self, InterpreterFileTokenRef ref)
 {
     assert(ref.token.id && "token exists");
-    const compilation_file_t *file = compilation_file(self, ref.file);
+    const InterpreterFile *file = Interpreter_lookup_file(self, ref.file);
     const Token *token = Vector_at(&file->tokens, ref.token.id - 1);
     return token;
 }
 
-const Node *compilation_node(const Interpreter *self, compilation_node_ref ref)
+const Node *Interpreter_lookup_file_node(const Interpreter *self, InterpreterFileNodeRef ref)
 {
     assert(ref.node.id && "node exists");
-    const compilation_file_t *file = compilation_file(self, ref.file);
+    const InterpreterFile *file = Interpreter_lookup_file(self, ref.file);
     const Node *node = Vector_at(&file->nodes, ref.node.id - 1);
     return node;
 }
 
-compilation_file_ref compilation_include(Allocator *allocator, Interpreter *self, FileSystem *fs, FilePath path)
+InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, InterpreterFileNodeRef ref)
 {
+    const Node *it = Interpreter_lookup_file_node(self, ref);
+    if (it->kind == Node_Ref) {
+        ref.node.id = it->u.Ref.value;
+        assert(Interpreter_lookup_file_node(self, ref)->kind == Node_ListBegin && "references refer to lists");
+    }
+    return ref;
+}
+
+InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path)
+{
+    Allocator *allocator = self->allocator;
     String fileStr;
     uint8_t *read = fs_read_all(allocator, fs, path, &fileStr);
     if (!read) {
         assert(read && "read from file");
-        return (compilation_file_ref) {0};
+        return (InterpreterFileRef) {0};
     }
-    compilation_file_ref ret = {.id = Vector_size(&self->compilation.files) + 1};
+    return Interpreter_read(self, fileStr, path);
+}
+
+InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath path)
+{
+    Allocator *allocator = self->allocator;
+    InterpreterFileRef ret = {.id = Vector_size(&self->compilation.files) + 1};
 
     if (self->compilation.flags.print_lex) {
         fprintf_s(self->compilation.debug, STR("LEX:\n---\n"));
     }
     Result(Vector(Token), ParserError) lex = silis_parser_lex((silis_parser_lex_input) {
         .allocator = allocator,
-        .source = fileStr,
+        .source = file,
     });
     if (!lex.ok) {
         ParserError_print(lex.err, self->compilation.debug);
         unreachable();
-        return (compilation_file_ref) {0};
+        return (InterpreterFileRef) {0};
     }
     Vector(Token) tokens = lex.val;
     if (self->compilation.flags.print_lex) {
@@ -103,23 +98,24 @@ compilation_file_ref compilation_include(Allocator *allocator, Interpreter *self
         silis_parser_print_nodes(Vector_toSlice(Node, &parse.nodes), self->compilation.debug, allocator);
         fprintf_s(self->compilation.debug, STR("\n"));
     }
-    compilation_file_t *file = malloc(sizeof(*file));
-    *file = (compilation_file_t) {
+    InterpreterFile *f = malloc(sizeof(*f));
+    *f = (InterpreterFile) {
             .allocator = allocator,
             .path = path,
-            .content = read,
+            .content = Slice_data_mut(&file.bytes),
             .tokens = tokens,
             .nodes = parse.nodes,
             .entry = {.file = ret, .node = {.id = parse.root_id}},
     };
-    Vector_push(&self->compilation.files, file);
+    Vector_push(&self->compilation.files, f);
 
     return ret;
 }
 
-void compilation_begin(Allocator *allocator, Interpreter *self, compilation_file_ref file, Interpreter *interpreter)
+void Interpreter_eval(Interpreter *self, InterpreterFileRef file)
 {
-    const compilation_file_t *f = compilation_file(self, file);
+    Allocator *allocator = self->allocator;
+    const InterpreterFile *f = Interpreter_lookup_file(self, file);
     FilePath dir = fs_dirname(allocator, f->path);
     fs_dirtoken state = fs_pushd(allocator, dir);
     FilePath_delete(&dir);
@@ -128,7 +124,7 @@ void compilation_begin(Allocator *allocator, Interpreter *self, compilation_file
         fprintf_s(self->compilation.debug, STR("EVAL:\n----\n"));
     }
     do_eval((eval_input) {
-            .interpreter = interpreter,
+            .interpreter = self,
             .entry = f->entry,
     });
     if (self->compilation.flags.print_eval) {

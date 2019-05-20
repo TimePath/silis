@@ -4,9 +4,9 @@
 #include "interpreter.h"
 #include "symbols.h"
 
-value_t value_from(Interpreter *interpreter, compilation_node_ref it)
+Value Value_from(Interpreter *interpreter, InterpreterFileNodeRef it)
 {
-    const Node *n = compilation_node(interpreter, it);
+    const Node *n = Interpreter_lookup_file_node(interpreter, it);
     switch (n->kind) {
         case Node_INVALID:
         case Node_Ref:
@@ -23,17 +23,17 @@ value_t value_from(Interpreter *interpreter, compilation_node_ref it)
             return symbol.value;
         }
         case Node_Integral:
-            return (value_t) {
+            return (Value) {
                     .type = interpreter->types->t_int,
                     .node = it,
                     .u.integral.value = n->u.Integral.value,
             };
         case Node_String:
-            return (value_t) {
+            return (Value) {
                     .type = interpreter->types->t_string,
                     .node = it,
                     .u.string.value = n->u.String.value,
             };
     }
-    return (value_t) {.type = {.value = 0}};
+    return (Value) {.type = {.value = 0}};
 }

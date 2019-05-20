@@ -3,8 +3,10 @@
 #include <interpreter/interpreter.h>
 #include <interpreter/type.h>
 
+#include <compiler/output.h>
+
 typedef struct Target {
-    void (*_file_begin)(struct Target *target, Interpreter *interpreter, compilation_file_ref file_ref, Vector(compile_file) *files);
+    void (*_file_begin)(struct Target *target, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files);
     void (*_file_end)(struct Target *target, Interpreter *interpreter, const compile_file *file);
     void (*_func_forward)(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String name);
     void (*_func_declare)(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String name, const String argnames[]);
@@ -13,7 +15,7 @@ typedef struct Target {
     void (*_identifier)(struct Target *target, Interpreter *interpreter, const compile_file *file, String name);
 } Target;
 
-void Target_file_begin(Target *target, Interpreter *interpreter, compilation_file_ref file_ref, Vector(compile_file) *files);
+void Target_file_begin(Target *target, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files);
 
 void Target_file_end(Target *target, Interpreter *interpreter, const compile_file *file);
 

@@ -1,7 +1,7 @@
 #include <system.h>
 #include "_.h"
 
-void Target_file_begin(Target *target, Interpreter *interpreter, compilation_file_ref file_ref, Vector(compile_file) *files)
+void Target_file_begin(Target *target, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files)
 {
     target->_file_begin(target, interpreter, file_ref, files);
 }

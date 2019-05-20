@@ -10,17 +10,17 @@ INTRINSIC_IMPL(func, ((TypeRef[]) {
 }))
 {
     Allocator *allocator = interpreter->allocator;
-    const value_t *arg_args = Slice_at(&argv, 0);
-    const value_t *arg_body = Slice_at(&argv, 1);
+    const Value *arg_args = Slice_at(&argv, 0);
+    const Value *arg_body = Slice_at(&argv, 1);
 
-    nodelist children = nodelist_iterator(interpreter, arg_args->u.expr.value);
+    NodeList children = NodeList_iterator(interpreter, arg_args->u.expr.value);
     const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
     TypeRef *Ts = malloc(sizeof(TypeRef) * argc);
     func_args_types(interpreter, children, Ts);
     TypeRef T = Types_register_func(interpreter->types, Slice_of_n(TypeRef, Ts, argc));
     free(Ts);
-    return (value_t) {
+    return (Value) {
             .type = T,
             .node = self,
             .u.func.value = arg_body->u.expr.value,
@@ -28,42 +28,42 @@ INTRINSIC_IMPL(func, ((TypeRef[]) {
     };
 }
 
-void func_args_types(Interpreter *interpreter, nodelist iter, TypeRef out[])
+void func_args_types(Interpreter *interpreter, NodeList iter, TypeRef out[])
 {
-    compilation_node_ref ref;
-    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
-        compilation_node_ref it = node_deref(interpreter, ref);
-        nodelist children = nodelist_iterator(interpreter, it);
-        compilation_node_ref typeRef;
-        if (!nodelist_next(&children, &typeRef)) {
+    InterpreterFileNodeRef ref;
+    for (size_t i = 0; NodeList_next(&iter, &ref); ++i) {
+        InterpreterFileNodeRef it = Interpreter_lookup_node_ref(interpreter, ref);
+        NodeList children = NodeList_iterator(interpreter, it);
+        InterpreterFileNodeRef typeRef;
+        if (!NodeList_next(&children, &typeRef)) {
             out[i] = interpreter->types->t_unit;
             continue;
         }
-        const value_t type = eval_node(interpreter, typeRef);
+        const Value type = eval_node(interpreter, typeRef);
         assert(type.type.value == interpreter->types->t_type.value && "argument is a type");
         out[i] = type.u.type.value;
-        compilation_node_ref id;
-        if (nodelist_next(&children, &id)) {
-            const Node *idNode = compilation_node(interpreter, id);
+        InterpreterFileNodeRef id;
+        if (NodeList_next(&children, &id)) {
+            const Node *idNode = Interpreter_lookup_file_node(interpreter, id);
             assert(idNode->kind == Node_Atom && "argument is a name");
             (void) (idNode);
         }
     }
 }
 
-void func_args_names(Interpreter *interpreter, nodelist iter, String out[])
+void func_args_names(Interpreter *interpreter, NodeList iter, String out[])
 {
-    compilation_node_ref ref;
-    for (size_t i = 0; nodelist_next(&iter, &ref); ++i) {
-        compilation_node_ref it = node_deref(interpreter, ref);
-        nodelist children = nodelist_iterator(interpreter, it);
-        nodelist_next(&children, NULL);
-        compilation_node_ref id;
-        if (!nodelist_next(&children, &id)) {
+    InterpreterFileNodeRef ref;
+    for (size_t i = 0; NodeList_next(&iter, &ref); ++i) {
+        InterpreterFileNodeRef it = Interpreter_lookup_node_ref(interpreter, ref);
+        NodeList children = NodeList_iterator(interpreter, it);
+        NodeList_next(&children, NULL);
+        InterpreterFileNodeRef id;
+        if (!NodeList_next(&children, &id)) {
             out[i] = STR("");
             continue;
         }
-        const Node *idNode = compilation_node(interpreter, id);
+        const Node *idNode = Interpreter_lookup_file_node(interpreter, id);
         assert(idNode->kind == Node_Atom && "argument is a name");
         out[i] = idNode->u.Atom.value;
     }

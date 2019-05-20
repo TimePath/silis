@@ -8,7 +8,7 @@
 
 static const bool types = false;
 
-static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, compilation_file_ref file_ref, Vector(compile_file) *files);
+static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files);
 
 static void tgt_js_file_end(struct Target *target, Interpreter *interpreter, const compile_file *file);
 
@@ -43,7 +43,7 @@ static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpret
 
 static void tgt_js_print_function(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String ident, const String idents[]);
 
-static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, compilation_file_ref file_ref, Vector(compile_file) *files)
+static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files)
 {
     (void) target;
     Allocator *allocator = interpreter->allocator;
