@@ -1,13 +1,21 @@
 # nix-env -f release.nix -qa
-# nix-build release.nix -A silis
-# nix-build release.nix -A silis-musl-static
+# nix build -f release.nix --no-link silis
+# nix-build release.nix --no-out-link -A silis
 let
+    # nixpkgs = <nixpkgs>;
+    nixpkgs = builtins.fetchTarball {
+        name = "nixos-19.03";
+        # `git ls-remote https://github.com/nixos/nixpkgs-channels nixos-19.03`
+        url = "https://github.com/nixos/nixpkgs/archive/705986f5a986be5c5ae13193b487c7ec8ca05f16.tar.gz";
+        # `nix-prefetch-url --unpack <url>`
+        sha256 = "0zpch2cpl2yx0mp7hnyjd03hqs7rxza9wc2p97njsdzhi56gxwxp";
+    };
     config = {
         packageOverrides = pkgs: {
             silis = pkgs.callPackage ./default.nix {};
         };
     };
-    pkgs = import <nixpkgs> { inherit config; };
+    pkgs = import nixpkgs { inherit config; };
 in
 let
 inherit (pkgs) lib stdenv;
