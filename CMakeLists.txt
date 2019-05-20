@@ -43,6 +43,7 @@ function(main)
             src/lib/buffer.c
             src/lib/fs.c
             src/lib/macro.c
+            src/lib/result.c
             src/lib/slice.c
             src/lib/stdio.c
             src/lib/string.c
