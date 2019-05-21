@@ -1,19 +1,9 @@
-{pkgs, stdenv, lib, debug ? false}:
-let
-    cleanSourceFilter = name: type: let
-        baseName = baseNameOf (toString name);
-        result = (lib.cleanSourceFilter name type)
-            && !(lib.hasSuffix ".nix" baseName)
-            && !(type == "directory" && baseName == ".idea")
-            && !(type == "directory" && baseName == "cmake-build-debug")
-            && !(type == "directory" && baseName == "cmake-build-release")
-        ;
-    in result;
-    src = builtins.filterSource cleanSourceFilter ./.;
-in
+{ pkgs, stdenv, lib, nix-gitignore
+, debug ? false
+}:
 stdenv.mkDerivation {
     name = "silis";
-    src = src;
+    src = nix-gitignore.gitignoreFilterRecursiveSource (_: _: true) [".git" ".gitignore" "*.nix"] ./.;
     nativeBuildInputs = [ pkgs.cmake_2_8 ];
     installPhase = ''
         mkdir -p $out/bin
