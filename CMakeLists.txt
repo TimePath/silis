@@ -27,6 +27,7 @@ try_flag(CMAKE_C_FLAGS "-Wno-unused-command-line-argument")
 try_flag(CMAKE_C_FLAGS "-Wno-unused-macros")
 
 include_directories(src)
+add_definitions(-DUSE_REAL_HEADERS=0)
 
 set(BUILD_SHARED_LIBS OFF)
 

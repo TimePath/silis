@@ -1,6 +1,7 @@
 # nix-env -f release.nix -qa
 # nix build -f release.nix --no-link silis
 # nix-build release.nix --no-out-link -A silis
+{ crossSystem ? null /* --argstr crossSystem (mingw32 | mingwW64) */ }:
 let
     # nixpkgs = <nixpkgs>;
     nixpkgs = builtins.fetchTarball {
@@ -10,12 +11,16 @@ let
         # `nix-prefetch-url --unpack <url>`
         sha256 = "0zpch2cpl2yx0mp7hnyjd03hqs7rxza9wc2p97njsdzhi56gxwxp";
     };
-    config = {
-        packageOverrides = pkgs: {
-            silis = pkgs.callPackage ./default.nix {};
+    systems = (import nixpkgs {}).lib.systems.examples;
+    pkgs = import nixpkgs {
+        config = {
+            allowUnsupportedSystem = true;
+            packageOverrides = pkgs: {
+                silis = pkgs.callPackage ./default.nix { useCmake = crossSystem == null; };
+            };
         };
+        crossSystem = if crossSystem == null then null else systems.${crossSystem};
     };
-    pkgs = import nixpkgs { inherit config; };
 in
 let
 inherit (pkgs) lib stdenv;

@@ -1,10 +1,23 @@
-{ pkgs, stdenv, lib, nix-gitignore
+{ pkgs, buildPackages, stdenv, lib, nix-gitignore
+, useCmake ? true
 , debug ? false
 }:
-stdenv.mkDerivation {
+let
+    build = if useCmake then buildCMake else buildMake;
+    buildCMake = {
+        nativeBuildInputs = [ buildPackages.cmake ];
+    };
+    buildMake = {
+        nativeBuildInputs = [ buildPackages.perl ];
+        patchPhase = ''
+            ./amalgamate.sh
+            echo -e "silisc: silis.o\n\t$CC -o silisc silis.o" > Makefile
+        '';
+    };
+in
+stdenv.mkDerivation (build // {
     name = "silis";
     src = nix-gitignore.gitignoreFilterRecursiveSource (_: _: true) [".git" ".gitignore" "*.nix"] ./.;
-    nativeBuildInputs = [ pkgs.cmake_2_8 ];
     installPhase = ''
         mkdir -p $out/bin
         mv silisc $out/bin
@@ -19,4 +32,4 @@ stdenv.mkDerivation {
         platforms = stdenv.lib.platforms.linux;
         maintainers = [ stdenv.lib.maintainers.timepath ];
     };
-}
+})

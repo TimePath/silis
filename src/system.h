@@ -8,7 +8,9 @@
 #error "Unknown OS"
 #endif
 
-#define USE_REAL_HEADERS 0
+#ifndef USE_REAL_HEADERS
+#define USE_REAL_HEADERS 1
+#endif
 
 #include <assert.h>
 
@@ -65,7 +67,6 @@ typedef long long int64_t;
 static_assert(sizeof(uint64_t) * 8 == 64, "uint64_t");
 static_assert(sizeof(int64_t) * 8 == 64, "int64_t");
 
-typedef int64_t off64_t;
 #if __WORDSIZE == 64
 typedef int64_t off_t;
 #elif  __WORDSIZE == 32
@@ -75,6 +76,8 @@ typedef int32_t off_t;
 #endif
 
 #endif
+
+typedef int64_t off64_t;
 
 #if USE_REAL_HEADERS
 #include <stddef.h>
@@ -121,11 +124,11 @@ extern int fclose(FILE *stream);
 
 extern FILE *stdout;
 
+#endif
+
 char *getcwd(char *buf, size_t size);
 
 int chdir(const char *path);
-
-#endif
 
 #if USE_REAL_HEADERS
 #include <stdlib.h>
