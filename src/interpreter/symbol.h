@@ -11,7 +11,7 @@ typedef struct {
     struct {
         /// interpreter variable (function call)
         bool eval : 1;
-        uint8_t _padding : 7;
+        BIT_PADDING(uint8_t, 7)
     } flags;
     PADDING(7)
 } Symbol;

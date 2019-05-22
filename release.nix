@@ -57,14 +57,16 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "libc" "cc" "t
         });
 
         gcc = pkg: pkg.override { stdenv = overrideCC stdenv gcc; };
-        # gcc48 = pkg: pkg.override { stdenv = overrideCC stdenv gcc48; };
-        # gcc49 = pkg: pkg.override { stdenv = overrideCC stdenv gcc49; };
+        gcc48 = pkg: pkg.override { stdenv = overrideCC stdenv gcc48; };
+        gcc49 = pkg: pkg.override { stdenv = overrideCC stdenv gcc49; };
         gcc5 = pkg: pkg.override { stdenv = overrideCC stdenv gcc5; };
         gcc6 = pkg: pkg.override { stdenv = overrideCC stdenv gcc6; };
         gcc7 = pkg: pkg.override { stdenv = overrideCC stdenv gcc7; };
         gcc8 = pkg: pkg.override { stdenv = overrideCC stdenv gcc8; };
+        gcc9 = pkg: pkg.override { stdenv = overrideCC stdenv gcc9; };
 
         clang = pkg: pkg.override { stdenv = overrideCC stdenv clang; };
+        clang35 = pkg: pkg.override { stdenv = overrideCC stdenv clang_35; };
         clang37 = pkg: pkg.override { stdenv = overrideCC stdenv clang_37; };
         clang38 = pkg: pkg.override { stdenv = overrideCC stdenv clang_38; };
         clang39 = pkg: pkg.override { stdenv = overrideCC stdenv clang_39; };
@@ -72,6 +74,7 @@ m = buildMatrix { name = [ "cc" "libc" "link" "type" ]; apply = [ "libc" "cc" "t
         clang5 = pkg: pkg.override { stdenv = overrideCC stdenv clang_5; };
         clang6 = pkg: pkg.override { stdenv = overrideCC stdenv clang_6; };
         clang7 = pkg: pkg.override { stdenv = overrideCC stdenv clang_7; };
+        # clang8 = pkg: pkg.override { stdenv = overrideCC stdenv clang_8; };
 
         tcc = pkg: (pkg.override { stdenv = overrideCC stdenv tinycc; }).overrideAttrs (oldAttrs: {
             cmakeFlags = (oldAttrs.cmakeFlags or []) ++ [

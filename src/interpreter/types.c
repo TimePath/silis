@@ -70,8 +70,7 @@ TypeRef Types_register_func(Types *self, Slice(TypeRef) types)
         TypeRef in = *Slice_at(&types, i);
         ret = Types_register(self, (Type) {
                 .kind = Type_Function,
-                .u.Function.in = in,
-                .u.Function.out = ret,
+                .u.Function = { .in = in, .out = ret },
         });
     }
     return ret;

@@ -7,6 +7,7 @@
 #endif
 
 #define PADDING(n) uint8_t _padding[n];
+#define BIT_PADDING(T, N) __extension__ T _padding : N;
 
 #define MACRO_BEGIN if (1) {
 #define MACRO_END } else ((void) 0)

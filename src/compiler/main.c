@@ -113,7 +113,7 @@ size_t main(Allocator *allocator, Slice(String) args)
         bool print_emit : 1;
         bool print_run : 1;
         bool buffer : 1;
-        uint8_t _padding : 1;
+        BIT_PADDING(uint8_t, 1)
     } flags = {
             .run = false,
             .print_lex = true,
@@ -146,12 +146,12 @@ size_t main(Allocator *allocator, Slice(String) args)
             {.id = STR("#types/string"), .value = (Value) {
                     .type = types->t_type,
                     .u.type.value = types->t_string,
-                    .flags.intrinsic = true,
+                    .flags = { .intrinsic = true, }
             }},
             {.id = STR("#types/int"), .value = (Value) {
                     .type = types->t_type,
                     .u.type.value = types->t_int,
-                    .flags.intrinsic = true,
+                    .flags = { .intrinsic = true, }
             }},
     })),
     Slice_of(SymbolInitializer_intrin, ((SymbolInitializer_intrin[16]) {
@@ -169,7 +169,7 @@ size_t main(Allocator *allocator, Slice(String) args)
             {.id = STR("-"), .value = &intrin_minus},
             {.id = STR("+"), .value = &intrin_plus},
             {.id = STR("#set"), .value = &intrin_set},
-            {.id = STR("#untyped"), .value = &intrin_untyped, .flags.abstract = true},
+            {.id = STR("#untyped"), .value = &intrin_untyped, .flags = { .abstract = true }},
             {.id = STR("#while"), .value = &intrin_while},
     })));
     Symbols *symbols = &_symbols;
@@ -178,9 +178,11 @@ size_t main(Allocator *allocator, Slice(String) args)
             .fs_in = fs_in,
             .compilation = {
                     .debug = out,
-                    .flags.print_lex = flags.print_lex,
-                    .flags.print_parse = flags.print_parse,
-                    .flags.print_eval = flags.print_eval,
+                    .flags = {
+                            .print_lex = flags.print_lex,
+                            .print_parse = flags.print_parse,
+                            .print_eval = flags.print_eval,
+                    },
                     .files = Vector_new(allocator),
             },
             .types = types,

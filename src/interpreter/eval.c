@@ -105,7 +105,7 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
         ret = (Value) {
             .type = T,
             .node = it,
-            .flags.abstract = true,
+            .flags = { .abstract = true, },
         };
     } else {
         const Value *argv = Vector_at(&ctx->stack, ofs);
@@ -151,7 +151,7 @@ static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef argl
                     .file = {0},
                     .type = v->type,
                     .value = *v,
-                    .flags.eval = true,
+                    .flags = { .eval = true, },
             });
         }
     }

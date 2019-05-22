@@ -37,8 +37,10 @@ Symbols Symbols_new(Allocator *allocator, Types *types, Slice(SymbolInitializer)
                 .value = {
                         .type = T,
                         .u.intrinsic.value = it.value,
-                        .flags.abstract = it.flags.abstract,
-                        .flags.intrinsic = true,
+                        .flags = {
+                                .abstract = it.flags.abstract,
+                                .intrinsic = true,
+                        }
                 },
         });
     }

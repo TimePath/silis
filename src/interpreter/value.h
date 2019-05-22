@@ -46,7 +46,7 @@ typedef struct {
         bool intrinsic : 1;
         /// native declaration (libc function, or other external symbol)
         bool native : 1;
-        uint8_t _padding : 5;
+        BIT_PADDING(uint8_t, 5)
     } flags;
     PADDING(7)
 } Value;

@@ -23,8 +23,10 @@ INTRINSIC_IMPL(func, ((TypeRef[]) {
     return (Value) {
             .type = T,
             .node = self,
-            .u.func.value = arg_body->u.expr.value,
-            .u.func.arglist = arg_args->u.expr.value,
+            .u.func = {
+                    .value = arg_body->u.expr.value,
+                    .arglist = arg_args->u.expr.value,
+            }
     };
 }
 

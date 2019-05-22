@@ -55,7 +55,7 @@ typedef struct {
             bool print_lex : 1;
             bool print_parse : 1;
             bool print_eval: 1;
-            uint8_t _padding : 5;
+            BIT_PADDING(uint8_t, 5)
         } flags;
         PADDING(7)
     } compilation;

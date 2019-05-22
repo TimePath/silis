@@ -22,7 +22,7 @@ INTRINSIC_IMPL(extern, ((TypeRef[]) {
     Symbols_define(interpreter->symbols, name->u.Atom.value, (Symbol) {
             .file = self.file,
             .type = T,
-            .value = {.type = T, .node = self, .flags.abstract = true, .flags.native = true,},
+            .value = {.type = T, .node = self, .flags = { .abstract = true, .native = true, }},
     });
     return (Value) {.type = interpreter->types->t_unit, .node = self};
 }
