@@ -92,10 +92,14 @@ typedef int64_t off64_t;
 #else
 
 #if __WORDSIZE == 64
+#if !defined(_MSC_VER)
 typedef uint64_t size_t;
+#endif
 typedef int64_t ssize_t;
 #elif  __WORDSIZE == 32
+#if !defined(_MSC_VER)
 typedef uint32_t size_t;
+#endif
 typedef int32_t ssize_t;
 #else
 #error "Unknown  __WORDSIZE"
@@ -170,9 +174,9 @@ static void CAllocator_free(void *self, void *ptr) { (void) self; extern void (f
 native_int_t (main)(native_int_t argc, native_string_t argv[]) \
 { \
     Allocator _allocator = (Allocator) { \
-        .alloc = CAllocator_alloc, \
-        .realloc = CAllocator_realloc, \
-        .free = CAllocator_free, \
+        ._alloc = CAllocator_alloc, \
+        ._realloc = CAllocator_realloc, \
+        ._free = CAllocator_free, \
     }; \
     Allocator *allocator = &_allocator; \
     extern size_t strlen(native_string_t __s); \

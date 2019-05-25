@@ -96,7 +96,7 @@ static void DebugAllocator_free(void *_self, void *ptr)
 size_t main(Allocator *allocator, Slice(String) args)
 {
     DebugAllocator debugAllocator = (DebugAllocator) {
-            .interface = {.alloc = DebugAllocator_alloc, .realloc = DebugAllocator_realloc, .free = DebugAllocator_free},
+            .interface = {._alloc = DebugAllocator_alloc, ._realloc = DebugAllocator_realloc, ._free = DebugAllocator_free},
             .implementation = allocator,
     };
     allocator = &debugAllocator.interface;

@@ -1,6 +1,7 @@
 #pragma once
 
 #if defined(_MSC_VER)
+#define __extension__
 #define INLINE inline
 #else
 #define INLINE __attribute__((always_inline)) inline

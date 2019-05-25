@@ -5,15 +5,15 @@
 
 void *Allocator_alloc(Allocator *self, size_t size)
 {
-    return self->alloc(self, size);
+    return self->_alloc(self, size);
 }
 
 void *Allocator_realloc(Allocator *self, void *ptr, size_t size)
 {
-    return self->NOEXPAND(realloc)(self, ptr, size);
+    return self->_realloc(self, ptr, size);
 }
 
 void Allocator_free(Allocator *self, void *ptr)
 {
-    self->NOEXPAND(free)(self, ptr);
+    self->_free(self, ptr);
 }

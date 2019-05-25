@@ -14,10 +14,20 @@ static char _va_buf[1024];
     printf(__VA_ARGS__); \
     printf("\n"); \
     ret = system(va(__VA_ARGS__)); \
+    run_check(ret); \
+} while (0)
+
+#ifdef _WIN32
+#define run_check(ret) do { \
+    printf("run: status: %d\n", ret); \
+} while (0)
+#else
+#define run_check(ret) do { \
     if (WIFEXITED(ret)) printf("run: status: %d\n", WEXITSTATUS(ret)); \
     if (WIFSIGNALED(ret)) printf("run: signal %d\n", WTERMSIG(ret)); \
     ret = WEXITSTATUS(ret) || WTERMSIG(ret); \
 } while (0)
+#endif
 
 #define run_or_exit(...) do { \
     run(__VA_ARGS__); \
