@@ -8,7 +8,6 @@ let
         nativeBuildInputs = [ buildPackages.cmake ];
     };
     buildMake = {
-        nativeBuildInputs = [ buildPackages.perl ];
         patchPhase = ''
             ./amalgamate.sh
             echo -e "silisc: silis.o\n\t$CC -o silisc silis.o" > Makefile
