@@ -22,11 +22,11 @@ static void NodePrinter_print_indent(NodePrinter *self, NodePrinterState *state)
 
 static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState state, const Node *it, size_t id)
 {
-    if (it->kind == Node_INVALID) {
+    if (it->kind.val == Node_INVALID) {
         unreachable();
         return state;
     }
-    if (it->kind == Node_ListBegin) {
+    if (it->kind.val == Node_ListBegin) {
         NodePrinter_print_indent(self, &state);
         ++state.depth;
         fprintf_s(self->out, STR("("));
@@ -59,7 +59,7 @@ static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState st
         }
         state.needTab = true;
         state.needLine = true;
-    } else if (it->kind == Node_ListEnd) {
+    } else if (it->kind.val == Node_ListEnd) {
         --state.depth;
         NodePrinter_print_indent(self, &state);
         state.needTab = true;
@@ -80,7 +80,7 @@ static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState st
         }
     } else {
         NodePrinter_print_indent(self, &state);
-        switch (it->kind) {
+        switch (it->kind.val) {
             case Node_INVALID:
             case Node_ListBegin:
             case Node_ListEnd:
@@ -170,7 +170,7 @@ void silis_parser_print_nodes(Slice(Node) nodes, File *f, Allocator *allocator)
     Slice_loop(&nodes, i) {
         const Node *it = Slice_at(&nodes, i);
         state = NodePrinter_print(&printer, state, it, i + 1);
-        if (it->kind == Node_ListEnd) {
+        if (it->kind.val == Node_ListEnd) {
             fprintf_s(f, STR("\n"));
             state = (NodePrinterState) {
                     .depth = 0,

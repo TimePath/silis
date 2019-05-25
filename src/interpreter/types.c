@@ -14,28 +14,28 @@ Types Types_new(Allocator *allocator)
     };
     Types *self = &_self;
     self->t_untyped = Types_register(self, (Type) {
-            .kind = Type_Opaque,
+            .kind.val = Type_Opaque,
             .u.Opaque.size = 0,
     });
     assert(self->t_untyped.value == 1 && "untyped has type id 1");
     self->t_unit = Types_register(self, (Type) {
-            .kind = Type_Opaque,
+            .kind.val = Type_Opaque,
             .u.Opaque.size = 0,
     });
     self->t_expr = Types_register(self, (Type) {
-            .kind = Type_Opaque,
+            .kind.val = Type_Opaque,
             .u.Opaque.size = 0,
     });
     self->t_type = Types_register(self, (Type) {
-            .kind = Type_Opaque,
+            .kind.val = Type_Opaque,
             .u.Opaque.size = sizeof(TypeRef),
     });
     self->t_string = Types_register(self, (Type) {
-            .kind = Type_Opaque,
+            .kind.val = Type_Opaque,
             .u.Opaque.size = sizeof(const native_char_t *),
     });
     self->t_int = Types_register(self, (Type) {
-            .kind = Type_Opaque,
+            .kind.val = Type_Opaque,
             .u.Opaque.size = sizeof(size_t),
     });
     return _self;
@@ -69,7 +69,7 @@ TypeRef Types_register_func(Types *self, Slice(TypeRef) types)
     while (i-- > 0) {
         TypeRef in = *Slice_at(&types, i);
         ret = Types_register(self, (Type) {
-                .kind = Type_Function,
+                .kind.val = Type_Function,
                 .u.Function = { .in = in, .out = ret },
         });
     }
@@ -84,7 +84,7 @@ const Type *Types_lookup(const Types *self, TypeRef ref)
 TypeRef Types_function_result(const Types *self, TypeRef T)
 {
     TypeRef ret = {.value = 0};
-    for (const Type *it = Types_lookup(self, T); it->kind == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
+    for (const Type *it = Types_lookup(self, T); it->kind.val == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
         ret = it->u.Function.out;
     }
     return ret;
@@ -93,7 +93,7 @@ TypeRef Types_function_result(const Types *self, TypeRef T)
 size_t Types_function_arity(const Types *self, TypeRef T)
 {
     size_t argc = 0;
-    for (const Type *it = Types_lookup(self, T); it->kind == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
+    for (const Type *it = Types_lookup(self, T); it->kind.val == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
         ++argc;
     }
     return argc;

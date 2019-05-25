@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(silis C)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 
 include(CheckCCompilerFlag)
 function(try_flag LIST FLAG)

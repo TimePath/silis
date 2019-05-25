@@ -201,8 +201,8 @@ size_t main(Allocator *allocator, Slice(String) args)
         Symbol entry;
         bool hasMain = Symbols_lookup(symbols, STR("main"), &entry);
         (void) hasMain;
-        assert(hasMain && Types_lookup(types, entry.type)->kind == Type_Function && "main is a function");
-        func_call(interpreter, entry.value, (Slice(Value)) {._begin = NULL, ._end = NULL,}, (InterpreterFileNodeRef) {.file = {0}, .node = {0}});
+        assert(hasMain && Types_lookup(types, entry.type)->kind.val == Type_Function && "main is a function");
+        func_call(interpreter, entry.value, (Slice(Value)) {._begin.r = NULL, ._end = NULL,}, (InterpreterFileNodeRef) {.file = {0}, .node = {0}});
     } else {
         if (flags.print_emit) {
             fprintf_s(out, STR("EMIT:\n----\n"));

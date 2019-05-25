@@ -13,7 +13,7 @@ INTRINSIC_IMPL(define, ((TypeRef[]) {
     const Value *arg_val = Slice_at(&argv, 1);
 
     const Node *name = Interpreter_lookup_file_node(interpreter, arg_name->u.expr.value);
-    assert(name->kind == Node_Atom);
+    assert(name->kind.val == Node_Atom);
     InterpreterFileNodeRef val = arg_val->u.expr.value;
 
     const Value v = eval_node(interpreter, val);

@@ -23,7 +23,7 @@ struct { \
 #define Vector_size(self) ((self)->_size)
 #define _Vector_data(self) ((self)->_data)
 #define Vector_at(self, i) (&_Vector_data(self)[i])
-#define Vector_toSlice(T, self) ((Slice(T)) { ._begin = _Vector_data(self), ._end = _Vector_data(self) + Vector_size(self) })
+#define Vector_toSlice(T, self) ((Slice(T)) { ._begin.r = _Vector_data(self), ._end = _Vector_data(self) + Vector_size(self) })
 
 #define Vector_loop(T, self, i) Slice_loop(&Vector_toSlice(T, self), i)
 

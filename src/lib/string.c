@@ -35,7 +35,7 @@ static native_char_t *spaces(Allocator *allocator, size_t n)
 String String_indent(Allocator *allocator, size_t n)
 {
     const uint8_t *p = (const uint8_t *) spaces(allocator, n);
-    Slice(uint8_t) slice = {._begin = p, ._end = p + n};
+    Slice(uint8_t) slice = {._begin.r = p, ._end = p + n};
     return String_fromSlice(slice, ENCODING_COMPILER);
 }
 
@@ -56,7 +56,7 @@ bool String_delim(String *tail, String delim, String *head)
     for (Slice(uint8_t) next; (void) (next = enc->next(it)), Slice_begin(&it) != Slice_end(&it); it = next) {
         size_t c = enc->get(it);
         if (c == *Slice_at(&delim.bytes, 0)) { // todo: use all of `delim`
-            *head = String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}, enc);
+            *head = String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc);
             *tail = String_fromSlice(next, enc);
             return true;
         }

@@ -15,7 +15,7 @@ INTRINSIC_IMPL(include, ((TypeRef[]) {
     Allocator *allocator = interpreter->allocator;
     const Value *arg_args = Slice_at(&argv, 0);
     const Node *it = Interpreter_lookup_file_node(interpreter, arg_args->u.expr.value);
-    assert(it->kind == Node_String && "argument is string literal");
+    assert(it->kind.val == Node_String && "argument is string literal");
     String path = it->u.String.value;
     InterpreterFileRef next = Interpreter_load(interpreter, interpreter->fs_in, fs_path_from(allocator, path));
     Interpreter_eval(interpreter, next);

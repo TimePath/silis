@@ -7,7 +7,7 @@
 Value Value_from(Interpreter *interpreter, InterpreterFileNodeRef it)
 {
     const Node *n = Interpreter_lookup_file_node(interpreter, it);
-    switch (n->kind) {
+    switch (n->kind.val) {
         case Node_INVALID:
         case Node_Ref:
         case Node_ListBegin:

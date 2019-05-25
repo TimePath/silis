@@ -151,7 +151,7 @@ static size_t Lexer_atom(Lexer *self, String prog)
     }
     const String atom = String_fromSlice(
             (Slice(uint8_t)) {
-                    ._begin = String_begin(prog),
+                    ._begin.r = String_begin(prog),
                     ._end = Slice_begin(&it),
             },
             enc
@@ -163,12 +163,12 @@ static size_t Lexer_atom(Lexer *self, String prog)
             val = 10 * val + (c - '0');
         }
         Lexer_yield(self, (Token) {
-                .kind = Token_Integral,
+                .kind.val = Token_Integral,
                 .u.Integral.value = val,
         });
     } else {
         Lexer_yield(self, (Token) {
-                .kind = Token_Atom,
+                .kind.val = Token_Atom,
                 .u.Atom.value = atom,
         });
     }
@@ -194,7 +194,7 @@ static Result(size_t, ParserError) Lexer_string(Lexer *self, String prog)
                 switch (c = enc->get(it = enc->next(it))) {
                     default:
                         return (Result(size_t, ParserError)) Result_err(
-                                ((ParserError) {.kind = ParserError_UnexpectedEscape, .u.UnexpectedEscape = {.c = c}})
+                                ((ParserError) {.kind.val = ParserError_UnexpectedEscape, .u.UnexpectedEscape = {.c = c}})
                         );
                     case '\\':
                     case '"':
@@ -210,12 +210,12 @@ static Result(size_t, ParserError) Lexer_string(Lexer *self, String prog)
         }
     }
     done:;
-    const String value = String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = (const uint8_t *) out}, enc);
+    const String value = String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = (const uint8_t *) out}, enc);
     Lexer_yield(self, (Token) {
-            .kind = Token_String,
+            .kind.val = Token_String,
             .u.String.value = value,
     });
-    size_t ret = 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
+    size_t ret = 1 + enc->count_units((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}) + 1;
     return (Result(size_t, ParserError)) Result_ok(ret);
 }
 
@@ -223,7 +223,7 @@ static Result(size_t, ParserError) Lexer_list(Lexer *self, String prog)
 {
     const StringEncoding *enc = prog.encoding;
     Lexer_yield(self, (Token) {
-            .kind = Token_ListBegin,
+            .kind.val = Token_ListBegin,
     });
     const uint8_t *begin = String_begin(prog);
     size_t ret;
@@ -248,20 +248,20 @@ static Result(size_t, ParserError) Lexer_list(Lexer *self, String prog)
             case '{': // sugar
             {
                 Result(size_t, ParserError) res = Lexer_list(self, String_fromSlice(next, enc));
-                if (!res.ok) return res;
-                next = enc->skip_units(it, res.val);
+                if (!res.is.ok) return res;
+                next = enc->skip_units(it, res.ret.val);
                 break;
             }
             case ')':
             case ']': // sugar
             case '}': // sugar
-                ret = 1 + enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}) + 1;
+                ret = 1 + enc->count_units((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}) + 1;
                 goto done;
             case '"':
             {
                 Result(size_t, ParserError) res = Lexer_string(self, String_fromSlice(next, enc));
-                if (!res.ok) return res;
-                next = enc->skip_units(it, res.val);
+                if (!res.is.ok) return res;
+                next = enc->skip_units(it, res.ret.val);
                 break;
             }
             default:
@@ -269,10 +269,10 @@ static Result(size_t, ParserError) Lexer_list(Lexer *self, String prog)
                 break;
         }
     }
-    ret = enc->count_units((Slice(uint8_t)) {._begin = begin, ._end = Slice_begin(&it)}); // EOF
+    ret = enc->count_units((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}); // EOF
     done:;
     Lexer_yield(self, (Token) {
-            .kind = Token_ListEnd,
+            .kind.val = Token_ListEnd,
     });
     return (Result(size_t, ParserError)) Result_ok(ret);
 }
@@ -284,6 +284,6 @@ Result(Vector(Token), ParserError) silis_parser_lex(silis_parser_lex_input in)
             .tokens = Vector_new(allocator),
     };
     Result(size_t, ParserError) res = Lexer_list(&lexer, in.source);
-    if (!res.ok) return (Result(Vector(Token), ParserError)) Result_err(res.err);
+    if (!res.is.ok) return (Result(Vector(Token), ParserError)) Result_err(res.ret.err);
     return (Result(Vector(Token), ParserError)) Result_ok(lexer.tokens);
 }

@@ -47,7 +47,7 @@ void func_args_types(Interpreter *interpreter, NodeList iter, TypeRef out[])
         InterpreterFileNodeRef id;
         if (NodeList_next(&children, &id)) {
             const Node *idNode = Interpreter_lookup_file_node(interpreter, id);
-            assert(idNode->kind == Node_Atom && "argument is a name");
+            assert(idNode->kind.val == Node_Atom && "argument is a name");
             (void) (idNode);
         }
     }
@@ -66,7 +66,7 @@ void func_args_names(Interpreter *interpreter, NodeList iter, String out[])
             continue;
         }
         const Node *idNode = Interpreter_lookup_file_node(interpreter, id);
-        assert(idNode->kind == Node_Atom && "argument is a name");
+        assert(idNode->kind.val == Node_Atom && "argument is a name");
         out[i] = idNode->u.Atom.value;
     }
 }

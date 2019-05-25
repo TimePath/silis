@@ -59,10 +59,10 @@ typedef struct { \
         enum { \
             CAT2(id, _INVALID), \
             id(id, _ENUM_TAG) \
-        } kind; \
-        size_t _kind; \
+        } val; \
+        size_t id; \
         ENUM_PADDING \
-    }; \
+    } kind; \
     union { id(id, _ENUM_VARIANT) } u; \
 } id; \
 /**/
@@ -71,5 +71,5 @@ typedef struct { \
 
 #define _ENUM_VARIANT(id, name, def) struct def name;
 
-#define _ENUM_VAL(id, variant) .kind = CAT3(id, _, variant), .u.variant
+#define _ENUM_VAL(id, variant) .kind.val = CAT3(id, _, variant), .u.variant
 #define ENUM_VAL(id, variant, it) (id) { _ENUM_VAL(id, variant) = it }

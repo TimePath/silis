@@ -16,7 +16,7 @@ INTRINSIC_IMPL(emit, ((TypeRef[]) {
     while (NodeList_next(&iter, &ref)) {
         const Node *node = Interpreter_lookup_file_node(interpreter, ref);
         (void) node;
-        assert(node->kind == Node_String && "argument is string literal");
+        assert(node->kind.val == Node_String && "argument is string literal");
     }
     return (Value) {.type = interpreter->types->t_unit, .node = self};
 }

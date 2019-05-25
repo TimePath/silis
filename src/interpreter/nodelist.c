@@ -24,7 +24,7 @@ InterpreterFileNodeRef NodeList_get(NodeList *self, size_t index)
 NodeList NodeList_iterator(const Interpreter *compilation, InterpreterFileNodeRef list)
 {
     const Node *node = Interpreter_lookup_file_node(compilation, list);
-    assert(node->kind == Node_ListBegin);
+    assert(node->kind.val == Node_ListBegin);
     return (NodeList) {
             .compilation = compilation,
             .head = (InterpreterFileNodeRef) { .file = list.file, .node = { .id = list.node.id + 1 }},

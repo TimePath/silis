@@ -38,7 +38,7 @@ Value eval_list_block(Interpreter *interpreter, InterpreterFileNodeRef it)
 
 static Value do_eval_list_block(eval_ctx *ctx, InterpreterFileNodeRef it)
 {
-    assert(Interpreter_lookup_file_node(ctx->interpreter, it)->kind == Node_ListBegin);
+    assert(Interpreter_lookup_file_node(ctx->interpreter, it)->kind.val == Node_ListBegin);
     Value ret = (Value) {.type = ctx->interpreter->types->t_unit, .node = it};
     NodeList iter = NodeList_iterator(ctx->interpreter, it);
     InterpreterFileNodeRef ref;
@@ -52,8 +52,8 @@ static Value do_eval_list_block(eval_ctx *ctx, InterpreterFileNodeRef it)
 static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
 {
     const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
-    assert(node->kind != Node_Ref);
-    if (node->kind != Node_ListBegin) {
+    assert(node->kind.val != Node_Ref);
+    if (node->kind.val != Node_ListBegin) {
         return Value_from(ctx->interpreter, it);
     }
     NodeList children = NodeList_iterator(ctx->interpreter, it);
@@ -71,14 +71,14 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
     // (f args...)
     const Value func = do_eval_node(ctx, Interpreter_lookup_node_ref(ctx->interpreter, ref));
     const Type *funcType = Types_lookup(ctx->interpreter->types, func.type);
-    assert(funcType->kind == Type_Function && "function is function");
+    assert(funcType->kind.val == Type_Function && "function is function");
 
     bool abstract = func.flags.abstract;
     const size_t ofs = Vector_size(&ctx->stack);
     const TypeRef expr_t = ctx->interpreter->types->t_expr;
     size_t T_argc = 0;
     TypeRef T = func.type;
-    for (const Type *argType = funcType; argType->kind == Type_Function; T = argType->u.Function.out, argType = Types_lookup(ctx->interpreter->types, T)) {
+    for (const Type *argType = funcType; argType->kind.val == Type_Function; T = argType->u.Function.out, argType = Types_lookup(ctx->interpreter->types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
         InterpreterFileNodeRef arg = NodeList_get(&children, ++T_argc);
         arg = Interpreter_lookup_node_ref(ctx->interpreter, arg);
@@ -109,7 +109,7 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
         };
     } else {
         const Value *argv = Vector_at(&ctx->stack, ofs);
-        ret = func_call(ctx->interpreter, func, (Slice(Value)) {._begin = argv, ._end = argv + n,}, it);
+        ret = func_call(ctx->interpreter, func, (Slice(Value)) {._begin.r = argv, ._end = argv + n,}, it);
     }
     for (size_t i = 0; i < n - 1; ++i) {
         Vector_pop(&ctx->stack);
@@ -144,7 +144,7 @@ static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef argl
         InterpreterFileNodeRef id;
         if (NodeList_next(&children, &id)) {
             const Node *idNode = Interpreter_lookup_file_node(interpreter, id);
-            assert(idNode->kind == Node_Atom && "argument is a name");
+            assert(idNode->kind.val == Node_Atom && "argument is a name");
 
             const Value *v = Slice_at(&argv, i);
             Symbols_define(interpreter->symbols, idNode->u.Atom.value, (Symbol) {

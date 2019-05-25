@@ -22,11 +22,11 @@ static void TokenPrinter_print_indent(TokenPrinter *self, TokenPrinterState *sta
 
 static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterState state, const Token *it, size_t id)
 {
-    if (it->kind == Token_INVALID) {
+    if (it->kind.val == Token_INVALID) {
         unreachable();
         return state;
     }
-    if (it->kind == Token_ListBegin) {
+    if (it->kind.val == Token_ListBegin) {
         TokenPrinter_print_indent(self, &state);
         ++state.depth;
         state.needTab = true;
@@ -40,7 +40,7 @@ static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterStat
                 fprintf_s(self->out, STR(","));
             }
         }
-    } else if (it->kind == Token_ListEnd) {
+    } else if (it->kind.val == Token_ListEnd) {
         --state.depth;
         TokenPrinter_print_indent(self, &state);
         state.needTab = true;
@@ -56,7 +56,7 @@ static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterStat
         }
     } else {
         TokenPrinter_print_indent(self, &state);
-        switch (it->kind) {
+        switch (it->kind.val) {
             case Token_Atom:
                 fprintf_s(self->out, STR("`"));
                 fprintf_s(self->out, it->u.Atom.value);

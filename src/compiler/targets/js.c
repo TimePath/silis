@@ -114,12 +114,12 @@ static void tgt_js_identifier(struct Target *target, Interpreter *interpreter, c
             X('.', "__dot__")
 #undef X
         }
-        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc));
         fprintf_s(file->out, replace);
         it = enc->next(it);
-        begin = it._begin;
+        begin = Slice_begin(&it);
     }
-    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc));
 }
 
 // implementation
@@ -154,7 +154,7 @@ static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, c
     }
 #undef CASE
     const Type *type = Types_lookup(interpreter->types, T);
-    if (type->kind == Type_Function) {
+    if (type->kind.val == Type_Function) {
         fprintf_s(file->out, STR("("));
         TypeRef argT;
         const Type *argType = type;
@@ -162,7 +162,7 @@ static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, c
             tgt_js_print_type(target, interpreter, file, argType->u.Function.in);
             argT = argType->u.Function.out;
             argType = Types_lookup(interpreter->types, argT);
-            if (argType->kind != Type_Function) {
+            if (argType->kind.val != Type_Function) {
                 break;
             }
             fprintf_s(file->out, STR(", "));
@@ -181,7 +181,7 @@ static void tgt_js_print_decl_pre(struct Target *target, Interpreter *interprete
     (void) target;
     (void) opts;
     const Type *type = Types_lookup(interpreter->types, T);
-    if (type->kind != Type_Function || opts.local) {
+    if (type->kind.val != Type_Function || opts.local) {
         fprintf_s(file->out, STR("let "));
         return;
     }
@@ -192,7 +192,7 @@ static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpret
 {
     (void) opts;
     const Type *type = Types_lookup(interpreter->types, T);
-    if (type->kind != Type_Function || opts.local) {
+    if (type->kind.val != Type_Function || opts.local) {
         fprintf_s(file->out, STR(": "));
         tgt_js_print_type(target, interpreter, file, T);
         return;
@@ -216,7 +216,7 @@ static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpret
             fprintf_s(file->out, STR(" */"));
         }
         const Type *next = Types_lookup(interpreter->types, argp->u.Function.out);
-        if (next->kind != Type_Function) {
+        if (next->kind.val != Type_Function) {
             break;
         }
         argp = next;

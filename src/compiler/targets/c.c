@@ -114,12 +114,12 @@ static void tgt_c_identifier(Target *self, Interpreter *interpreter, const compi
             X('.', "__dot__")
 #undef X
         }
-        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc));
         fprintf_s(file->out, replace);
         it = enc->next(it);
-        begin = it._begin;
+        begin = Slice_begin(&it);
     }
-    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc));
 }
 
 // implementation
@@ -153,7 +153,7 @@ static void tgt_c_print_declaration(Target *self, Interpreter *interpreter, cons
 static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, tgt_c_print_decl_opts opts)
 {
     const Type *type = Types_lookup(interpreter->types, T);
-    if (type->kind != Type_Function) {
+    if (type->kind.val != Type_Function) {
 #define CASE(t) if (T.value == interpreter->types->t.value)
         CASE(t_unit) {
             fprintf_s(file->out, !opts.anonymous ? STR("void ") : STR("void"));
@@ -185,7 +185,7 @@ static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const c
 static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, const String idents[], tgt_c_print_decl_opts opts)
 {
     const Type *type = Types_lookup(interpreter->types, T);
-    if (type->kind != Type_Function) {
+    if (type->kind.val != Type_Function) {
         return;
     }
     if (opts.local) {
@@ -199,7 +199,7 @@ static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const 
         const String s = idents ? idents[i++] : STR("");
         tgt_c_print_declaration(self, interpreter, file, arg, s);
         const Type *next = Types_lookup(interpreter->types, argp->u.Function.out);
-        if (next->kind != Type_Function) {
+        if (next->kind.val != Type_Function) {
             break;
         }
         argp = next;

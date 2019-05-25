@@ -24,8 +24,8 @@
 
 #include <assert.h>
 
-#if defined(__TINYC__)
-#define static_assert(expr, message)
+#if !defined(static_assert)
+#define static_assert(expr, message) extern char (*ct_assert(void)) [sizeof(char[1 - 2*!(expr)])]
 #endif
 
 #if !USE_REAL_HEADERS
@@ -183,7 +183,7 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) \
     Vector(String) args = Vector_new(allocator); \
     for (size_t i = 0; i < (size_t) argc; ++i) { \
         native_string_t cstr = argv[i]; \
-        Slice(uint8_t) slice = {._begin = (const uint8_t *) cstr, ._end = (const uint8_t *) (cstr + strlen(cstr))}; \
+        Slice(uint8_t) slice = {._begin.r = (const uint8_t *) cstr, ._end = (const uint8_t *) (cstr + strlen(cstr))}; \
         String s = String_fromSlice(slice, ENCODING_SYSTEM); \
         Vector_push(&args, s); \
     } \

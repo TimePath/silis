@@ -229,7 +229,7 @@ uint8_t *fs_read_all(Allocator *allocator, FileSystem *fs, FilePath path, String
     const size_t len = (size_t) ret;
     fs_seek(file, 0, fs_seek_begin);
     uint8_t *buf = malloc(len + 1);
-    Slice(uint8_t) slice = (Slice(uint8_t)) {._begin = buf, ._end = buf + len};
+    Slice(uint8_t) slice = (Slice(uint8_t)) {._begin.r = buf, ._end = buf + len};
     fs_read(file, slice);
     buf[len] = 0;
     fs_close(file);

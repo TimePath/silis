@@ -13,22 +13,22 @@
 #define Slice_(T) \
 struct { \
     union { \
-        const T *_begin; \
-        T *_begin_mut; \
-    }; \
+        const T *r; \
+        T *w; \
+    } _begin; \
     const T *_end; /** one after the actual last element */ \
     SLICE_PADDING \
 }
 
 Slice_instantiate(uint8_t);
 
-#define Slice_begin(self) ((self)->_begin)
+#define Slice_begin(self) ((self)->_begin.r)
 #define Slice_end(self) ((self)->_end)
 
-#define Slice_size(self) ((size_t) ((self)->_end - (self)->_begin))
-#define _Slice_data(self) ((self)->_begin)
+#define Slice_size(self) ((size_t) (Slice_end(self) - Slice_begin(self)))
+#define _Slice_data(self) Slice_begin(self)
 #define Slice_at(self, i) (&_Slice_data(self)[i])
-#define Slice_data_mut(self) ((self)->_begin_mut)
+#define Slice_data_mut(self) ((self)->_begin.w)
 
 #define Slice_loop(self, i) \
 DIAG_PUSH \
@@ -44,7 +44,7 @@ Slice_instantiate(void);
 
 #define _Slice_of_n(T, expr, n) CAST(Slice(T), Slice(void), _Slice_of((expr), (n)))
 
-#define __Slice_of(begin, length) ((Slice(void)) { ._begin = begin, ._end = (uint8_t *) begin + length, })
+#define __Slice_of(begin, length) ((Slice(void)) { ._begin.r = begin, ._end = (uint8_t *) begin + length, })
 
 INLINE Slice(void) _Slice_of(void *begin, size_t length)
 {

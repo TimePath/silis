@@ -45,9 +45,9 @@ const Node *Interpreter_lookup_file_node(const Interpreter *self, InterpreterFil
 InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, InterpreterFileNodeRef ref)
 {
     const Node *it = Interpreter_lookup_file_node(self, ref);
-    if (it->kind == Node_Ref) {
+    if (it->kind.val == Node_Ref) {
         ref.node.id = it->u.Ref.value;
-        assert(Interpreter_lookup_file_node(self, ref)->kind == Node_ListBegin && "references refer to lists");
+        assert(Interpreter_lookup_file_node(self, ref)->kind.val == Node_ListBegin && "references refer to lists");
     }
     return ref;
 }
@@ -76,12 +76,12 @@ InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath pat
         .allocator = allocator,
         .source = file,
     });
-    if (!lex.ok) {
-        ParserError_print(lex.err, self->compilation.debug);
+    if (!lex.is.ok) {
+        ParserError_print(lex.ret.err, self->compilation.debug);
         unreachable();
         return (InterpreterFileRef) {0};
     }
-    Vector(Token) tokens = lex.val;
+    Vector(Token) tokens = lex.ret.val;
     if (self->compilation.flags.print_lex) {
         silis_parser_print_tokens(Vector_toSlice(Token, &tokens), self->compilation.debug, allocator);
         fprintf_s(self->compilation.debug, STR("\n\n"));

@@ -74,7 +74,7 @@ emit_output do_emit(emit_input in)
     bool hasMain = Symbols_lookup(ctx->interpreter->symbols, STR("main"), &entry);
     (void) entry;
     (void) hasMain;
-    assert(hasMain && Types_lookup(ctx->interpreter->types, entry.value.type)->kind == Type_Function && "main is a function");
+    assert(hasMain && Types_lookup(ctx->interpreter->types, entry.value.type)->kind.val == Type_Function && "main is a function");
 
     Vector_loop(InterpreterFilePtr, &in.interpreter->compilation.files, i) {
         Target_file_begin(ctx->target, ctx->interpreter, (InterpreterFileRef) {i + 1}, &files);
@@ -96,7 +96,7 @@ emit_output do_emit(emit_input in)
         if (it->value.flags.native) {
             fprintf_s(file->out, STR("extern ")); // FIXME
         }
-        if (Types_lookup(ctx->interpreter->types, type)->kind == Type_Function) {
+        if (Types_lookup(ctx->interpreter->types, type)->kind.val == Type_Function) {
             Target_func_forward(ctx->target, ctx->interpreter, file, type, ident);
         } else {
             Target_var_begin(ctx->target, ctx->interpreter, file, type);
@@ -122,7 +122,7 @@ emit_output do_emit(emit_input in)
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
         const TypeRef type = it->type;
-        if (Types_lookup(ctx->interpreter->types, type)->kind != Type_Function) {
+        if (Types_lookup(ctx->interpreter->types, type)->kind.val != Type_Function) {
             continue;
         }
         assert(it->file.id && "global is user-defined");
@@ -162,7 +162,7 @@ static void emit_string(emit_ctx *ctx, const compile_file *file, String value);
 static void emit_node(emit_ctx *ctx, const compile_file *file, InterpreterFileNodeRef it)
 {
     const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
-    switch (node->kind) {
+    switch (node->kind.val) {
         case Node_INVALID:
         case Node_ListBegin:
         case Node_ListEnd:
@@ -222,12 +222,12 @@ static void emit_string(emit_ctx *ctx, const compile_file *file, String value)
             X('\n', "\\n")
 #undef X
         }
-        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+        fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc));
         fprintf_s(file->out, replace);
         it = enc->next(it);
-        begin = it._begin;
+        begin = Slice_begin(&it);
     }
-    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin = begin, ._end = it._begin}, enc));
+    fprintf_s(file->out, String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc));
     fprintf_s(file->out, STR("\""));
 }
 
@@ -298,7 +298,7 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
 static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, InterpreterFileNodeRef it)
 {
     const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
-    if (node->kind != Node_ListBegin) {
+    if (node->kind.val != Node_ListBegin) {
         visit_node_primary(ctx, file, ret, it);
         SEMI();
         return;
@@ -309,7 +309,7 @@ static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, In
 static void visit_node_primary(emit_ctx *ctx, const compile_file *file, return_t ret, InterpreterFileNodeRef it)
 {
     const Node *node = Interpreter_lookup_file_node(ctx->interpreter, it);
-    switch (node->kind) {
+    switch (node->kind.val) {
         case Node_INVALID:
         case Node_Ref:
         case Node_ListBegin:
@@ -335,7 +335,7 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
                             InterpreterFileNodeRef it)
 {
     Allocator *allocator = ctx->interpreter->allocator;
-    assert(Interpreter_lookup_file_node(ctx->interpreter, it)->kind == Node_ListBegin && "it is list");
+    assert(Interpreter_lookup_file_node(ctx->interpreter, it)->kind.val == Node_ListBegin && "it is list");
     NodeList childrenRaw = NodeList_iterator(ctx->interpreter, it);
     const size_t n = childrenRaw._n;
     InterpreterFileNodeRef ref = NodeList_get(&childrenRaw, 0);
@@ -372,7 +372,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
 
     Value f = eval_node(ctx->interpreter, func);
     const Type *type = Types_lookup(ctx->interpreter->types, f.type);
-    assert(type->kind == Type_Function);
+    assert(type->kind.val == Type_Function);
 
     const return_t outFunc = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = func};
     emit_return_declare(ctx, file, f.type, outFunc);
@@ -394,7 +394,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
             LINE();
         }
         const Type *next = Types_lookup(ctx->interpreter->types, argp->u.Function.out);
-        if (next->kind != Type_Function) {
+        if (next->kind.val != Type_Function) {
             break;
         }
         argp = next;
@@ -419,7 +419,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
             first = false;
         }
         const Type *next = Types_lookup(ctx->interpreter->types, argp->u.Function.out);
-        if (next->kind != Type_Function) {
+        if (next->kind.val != Type_Function) {
             break;
         }
         argp = next;
@@ -437,7 +437,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
 {
     Allocator *allocator = ctx->interpreter->allocator;
     const Node *funcNode = Interpreter_lookup_file_node(ctx->interpreter, func);
-    if (funcNode->kind != Node_Atom) {
+    if (funcNode->kind.val != Node_Atom) {
         return false;
     }
     Symbol entry;
@@ -452,7 +452,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
 
     if (intrin == &intrin_define) {
         const Node *name = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
-        assert(name->kind == Node_Atom);
+        assert(name->kind.val == Node_Atom);
         InterpreterFileNodeRef ref = *Slice_at(&children, 2);
         Value v = eval_node(ctx->interpreter, ref);
         assert(v.type.value != ctx->interpreter->types->t_unit.value && "definition is not void");
@@ -467,7 +467,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
     }
     if (intrin == &intrin_set) {
         const Node *name = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
-        assert(name->kind == Node_Atom);
+        assert(name->kind.val == Node_Atom);
         InterpreterFileNodeRef ref = *Slice_at(&children, 2);
         Value v = eval_node(ctx->interpreter, ref);
         (void) v;
@@ -531,7 +531,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
     }
     if (intrin == &intrin_untyped) {
         const Node *code = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
-        assert(code->kind == Node_String);
+        assert(code->kind.val == Node_String);
         emit_return_assign(ctx, file, ret);
         fprintf_s(file->out, code->u.String.value);
         SEMI();

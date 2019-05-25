@@ -2,7 +2,7 @@
 #include "error.h"
 
 void ParserError_print(ParserError self, File *out) {
-    switch (self.kind) {
+    switch (self.kind.val) {
         case ParserError_INVALID:
             unreachable();
             break;
