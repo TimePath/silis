@@ -36,9 +36,11 @@ set(TEST ON)
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
 function(main)
-    add_library(silis-runtime
-            src/system.h
+    add_library(silis-system
+            src/system.c
+            )
 
+    add_library(silis-runtime
             src/lib/encoding/ascii.c
             src/lib/allocator.c
             src/lib/buffer.c
@@ -51,6 +53,7 @@ function(main)
             src/lib/trie.c
             src/lib/vector.c
             )
+    target_link_libraries(silis-runtime silis-system)
 
     add_library(silis-parser
             src/parser/error.c

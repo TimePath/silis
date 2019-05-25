@@ -197,12 +197,12 @@ ssize_t fs_close(File *self)
 fs_dirtoken fs_pushd(Allocator *allocator, FilePath path)
 {
     size_t size = 1024;
-    native_char_t *cwd = getcwd(malloc(size), size);
+    native_char_t *cwd = libsystem_getcwd(malloc(size), size);
     assert(cwd && "cwd is large enough");
     Buffer buf = Buffer_new(allocator);
     native_char_t *s = String_cstr(allocator, fs_path_to_native(allocator, path, &buf));
     Buffer_delete(&buf);
-    chdir(s);
+    libsystem_chdir(s);
     free(s);
     return (fs_dirtoken) {allocator, cwd};
 }
@@ -211,7 +211,7 @@ void fs_popd(fs_dirtoken tok)
 {
     Allocator *allocator = tok.allocator;
     native_char_t *s = tok.prev;
-    chdir(s);
+    libsystem_chdir(s);
     free(s);
 }
 
@@ -221,13 +221,13 @@ uint8_t *fs_read_all(Allocator *allocator, FileSystem *fs, FilePath path, String
     if (!file) {
         return false;
     }
-    fs_seek(file, 0, SEEK_END);
+    fs_seek(file, 0, fs_seek_end);
     ssize_t ret = fs_tell(file);
     if (ret < 0) {
         return false;
     }
     const size_t len = (size_t) ret;
-    fs_seek(file, 0, SEEK_SET);
+    fs_seek(file, 0, fs_seek_begin);
     uint8_t *buf = malloc(len + 1);
     Slice(uint8_t) slice = (Slice(uint8_t)) {._begin = buf, ._end = buf + len};
     fs_read(file, slice);
@@ -241,32 +241,33 @@ uint8_t *fs_read_all(Allocator *allocator, FileSystem *fs, FilePath path, String
 
 static ssize_t File_native_read(void *self, Slice(uint8_t) out)
 {
-    return (ssize_t) fread(Slice_data_mut(&out), sizeof(uint8_t), Slice_size(&out), self);
+    return (ssize_t) libsystem_fread(Slice_data_mut(&out), sizeof(uint8_t), Slice_size(&out), self);
 }
 
 static ssize_t File_native_write(void *self, Slice(uint8_t) in)
 {
-    return (ssize_t) fwrite(_Slice_data(&in), sizeof(uint8_t), Slice_size(&in), self);
+    return (ssize_t) libsystem_fwrite(_Slice_data(&in), sizeof(uint8_t), Slice_size(&in), self);
 }
 
 static ssize_t File_native_seek(void *self, off64_t pos, uint8_t whence)
 {
-    return fseek(self, (native_long_t) pos, whence);
+    uint8_t w = whence == fs_seek_begin ? libsystem_SEEK_SET : libsystem_SEEK_END;
+    return libsystem_fseek(self, (native_long_t) pos, w);
 }
 
 static ssize_t File_native_tell(void *self)
 {
-    return ftell(self);
+    return libsystem_ftell(self);
 }
 
 static ssize_t File_native_flush(void *self)
 {
-    return fflush(self);
+    return libsystem_fflush(self);
 }
 
 static ssize_t File_native_close(void *self)
 {
-    return fclose(self);
+    return libsystem_fclose(self);
 }
 
 static File_class File_native = {
@@ -281,7 +282,7 @@ static File_class File_native = {
 File *fs_stdout(Allocator *allocator)
 {
     static File *ret = NULL;
-    if (!ret) ret = fs_open_(allocator, File_native, stdout);
+    if (!ret) ret = fs_open_(allocator, File_native, libsystem_stdout());
     return ret;
 }
 
@@ -294,7 +295,7 @@ static File *fs_open_native(Allocator *allocator, FileSystem *fs, FilePath path,
     native_char_t *p = String_cstr(allocator, fs_path_to_native(allocator, path, &buf));
     Buffer_delete(&buf);
     native_char_t *m = String_cstr(allocator, mode);
-    FILE *file = fopen(p, m);
+    libsystem_FILE *file = libsystem_fopen(p, m);
     assert(file && "File exists");
     free(p);
     free(m);

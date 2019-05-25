@@ -1,15 +1,25 @@
 #pragma once
 
-#if defined(__linux__) || defined(__EMSCRIPTEN__)
-#define TARGET_OS_WIN 0
-#elif defined(_WIN32)
-#define TARGET_OS_WIN 1
-#else
-#error "Unknown OS"
-#endif
-
 #ifndef USE_REAL_HEADERS
 #define USE_REAL_HEADERS 1
+#endif
+
+#if 0
+
+#elif defined(__APPLE__)
+#define TARGET_OS_WIN 0
+
+#elif defined(__EMSCRIPTEN__)
+#define TARGET_OS_WIN 0
+
+#elif defined(__linux__)
+#define TARGET_OS_WIN 0
+
+#elif defined(_WIN32)
+#define TARGET_OS_WIN 1
+
+#else
+#error "Unknown OS"
 #endif
 
 #include <assert.h>
@@ -17,8 +27,6 @@
 #if defined(__TINYC__)
 #define static_assert(expr, message)
 #endif
-
-#define unreachable() assert(false)
 
 #if !USE_REAL_HEADERS
 #ifndef __WORDSIZE
@@ -98,49 +106,6 @@ typedef int32_t ssize_t;
 #endif
 
 #if USE_REAL_HEADERS
-#include <stdio.h>
-#else
-
-typedef struct FILE_impl FILE;
-
-extern FILE *fopen(const char *pathname, const char *mode);
-
-enum {
-    SEEK_SET = 0,
-    SEEK_END = 2,
-};
-
-extern int fseek(FILE *stream, long offset, int whence);
-
-extern long ftell(FILE *stream);
-
-extern size_t fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
-
-extern size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream);
-
-extern int fflush(FILE *stream);
-
-extern int fclose(FILE *stream);
-
-extern FILE *stdout;
-
-#endif
-
-char *getcwd(char *buf, size_t size);
-
-int chdir(const char *path);
-
-#if USE_REAL_HEADERS
-#include <stdlib.h>
-#else
-
-enum {
-    EXIT_SUCCESS = 0,
-};
-
-#endif
-
-#if USE_REAL_HEADERS
 #include <string.h>
 #else
 
@@ -149,6 +114,34 @@ extern int memcmp(const void *s1, const void *s2, size_t n);
 extern void *memcpy(void *dest, const void *src, size_t n);
 
 #endif
+
+typedef struct libsystem_FILE libsystem_FILE;
+
+libsystem_FILE *libsystem_fopen(const char *pathname, const char *mode);
+
+enum {
+    libsystem_SEEK_SET = 0,
+    libsystem_SEEK_END = 2,
+};
+
+int libsystem_fseek(libsystem_FILE *stream, long offset, int whence);
+
+long libsystem_ftell(libsystem_FILE *stream);
+
+size_t libsystem_fread(void *ptr, size_t size, size_t nmemb, libsystem_FILE *stream);
+
+size_t libsystem_fwrite(const void *ptr, size_t size, size_t nmemb, libsystem_FILE *stream);
+
+int libsystem_fflush(libsystem_FILE *stream);
+
+int libsystem_fclose(libsystem_FILE *stream);
+
+libsystem_FILE *libsystem_stdout(void);
+
+char *libsystem_getcwd(char *buf, size_t size);
+
+int libsystem_chdir(const char *path);
+
 
 typedef char native_char_t;
 typedef unsigned char native_uchar_t;
@@ -161,6 +154,8 @@ typedef int native_int_t;
 
 typedef long native_long_t;
 #define long __DO_NOT_USE__
+
+#define unreachable() assert(false)
 
 #define malloc(size) Allocator_alloc(allocator, size)
 #define realloc(ptr, size) Allocator_realloc(allocator, ptr, size)

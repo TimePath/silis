@@ -64,6 +64,12 @@ ssize_t fs_read(File *self, Slice(uint8_t) out);
 
 ssize_t fs_write(File *self, Slice(uint8_t) in);
 
+enum {
+    fs_seek_invalid,
+    fs_seek_begin,
+    fs_seek_end,
+};
+
 ssize_t fs_seek(File *self, off64_t pos, uint8_t whence);
 
 ssize_t fs_tell(File *self);

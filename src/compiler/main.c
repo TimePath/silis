@@ -242,7 +242,7 @@ size_t main(Allocator *allocator, Slice(String) args)
     FileSystem_delete(fs_in);
     fs_close(out);
     assert(!debugAllocator.size && "no memory leaked");
-    return EXIT_SUCCESS;
+    return 0;
 }
 
 static void emit(Interpreter *interpreter, File *f, compile_file *it)
