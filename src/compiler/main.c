@@ -126,16 +126,16 @@ size_t main(Allocator *allocator, Slice(String) args)
 
     File *out = fs_stdout(allocator);
     String targetName = *Slice_at(&args, 1);
-    FileSystem _fs_in = fs_root(fs_path_from_native(allocator, *Slice_at(&args, 2)));
+    FileSystem _fs_in = FileSystem_new(FilePath_from_native(*Slice_at(&args, 2), allocator));
     FileSystem *fs_in = &_fs_in;
-    FileSystem _fs_out = fs_root(fs_path_from_native(allocator, *Slice_at(&args, 3)));
+    FileSystem _fs_out = FileSystem_new(FilePath_from_native(*Slice_at(&args, 3), allocator));
     FileSystem *fs_out = &_fs_out;
-    FilePath inputFilePath = fs_path_from_native(allocator, *Slice_at(&args, 4));
+    FilePath inputFilePath = FilePath_from_native(*Slice_at(&args, 4), allocator);
     FilePath outputFilePath;
     File *outputFile = out;
     if (Slice_size(&args) > 5) {
-        outputFilePath = fs_path_from_native(allocator, *Slice_at(&args, 5));
-        outputFile = fs_open(allocator, fs_out, outputFilePath, STR("w"));
+        outputFilePath = FilePath_from_native(*Slice_at(&args, 5), allocator);
+        outputFile = FileSystem_open(fs_out, outputFilePath, STR("w"), allocator);
     }
 
     Types _types = Types_new(allocator);
@@ -208,7 +208,7 @@ size_t main(Allocator *allocator, Slice(String) args)
             fprintf_s(out, STR("EMIT:\n----\n"));
         }
         Buffer outBuf = Buffer_new(allocator);
-        File *f = flags.buffer ? Buffer_asFile(allocator, &outBuf) : outputFile;
+        File *f = flags.buffer ? Buffer_asFile(&outBuf, allocator) : outputFile;
         emit_output ret = do_emit((emit_input) {
                 .interpreter = interpreter,
                 .target = target(targetName),
@@ -225,12 +225,12 @@ size_t main(Allocator *allocator, Slice(String) args)
         }
         Vector_delete(compile_file, &ret.files);
         if (flags.buffer) {
-            fs_close(f);
+            File_close(f);
             fprintf_raw(outputFile, Buffer_toSlice(&outBuf));
         }
         if (outputFile != out) {
             FilePath_delete(&outputFilePath);
-            fs_close(outputFile);
+            File_close(outputFile);
         }
     }
 
@@ -240,7 +240,7 @@ size_t main(Allocator *allocator, Slice(String) args)
     Vector_delete(SymbolScope, &interpreter->symbols->scopes);
     FileSystem_delete(fs_out);
     FileSystem_delete(fs_in);
-    fs_close(out);
+    File_close(out);
     assert(!debugAllocator.size && "no memory leaked");
     return 0;
 }
@@ -250,11 +250,11 @@ static void emit(Interpreter *interpreter, File *f, compile_file *it)
     Allocator *allocator = interpreter->allocator;
     fprintf_s(f, STR("// file://"));
     Buffer buf = Buffer_new(allocator);
-    fs_path_to_native(allocator, interpreter->fs_in->root, &buf);
+    FilePath_to_native(interpreter->fs_in->root, &buf, allocator);
     String slash = STR("/");
     Vector_push(&buf, *Slice_at(&slash.bytes, 0));
     const InterpreterFile *infile = Interpreter_lookup_file(interpreter, it->file);
-    fs_path_to_native(allocator, infile->path, &buf);
+    FilePath_to_native(infile->path, &buf, allocator);
     String dot = STR(".");
     Vector_push(&buf, *Slice_at(&dot.bytes, 0));
     _Vector_push(sizeof(uint8_t), &buf, String_sizeBytes(it->ext), String_begin(it->ext), String_sizeBytes(it->ext));

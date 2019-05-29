@@ -55,12 +55,19 @@ InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, Inte
 InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path)
 {
     Allocator *allocator = self->allocator;
-    String fileStr;
-    uint8_t *read = fs_read_all(allocator, fs, path, &fileStr);
+    Slice(uint8_t) bytes;
+    File *file = FileSystem_open(fs, path, STR("rb"), allocator);
+    if (!file) {
+        assert(file && "read from file");
+        return (InterpreterFileRef) {0};
+    }
+    bool read = File_read_all(file, &bytes, allocator);
+    File_close(file);
     if (!read) {
         assert(read && "read from file");
         return (InterpreterFileRef) {0};
     }
+    String fileStr = String_fromSlice(bytes, ENCODING_DEFAULT);
     return Interpreter_read(self, fileStr, path);
 }
 
@@ -116,8 +123,8 @@ void Interpreter_eval(Interpreter *self, InterpreterFileRef file)
 {
     Allocator *allocator = self->allocator;
     const InterpreterFile *f = Interpreter_lookup_file(self, file);
-    FilePath dir = fs_dirname(allocator, f->path);
-    fs_dirtoken state = fs_pushd(allocator, dir);
+    FilePath dir = FilePath_dirname(f->path, allocator);
+    fs_dirtoken state = fs_pushd(dir, allocator);
     FilePath_delete(&dir);
 
     if (self->compilation.flags.print_eval) {

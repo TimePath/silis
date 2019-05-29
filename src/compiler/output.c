@@ -9,7 +9,7 @@ compile_file compile_file_new(Allocator *allocator, InterpreterFileRef file, Str
             .allocator = allocator,
             .file = file,
             .content = content,
-            .out = Buffer_asFile(allocator, content),
+            .out = Buffer_asFile(content, allocator),
             .ext = ext,
             .flags = flags,
     };
@@ -18,7 +18,7 @@ compile_file compile_file_new(Allocator *allocator, InterpreterFileRef file, Str
 void compile_file_delete(compile_file *self)
 {
     Allocator *allocator = self->allocator;
-    fs_close(self->out);
+    File_close(self->out);
     Buffer_delete(self->content);
     free(self->content);
 }
