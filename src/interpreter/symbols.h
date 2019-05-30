@@ -38,7 +38,7 @@ typedef struct {
 } SymbolInitializer_intrin;
 Slice_instantiate(SymbolInitializer_intrin);
 
-Symbols Symbols_new(Allocator *allocator, Types *types, Slice(SymbolInitializer) init, Slice(SymbolInitializer_intrin) initIntrin);
+Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolInitializer_intrin) initIntrin, Allocator *allocator);
 
 void Symbols_push(Symbols *symbols);
 

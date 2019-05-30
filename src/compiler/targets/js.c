@@ -47,7 +47,7 @@ static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, I
 {
     (void) target;
     Allocator *allocator = interpreter->allocator;
-    compile_file _file = compile_file_new(allocator, file_ref, types ? STR("ts") : STR("js"), 0);
+    compile_file _file = compile_file_new(file_ref, types ? STR("ts") : STR("js"), 0, allocator);
     Vector_push(files, _file);
 }
 

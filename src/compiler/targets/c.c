@@ -47,13 +47,13 @@ static void tgt_c_file_begin(Target *self, Interpreter *interpreter, Interpreter
 {
     (void) self;
     Allocator *allocator = interpreter->allocator;
-    compile_file _header = compile_file_new(allocator, file_ref, STR("h"), FLAG_HEADER);
+    compile_file _header = compile_file_new(file_ref, STR("h"), FLAG_HEADER, allocator);
     compile_file *header = &_header;
     fprintf_s(header->out, STR("#pragma once\n"));
     fprintf_s(header->out, STR("typedef const char *string;\n"));
     Vector_push(files, _header);
 
-    compile_file _impl = compile_file_new(allocator, file_ref, STR("c"), 0);
+    compile_file _impl = compile_file_new(file_ref, STR("c"), 0, allocator);
     Vector_push(files, _impl);
 }
 

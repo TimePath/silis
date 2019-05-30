@@ -93,7 +93,7 @@ static void DebugAllocator_free(void *_self, void *ptr)
     Allocator_free(self->implementation, mem);
 }
 
-size_t main(Allocator *allocator, Slice(String) args)
+size_t main(Slice(String) args, Allocator *allocator)
 {
     DebugAllocator debugAllocator = (DebugAllocator) {
             .interface = {._alloc = DebugAllocator_alloc, ._realloc = DebugAllocator_realloc, ._free = DebugAllocator_free},
@@ -141,7 +141,7 @@ size_t main(Allocator *allocator, Slice(String) args)
     Types _types = Types_new(allocator);
     Types *types = &_types;
 
-    Symbols _symbols = Symbols_new(allocator, types,
+    Symbols _symbols = Symbols_new(types,
     Slice_of(SymbolInitializer, ((SymbolInitializer[2]) {
             {.id = STR("#types/string"), .value = (Value) {
                     .type = types->t_type,
@@ -171,7 +171,9 @@ size_t main(Allocator *allocator, Slice(String) args)
             {.id = STR("#set"), .value = &intrin_set},
             {.id = STR("#untyped"), .value = &intrin_untyped, .flags = { .abstract = true }},
             {.id = STR("#while"), .value = &intrin_while},
-    })));
+    })),
+    allocator
+    );
     Symbols *symbols = &_symbols;
     Interpreter _interpreter = (Interpreter) {
             .allocator = allocator,

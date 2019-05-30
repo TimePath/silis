@@ -150,7 +150,7 @@ static void NodePrinter_print_indent(NodePrinter *self, NodePrinterState *state)
         state->needLine = false;
     }
     if (state->needTab) {
-        fprintf_s(self->out, String_indent(allocator, 2 * state->depth));
+        fprintf_s(self->out, String_indent(2 * state->depth, allocator));
         state->needTab = false;
     }
 }

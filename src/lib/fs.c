@@ -259,9 +259,9 @@ static File *fs_open(FileSystem *fs, FilePath path, String mode, Allocator *allo
     FilePath_to_native(fs->root, &buf, allocator);
     String slash = STR("/");
     Vector_push(&buf, *Slice_at(&slash.bytes, 0));
-    native_char_t *p = String_cstr(allocator, FilePath_to_native(path, &buf, allocator));
+    native_char_t *p = String_cstr(FilePath_to_native(path, &buf, allocator), allocator);
     Buffer_delete(&buf);
-    native_char_t *m = String_cstr(allocator, mode);
+    native_char_t *m = String_cstr(mode, allocator);
     libsystem_FILE *file = libsystem_fopen(p, m);
     assert(file && "File exists");
     free(p);
@@ -277,7 +277,7 @@ fs_dirtoken fs_pushd(FilePath path, Allocator *allocator)
     native_char_t *cwd = libsystem_getcwd(malloc(size), size);
     assert(cwd && "cwd is large enough");
     Buffer buf = Buffer_new(allocator);
-    native_char_t *s = String_cstr(allocator, FilePath_to_native(path, &buf, allocator));
+    native_char_t *s = String_cstr(FilePath_to_native(path, &buf, allocator), allocator);
     Buffer_delete(&buf);
     libsystem_chdir(s);
     free(s);

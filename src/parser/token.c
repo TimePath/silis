@@ -114,7 +114,7 @@ static void TokenPrinter_print_indent(TokenPrinter *self, TokenPrinterState *sta
         state->needLine = false;
     }
     if (state->needTab) {
-        fprintf_s(self->out, String_indent(allocator, 2 * state->depth));
+        fprintf_s(self->out, String_indent(2 * state->depth, allocator));
         state->needTab = false;
     }
 }

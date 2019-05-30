@@ -10,7 +10,7 @@ bool String_equals(String self, String other)
     return selfSize == otherSize && memcmp(String_begin(self), String_begin(other), selfSize) == 0;
 }
 
-static native_char_t *spaces(Allocator *allocator, size_t n)
+static native_char_t *spaces(size_t n, Allocator *allocator)
 {
     static native_char_t *_spaces = NULL;
 	static size_t i = 0;
@@ -32,14 +32,14 @@ static native_char_t *spaces(Allocator *allocator, size_t n)
 	return _spaces;
 }
 
-String String_indent(Allocator *allocator, size_t n)
+String String_indent(size_t n, Allocator *allocator)
 {
-    const uint8_t *p = (const uint8_t *) spaces(allocator, n);
+    const uint8_t *p = (const uint8_t *) spaces(n, allocator);
     Slice(uint8_t) slice = {._begin.r = p, ._end = p + n};
     return String_fromSlice(slice, ENCODING_COMPILER);
 }
 
-native_char_t *String_cstr(Allocator *allocator, String self)
+native_char_t *String_cstr(String self, Allocator *allocator)
 {
     size_t n = String_sizeBytes(self);
     native_char_t *buf = malloc(n + 1);

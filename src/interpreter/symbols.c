@@ -12,7 +12,7 @@ void SymbolScope_delete(SymbolScope *self)
     _Vector_delete(&self->t.entries);
 }
 
-Symbols Symbols_new(Allocator *allocator, Types *types, Slice(SymbolInitializer) init, Slice(SymbolInitializer_intrin) initIntrin)
+Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolInitializer_intrin) initIntrin, Allocator *allocator)
 {
     Symbols ret = (Symbols) {
             .allocator = allocator,
@@ -47,7 +47,7 @@ Symbols Symbols_new(Allocator *allocator, Types *types, Slice(SymbolInitializer)
     return ret;
 }
 
-static SymbolScope SymbolScope_new(Allocator *allocator, size_t parent)
+static SymbolScope SymbolScope_new(size_t parent, Allocator *allocator)
 {
     SymbolScope ret = (SymbolScope) {.parent = parent};
     SymbolScope *self = &ret;
@@ -70,7 +70,7 @@ void Symbols_push(Symbols *symbols)
     Allocator *allocator = symbols->allocator;
     size_t size = Vector_size(&symbols->scopes);
     size_t parent = !size ? 0 : size - 1;
-    SymbolScope newscope = SymbolScope_new(allocator, parent);
+    SymbolScope newscope = SymbolScope_new(parent, allocator);
     Vector_push(&symbols->scopes, newscope);
 }
 

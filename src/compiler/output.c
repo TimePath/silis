@@ -1,7 +1,7 @@
 #include <system.h>
 #include "output.h"
 
-compile_file compile_file_new(Allocator *allocator, InterpreterFileRef file, String ext, size_t flags)
+compile_file compile_file_new(InterpreterFileRef file, String ext, size_t flags, Allocator *allocator)
 {
     Buffer *content = malloc(sizeof(*content));
     *content = Buffer_new(allocator);

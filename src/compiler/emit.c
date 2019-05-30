@@ -28,7 +28,7 @@ typedef struct {
 #define LINE(...) MACRO_BEGIN \
     ctx->depth = ctx->depth __VA_ARGS__; \
     fprintf_s(file->out, STR("\n")); \
-    fprintf_s(file->out, String_indent(allocator, ctx->depth * 4)); \
+    fprintf_s(file->out, String_indent(ctx->depth * 4, allocator)); \
 MACRO_END
 
 #define SEMI() fprintf_s(file->out, STR(";"))
