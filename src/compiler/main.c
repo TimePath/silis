@@ -1,5 +1,6 @@
 #include <system.h>
 
+#include <lib/env.h>
 #include <lib/fs.h>
 #include <lib/stdio.h>
 #include <lib/string.h>
@@ -29,7 +30,7 @@
 
 #include "emit.h"
 
-MAIN(main)
+MAIN(compiler_main)
 
 #ifdef NDEBUG
 #define OUTPUT_BUFFER 1
@@ -49,57 +50,10 @@ static Target *target(String targetName)
 
 static void emit(Interpreter *interpreter, File *f, compile_file *it);
 
-typedef struct {
-    Allocator interface;
-    Allocator *implementation;
-    size_t size;
-    size_t max_size;
-} DebugAllocator;
-
-typedef struct {
-    size_t size;
-} DebugAllocation;
-
-static void *DebugAllocator_alloc(void *_self, size_t size)
+size_t compiler_main(Env env)
 {
-    DebugAllocator *self = (DebugAllocator *) _self;
-    DebugAllocation *mem = Allocator_alloc(self->implementation, sizeof(DebugAllocation) + size);
-    mem->size = size;
-    self->size += size;
-    self->max_size = self->size > self->max_size ? self->size : self->max_size;
-    return mem + 1;
-}
-
-static void *DebugAllocator_realloc(void *_self, void *ptr, size_t size)
-{
-    DebugAllocator *self = (DebugAllocator *) _self;
-    DebugAllocation *mem = ptr ? ((DebugAllocation *) ptr) - 1 : NULL;
-    if (mem) {
-        self->size -= mem->size;
-    }
-    mem = Allocator_realloc(self->implementation, mem, sizeof(DebugAllocation) + size);
-    mem->size = size;
-    self->size += size;
-    self->max_size = self->size > self->max_size ? self->size : self->max_size;
-    return mem + 1;
-}
-
-static void DebugAllocator_free(void *_self, void *ptr)
-{
-    if (!ptr) return;
-    DebugAllocator *self = (DebugAllocator *) _self;
-    DebugAllocation *mem = ((DebugAllocation *) ptr) - 1;
-    self->size -= mem->size;
-    Allocator_free(self->implementation, mem);
-}
-
-size_t main(Slice(String) args, Allocator *allocator)
-{
-    DebugAllocator debugAllocator = (DebugAllocator) {
-            .interface = {._alloc = DebugAllocator_alloc, ._realloc = DebugAllocator_realloc, ._free = DebugAllocator_free},
-            .implementation = allocator,
-    };
-    allocator = &debugAllocator.interface;
+    Allocator *allocator = env.allocator;
+    Slice(String) args = env.args;
     #define arg(name) 1
     #define opt(name) 0
     assert(Slice_size(&args) >= arg(self) + arg(target) + arg(dir_in) + arg(dir_out) + arg(main) + opt(out));
@@ -124,7 +78,7 @@ size_t main(Slice(String) args, Allocator *allocator)
             .buffer = OUTPUT_BUFFER,
     };
 
-    File *out = fs_stdout(allocator);
+    File *out = env.out;
     String targetName = *Slice_at(&args, 1);
     FileSystem _fs_in = FileSystem_new(FilePath_from_native(*Slice_at(&args, 2), allocator));
     FileSystem *fs_in = &_fs_in;
@@ -242,8 +196,6 @@ size_t main(Slice(String) args, Allocator *allocator)
     Vector_delete(SymbolScope, &interpreter->symbols->scopes);
     FileSystem_delete(fs_out);
     FileSystem_delete(fs_in);
-    File_close(out);
-    assert(!debugAllocator.size && "no memory leaked");
     return 0;
 }
 

@@ -165,29 +165,10 @@ typedef long native_long_t;
 #define realloc(ptr, size) Allocator_realloc(allocator, ptr, size)
 #define free(ptr) Allocator_free(allocator, ptr)
 
-#define main(...) _main(__VA_ARGS__)
 #define MAIN(impl) \
-size_t main(Slice(String) args, Allocator *allocator); \
-static void *CAllocator_alloc(void *self, size_t size) { (void) self; extern void *(malloc)(size_t size); return (malloc)(size); } \
-static void *CAllocator_realloc(void *self, void *ptr, size_t size) { (void) self; extern void *(realloc)(void *ptr, size_t size); return (realloc)(ptr, size); } \
-static void CAllocator_free(void *self, void *ptr) { (void) self; extern void (free)(void *ptr); (free)(ptr); } \
-native_int_t (main)(native_int_t argc, native_string_t argv[]) \
+size_t impl(Env env); \
+native_int_t main(native_int_t argc, native_string_t argv[]) \
 { \
-    Allocator _allocator = (Allocator) { \
-        ._alloc = CAllocator_alloc, \
-        ._realloc = CAllocator_realloc, \
-        ._free = CAllocator_free, \
-    }; \
-    Allocator *allocator = &_allocator; \
-    extern size_t strlen(native_string_t __s); \
-    Vector(String) args = Vector_new(allocator); \
-    for (size_t i = 0; i < (size_t) argc; ++i) { \
-        native_string_t cstr = argv[i]; \
-        Slice(uint8_t) slice = {._begin.r = (const uint8_t *) cstr, ._end = (const uint8_t *) (cstr + strlen(cstr))}; \
-        String s = String_fromSlice(slice, ENCODING_SYSTEM); \
-        Vector_push(&args, s); \
-    } \
-    size_t ret = impl(Vector_toSlice(String, &args), allocator); \
-    Vector_delete(String, &args); \
+    size_t ret = Env_run((size_t) argc, argv, impl); \
     return (native_int_t) ret; \
 }

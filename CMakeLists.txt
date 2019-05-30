@@ -44,6 +44,7 @@ function(main)
             src/lib/encoding/ascii.c
             src/lib/allocator.c
             src/lib/buffer.c
+            src/lib/env.c
             src/lib/fs.c
             src/lib/macro.c
             src/lib/result.c
