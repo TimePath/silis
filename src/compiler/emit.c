@@ -129,7 +129,7 @@ emit_output do_emit(emit_input in)
         LINE();
         NodeList argv = NodeList_iterator(ctx->interpreter, it->value.u.func.arglist);
         size_t argc = argv._n;
-        String *argnames = malloc(sizeof(String) * argc);
+        String *argnames = new_arr(String, argc);
         func_args_names(ctx->interpreter, argv, argnames);
         Target_func_declare(ctx->target, ctx->interpreter, file, type, ident, argnames);
         free(argnames);

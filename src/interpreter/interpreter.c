@@ -105,15 +105,14 @@ InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath pat
         silis_parser_print_nodes(Vector_toSlice(Node, &parse.nodes), self->compilation.debug, allocator);
         fprintf_s(self->compilation.debug, STR("\n"));
     }
-    InterpreterFile *f = malloc(sizeof(*f));
-    *f = (InterpreterFile) {
+    InterpreterFile *f = new(InterpreterFile, ((InterpreterFile) {
             .allocator = allocator,
             .path = path,
             .content = Slice_data_mut(&file.bytes),
             .tokens = tokens,
             .nodes = parse.nodes,
             .entry = {.file = ret, .node = {.id = parse.root_id}},
-    };
+    }));
     Vector_push(&self->compilation.files, f);
 
     return ret;

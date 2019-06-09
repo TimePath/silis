@@ -20,23 +20,15 @@ FilePath FilePath_from(String path, Allocator *allocator);
 
 FilePath FilePath_from_native_(String path, bool nix, Allocator *allocator);
 
-#define FilePath_to_native(path, buf, allocator) FilePath_to_native_(path, buf, !TARGET_OS_WIN, allocator)
+#define FilePath_to_native(path, buf) FilePath_to_native_(path, buf, !TARGET_OS_WIN)
 
-String FilePath_to_native_(FilePath path, Buffer *buf, bool nix, Allocator *allocator);
+String FilePath_to_native_(FilePath path, Buffer *buf, bool nix);
 
 FilePath FilePath_dirname(FilePath self, Allocator *allocator);
 
 typedef struct {
     FilePath root;
 } FileSystem;
-
-typedef struct File File;
-
-void FileSystem_delete(FileSystem *self);
-
-FileSystem FileSystem_new(FilePath root);
-
-File *FileSystem_open(FileSystem *fs, FilePath path, String mode, Allocator *allocator);
 
 typedef struct {
     ssize_t (*read)(void *self, Slice(uint8_t) out);
@@ -52,11 +44,17 @@ typedef struct {
     ssize_t (*close)(void *self);
 } File_class;
 
-struct File {
+typedef struct {
     Allocator *allocator;
     File_class class;
     void *self;
-};
+} File;
+
+void FileSystem_delete(FileSystem *self);
+
+FileSystem FileSystem_new(FilePath root);
+
+File *FileSystem_open(FileSystem *fs, FilePath path, String mode, Allocator *allocator);
 
 File *File_new(File_class class, void *self, Allocator *allocator);
 

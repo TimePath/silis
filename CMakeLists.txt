@@ -42,6 +42,7 @@ function(main)
 
     add_library(silis-runtime
             src/lib/encoding/ascii.c
+            src/lib/fs/memoryfile.c
             src/lib/allocator.c
             src/lib/buffer.c
             src/lib/env.c

@@ -165,6 +165,9 @@ typedef long native_long_t;
 #define realloc(ptr, size) Allocator_realloc(allocator, ptr, size)
 #define free(ptr) Allocator_free(allocator, ptr)
 
+#define new(T, expr) ((T *) memcpy(Allocator_alloc(allocator, sizeof(T)), &(expr), sizeof(T)))
+#define new_arr(T, n) ((T *) malloc(sizeof(T) * (n)))
+
 #define MAIN(impl) \
 size_t impl(Env env); \
 native_int_t main(native_int_t argc, native_string_t argv[]) \

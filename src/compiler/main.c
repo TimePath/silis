@@ -2,6 +2,7 @@
 
 #include <lib/env.h>
 #include <lib/fs.h>
+#include <lib/fs/memoryfile.h>
 #include <lib/stdio.h>
 #include <lib/string.h>
 
@@ -164,7 +165,7 @@ size_t compiler_main(Env env)
             fprintf_s(out, STR("EMIT:\n----\n"));
         }
         Buffer outBuf = Buffer_new(allocator);
-        File *f = flags.buffer ? Buffer_asFile(&outBuf, allocator) : outputFile;
+        File *f = flags.buffer ? MemoryFile_new(&outBuf) : outputFile;
         emit_output ret = do_emit((emit_input) {
                 .interpreter = interpreter,
                 .target = target(targetName),
@@ -204,11 +205,11 @@ static void emit(Interpreter *interpreter, File *f, compile_file *it)
     Allocator *allocator = interpreter->allocator;
     fprintf_s(f, STR("// file://"));
     Buffer buf = Buffer_new(allocator);
-    FilePath_to_native(interpreter->fs_in->root, &buf, allocator);
+    FilePath_to_native(interpreter->fs_in->root, &buf);
     String slash = STR("/");
     Vector_push(&buf, *Slice_at(&slash.bytes, 0));
     const InterpreterFile *infile = Interpreter_lookup_file(interpreter, it->file);
-    FilePath_to_native(infile->path, &buf, allocator);
+    FilePath_to_native(infile->path, &buf);
     String dot = STR(".");
     Vector_push(&buf, *Slice_at(&dot.bytes, 0));
     _Vector_push(sizeof(uint8_t), &buf, String_sizeBytes(it->ext), String_begin(it->ext), String_sizeBytes(it->ext));

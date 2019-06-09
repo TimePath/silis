@@ -17,7 +17,7 @@ INTRINSIC_IMPL(types_func, ((TypeRef[]) {
     NodeList children = NodeList_iterator(interpreter, arg_args->u.expr.value);
     const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
-    TypeRef *Ts = malloc(sizeof(TypeRef) * argc);
+    TypeRef *Ts = new_arr(TypeRef, argc);
     types_func_args_types(interpreter, children, Ts);
     TypeRef T = Types_register_func(interpreter->types, Slice_of_n(TypeRef, Ts, argc));
     free(Ts);

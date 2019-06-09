@@ -1,5 +1,6 @@
 #include <system.h>
 #include "fs.h"
+#include "fs/memoryfile.h"
 
 #include "allocator.h"
 #include "buffer.h"
@@ -58,19 +59,19 @@ static FilePath FilePath_from_native_win(String path, Allocator *allocator)
     return (FilePath) { ._data = path, .parts = parts, .absolute = absolute };
 }
 
-static String FilePath_to_native_unix(FilePath path, Buffer *buf, Allocator *allocator);
+static String FilePath_to_native_unix(FilePath path, Buffer *buf);
 
-static String FilePath_to_native_win(FilePath path, Buffer *buf, Allocator *allocator);
+static String FilePath_to_native_win(FilePath path, Buffer *buf);
 
-String FilePath_to_native_(FilePath path, Buffer *buf, bool nix, Allocator *allocator)
+String FilePath_to_native_(FilePath path, Buffer *buf, bool nix)
 {
-    return nix ? FilePath_to_native_unix(path, buf, allocator) : FilePath_to_native_win(path, buf, allocator);
+    return nix ? FilePath_to_native_unix(path, buf) : FilePath_to_native_win(path, buf);
 }
 
-static String FilePath_to_native_unix(FilePath path, Buffer *buf, Allocator *allocator)
+static String FilePath_to_native_unix(FilePath path, Buffer *buf)
 {
     String delim = STR("/");
-    File *f = Buffer_asFile(buf, allocator);
+    File *f = MemoryFile_new(buf);
     Vector_loop(String, &path.parts, i) {
         String it = *Vector_at(&path.parts, i);
         if (i == 0 ? path.absolute : true) {
@@ -83,10 +84,10 @@ static String FilePath_to_native_unix(FilePath path, Buffer *buf, Allocator *all
     return ret;
 }
 
-static String FilePath_to_native_win(FilePath path, Buffer *buf, Allocator *allocator)
+static String FilePath_to_native_win(FilePath path, Buffer *buf)
 {
     String delim = STR("\\");
-    File *f = Buffer_asFile(buf, allocator);
+    File *f = MemoryFile_new(buf);
     if (path.absolute) {
         fprintf_s(f, STR("\\\\?\\"));
     }
@@ -139,12 +140,11 @@ File *FileSystem_open(FileSystem *fs, FilePath path, String mode, Allocator *all
 
 File *File_new(File_class class, void *self, Allocator *allocator)
 {
-    File *ret = malloc(sizeof(*ret));
-    *ret = (File) {
+    File *ret = new(File, ((File) {
             .allocator = allocator,
             .class = class,
             .self = self,
-    };
+    }));
     return ret;
 }
 
@@ -203,7 +203,7 @@ bool File_read_all(File *self, Slice(uint8_t) *out, Allocator *allocator)
     }
     const size_t len = (size_t) ret;
     File_seek(self, 0, File_seek_begin);
-    uint8_t *buf = malloc(len + 1);
+    uint8_t *buf = new_arr(uint8_t, len + 1);
     Slice(uint8_t) slice = (Slice(uint8_t)) {._begin.r = buf, ._end = buf + len};
     File_read(self, slice);
     buf[len] = 0;
@@ -256,10 +256,10 @@ static File_class File_native = {
 static File *fs_open(FileSystem *fs, FilePath path, String mode, Allocator *allocator)
 {
     Buffer buf = Buffer_new(allocator);
-    FilePath_to_native(fs->root, &buf, allocator);
+    FilePath_to_native(fs->root, &buf);
     String slash = STR("/");
     Vector_push(&buf, *Slice_at(&slash.bytes, 0));
-    native_char_t *p = String_cstr(FilePath_to_native(path, &buf, allocator), allocator);
+    native_char_t *p = String_cstr(FilePath_to_native(path, &buf), allocator);
     Buffer_delete(&buf);
     native_char_t *m = String_cstr(mode, allocator);
     libsystem_FILE *file = libsystem_fopen(p, m);
@@ -274,10 +274,10 @@ static File *fs_open(FileSystem *fs, FilePath path, String mode, Allocator *allo
 fs_dirtoken fs_pushd(FilePath path, Allocator *allocator)
 {
     size_t size = 1024;
-    native_char_t *cwd = libsystem_getcwd(malloc(size), size);
+    native_char_t *cwd = libsystem_getcwd(new_arr(native_char_t, size), size);
     assert(cwd && "cwd is large enough");
     Buffer buf = Buffer_new(allocator);
-    native_char_t *s = String_cstr(FilePath_to_native(path, &buf, allocator), allocator);
+    native_char_t *s = String_cstr(FilePath_to_native(path, &buf), allocator);
     Buffer_delete(&buf);
     libsystem_chdir(s);
     free(s);

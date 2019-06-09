@@ -1,15 +1,16 @@
 #include <system.h>
 #include "output.h"
 
+#include <lib/fs/memoryfile.h>
+
 compile_file compile_file_new(InterpreterFileRef file, String ext, size_t flags, Allocator *allocator)
 {
-    Buffer *content = malloc(sizeof(*content));
-    *content = Buffer_new(allocator);
+    Buffer *content = new(Buffer, Buffer_new(allocator));
     return (compile_file) {
             .allocator = allocator,
             .file = file,
             .content = content,
-            .out = Buffer_asFile(content, allocator),
+            .out = MemoryFile_new(content),
             .ext = ext,
             .flags = flags,
     };

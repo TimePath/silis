@@ -42,7 +42,7 @@ String String_indent(size_t n, Allocator *allocator)
 native_char_t *String_cstr(String self, Allocator *allocator)
 {
     size_t n = String_sizeBytes(self);
-    native_char_t *buf = malloc(n + 1);
+    native_char_t *buf = new_arr(native_char_t, n + 1);
     memcpy(buf, String_begin(self), n);
     buf[n] = 0;
     return buf;
