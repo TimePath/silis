@@ -5,12 +5,16 @@
 #include "string.h"
 #include "vector.h"
 
-typedef struct {
+typedef struct File File;
+typedef struct FilePath FilePath;
+typedef struct FileSystem FileSystem;
+
+struct FilePath {
     String _data;
     Vector(String) parts;
     bool absolute;
     PADDING(7)
-} FilePath;
+};
 
 void FilePath_delete(FilePath *self);
 
@@ -27,8 +31,23 @@ String FilePath_to_native_(FilePath path, Buffer *buf, bool nix);
 FilePath FilePath_dirname(FilePath self, Allocator *allocator);
 
 typedef struct {
+    File *(*open)(void *self, FilePath path, String mode);
+} FileSystem_class;
+
+struct FileSystem {
+    Allocator *allocator;
+    FileSystem_class class;
     FilePath root;
-} FileSystem;
+    void *data;
+};
+
+void FileSystem_delete(FileSystem *self);
+
+FileSystem FileSystem_new(FileSystem_class class, void *data, Allocator *allocator);
+
+void FileSystem_newroot(FileSystem *parent, FilePath root, FileSystem *out);
+
+File *FileSystem_open(FileSystem *self, FilePath path, String mode);
 
 typedef struct {
     ssize_t (*read)(void *self, Slice(uint8_t) out);
@@ -44,19 +63,14 @@ typedef struct {
     ssize_t (*close)(void *self);
 } File_class;
 
-typedef struct {
+struct File {
+    FileSystem *owner;
     Allocator *allocator;
     File_class class;
-    void *self;
-} File;
+    void *data;
+};
 
-void FileSystem_delete(FileSystem *self);
-
-FileSystem FileSystem_new(FilePath root);
-
-File *FileSystem_open(FileSystem *fs, FilePath path, String mode, Allocator *allocator);
-
-File *File_new(File_class class, void *self, Allocator *allocator);
+File *File_new(File_class class, void *data, FileSystem *owner, Allocator *allocator);
 
 ssize_t File_read(File *self, Slice(uint8_t) out);
 
@@ -86,5 +100,3 @@ typedef struct {
 fs_dirtoken fs_pushd(FilePath path, Allocator *allocator);
 
 void fs_popd(fs_dirtoken tok);
-
-File *fs_stdout(Allocator *allocator);

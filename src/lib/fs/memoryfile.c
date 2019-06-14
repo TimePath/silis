@@ -12,7 +12,7 @@ static File_class File_memory = {
 
 File *MemoryFile_new(Buffer *buf)
 {
-    return File_new(File_memory, buf, buf->_allocator);
+    return File_new(File_memory, buf, NULL, buf->_allocator);
 }
 
 static ssize_t File_memory_write(void *_self, Slice(uint8_t) in)

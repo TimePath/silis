@@ -56,7 +56,7 @@ InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath 
 {
     Allocator *allocator = self->allocator;
     Slice(uint8_t) bytes;
-    File *file = FileSystem_open(fs, path, STR("rb"), allocator);
+    File *file = FileSystem_open(fs, path, STR("rb"));
     if (!file) {
         assert(file && "read from file");
         return (InterpreterFileRef) {0};

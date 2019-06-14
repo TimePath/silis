@@ -81,16 +81,16 @@ size_t compiler_main(Env env)
 
     File *out = env.out;
     String targetName = *Slice_at(&args, 1);
-    FileSystem _fs_in = FileSystem_new(FilePath_from_native(*Slice_at(&args, 2), allocator));
-    FileSystem *fs_in = &_fs_in;
-    FileSystem _fs_out = FileSystem_new(FilePath_from_native(*Slice_at(&args, 3), allocator));
-    FileSystem *fs_out = &_fs_out;
+    FileSystem _fs_in, *fs_in = &_fs_in;
+    FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 2), allocator), fs_in);
+    FileSystem _fs_out, *fs_out = &_fs_out;
+    FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 3), allocator), fs_out);
     FilePath inputFilePath = FilePath_from_native(*Slice_at(&args, 4), allocator);
     FilePath outputFilePath;
     File *outputFile = out;
     if (Slice_size(&args) > 5) {
         outputFilePath = FilePath_from_native(*Slice_at(&args, 5), allocator);
-        outputFile = FileSystem_open(fs_out, outputFilePath, STR("w"), allocator);
+        outputFile = FileSystem_open(fs_out, outputFilePath, STR("w"));
     }
 
     Types _types = Types_new(allocator);

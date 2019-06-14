@@ -29,19 +29,24 @@ static void *DebugAllocator_realloc(void *_self, void *ptr, size_t size);
 static void DebugAllocator_free(void *_self, void *ptr);
 
 size_t Env_run(size_t argc, native_string_t argv[], size_t (*run)(Env)) {
+    extern size_t strlen(native_string_t __s);
+
     Allocator _allocator = (Allocator) {
             ._alloc = CAllocator_alloc,
             ._realloc = CAllocator_realloc,
             ._free = CAllocator_free,
     };
-    Allocator *allocator = &_allocator;
+    Allocator *cAllocator = &_allocator;
 
     DebugAllocator debugAllocator = (DebugAllocator) {
             .interface = {._alloc = DebugAllocator_alloc, ._realloc = DebugAllocator_realloc, ._free = DebugAllocator_free},
-            .implementation = allocator,
+            .implementation = cAllocator,
     };
-    File *out = fs_stdout(allocator);
-    extern size_t strlen(native_string_t __s);
+    Allocator *allocator = &debugAllocator.interface;
+    extern File_class File_native;
+    File *out = File_new(File_native, libsystem_stdout(), NULL, allocator);
+    extern FileSystem_class FileSystem_native;
+    FileSystem fs = FileSystem_new(FileSystem_native, &fs, allocator);
     Vector(String) args = Vector_new(allocator);
     for (size_t i = 0; i < (size_t) argc; ++i) {
         native_string_t cstr = argv[i];
@@ -52,9 +57,11 @@ size_t Env_run(size_t argc, native_string_t argv[], size_t (*run)(Env)) {
     size_t ret = run((Env) {
             .args = Vector_toSlice(String, &args),
             .out = out,
-            .allocator = &debugAllocator.interface,
+            .fs = &fs,
+            .allocator = allocator,
     });
     Vector_delete(String, &args);
+    FileSystem_delete(&fs);
     File_close(out);
 
     assert(!debugAllocator.size && "no memory leaked");

@@ -124,26 +124,40 @@ void FileSystem_delete(FileSystem *self)
     FilePath_delete(&self->root);
 }
 
-FileSystem FileSystem_new(FilePath root)
+FileSystem FileSystem_new(FileSystem_class class, void *data, Allocator *allocator)
 {
     return (FileSystem) {
-            .root = root,
+            .allocator = allocator,
+            .class = class,
+            .root = FilePath_from(STR(""), allocator),
+            .data = data,
     };
 }
 
-static File *fs_open(FileSystem *fs, FilePath path, String mode, Allocator *allocator);
-
-File *FileSystem_open(FileSystem *fs, FilePath path, String mode, Allocator *allocator)
+void FileSystem_newroot(FileSystem *parent, FilePath root, FileSystem *out)
 {
-    return fs_open(fs, path, mode, allocator);
+    *out = (FileSystem) {
+            .allocator = parent->allocator,
+            .class = parent->class,
+            .root = root,
+            .data = out,
+    };
 }
 
-File *File_new(File_class class, void *self, Allocator *allocator)
+File *FileSystem_open(FileSystem *self, FilePath path, String mode)
+{
+    File *(*func)(void *, FilePath path, String mode) = self->class.open;
+    assert(func && "FileSystem implements open");
+    return func(self->data, path, mode);
+}
+
+File *File_new(File_class class, void *data, FileSystem *owner, Allocator *allocator)
 {
     File *ret = new(File, ((File) {
+            .owner = owner,
             .allocator = allocator,
             .class = class,
-            .self = self,
+            .data = data,
     }));
     return ret;
 }
@@ -152,28 +166,28 @@ ssize_t File_read(File *self, Slice(uint8_t) out)
 {
     ssize_t (*func)(void *, Slice(uint8_t)) = self->class.read;
     assert(func && "File implements read");
-    return func(self->self, out);
+    return func(self->data, out);
 }
 
 ssize_t File_write(File *self, Slice(uint8_t) in)
 {
     ssize_t (*func)(void *, Slice(uint8_t)) = self->class.write;
     assert(func && "File implements write");
-    return func(self->self, in);
+    return func(self->data, in);
 }
 
 ssize_t File_seek(File *self, off64_t pos, uint8_t whence)
 {
     ssize_t (*func)(void *, off64_t pos, uint8_t whence) = self->class.seek;
     assert(func && "File implements seek");
-    return func(self->self, pos, whence);
+    return func(self->data, pos, whence);
 }
 
 ssize_t File_tell(File *self)
 {
     ssize_t (*func)(void *) = self->class.tell;
     assert(func && "File implements tell");
-    return func(self->self);
+    return func(self->data);
 }
 
 ssize_t File_flush(File *self)
@@ -182,14 +196,14 @@ ssize_t File_flush(File *self)
     if (!func) {
         return 0;
     }
-    return func(self->self);
+    return func(self->data);
 }
 
 ssize_t File_close(File *self)
 {
     Allocator *allocator = self->allocator;
     ssize_t (*func)(void *) = self->class.close;
-    ssize_t ret = !func ? 0 : func(self->self);
+    ssize_t ret = !func ? 0 : func(self->data);
     free(self);
     return ret;
 }
@@ -209,64 +223,6 @@ bool File_read_all(File *self, Slice(uint8_t) *out, Allocator *allocator)
     buf[len] = 0;
     *out = slice;
     return true;
-}
-
-// impl: native
-
-static ssize_t File_native_read(void *self, Slice(uint8_t) out)
-{
-    return (ssize_t) libsystem_fread(Slice_data_mut(&out), sizeof(uint8_t), Slice_size(&out), self);
-}
-
-static ssize_t File_native_write(void *self, Slice(uint8_t) in)
-{
-    return (ssize_t) libsystem_fwrite(_Slice_data(&in), sizeof(uint8_t), Slice_size(&in), self);
-}
-
-static ssize_t File_native_seek(void *self, off64_t pos, uint8_t whence)
-{
-    uint8_t w = whence == File_seek_begin ? libsystem_SEEK_SET : libsystem_SEEK_END;
-    return libsystem_fseek(self, (native_long_t) pos, w);
-}
-
-static ssize_t File_native_tell(void *self)
-{
-    return libsystem_ftell(self);
-}
-
-static ssize_t File_native_flush(void *self)
-{
-    return libsystem_fflush(self);
-}
-
-static ssize_t File_native_close(void *self)
-{
-    return libsystem_fclose(self);
-}
-
-static File_class File_native = {
-    .read = File_native_read,
-    .write = File_native_write,
-    .seek = File_native_seek,
-    .tell = File_native_tell,
-    .flush = File_native_flush,
-    .close = File_native_close,
-};
-
-static File *fs_open(FileSystem *fs, FilePath path, String mode, Allocator *allocator)
-{
-    Buffer buf = Buffer_new(allocator);
-    FilePath_to_native(fs->root, &buf);
-    String slash = STR("/");
-    Vector_push(&buf, *Slice_at(&slash.bytes, 0));
-    native_char_t *p = String_cstr(FilePath_to_native(path, &buf), allocator);
-    Buffer_delete(&buf);
-    native_char_t *m = String_cstr(mode, allocator);
-    libsystem_FILE *file = libsystem_fopen(p, m);
-    assert(file && "File exists");
-    free(p);
-    free(m);
-    return File_new(File_native, file, allocator);
 }
 
 // misc
@@ -290,11 +246,4 @@ void fs_popd(fs_dirtoken tok)
     native_char_t *s = tok.prev;
     libsystem_chdir(s);
     free(s);
-}
-
-File *fs_stdout(Allocator *allocator)
-{
-    static File *ret = NULL;
-    if (!ret) ret = File_new(File_native, libsystem_stdout(), allocator);
-    return ret;
 }
