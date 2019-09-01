@@ -1,5 +1,7 @@
-#include <system.h>
+#include <prelude.h>
 #include "parser.h"
+
+#include <lib/misc.h>
 
 typedef struct {
     Slice(Token) tokens;
@@ -19,8 +21,7 @@ static Node Parser_convert(const Token *it)
         case Token_INVALID:
         case Token_ListBegin:
         case Token_ListEnd:
-            unreachable();
-            break;
+            unreachable(break);
         case Token_Atom:
             return (Node) {
                     .kind.val = Node_Atom,

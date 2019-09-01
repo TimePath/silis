@@ -1,8 +1,9 @@
-#include <system.h>
+#include <prelude.h>
 
 #include <lib/env.h>
 #include <lib/fs.h>
 #include <lib/fs/memoryfile.h>
+#include <lib/misc.h>
 #include <lib/stdio.h>
 #include <lib/string.h>
 
@@ -31,8 +32,6 @@
 
 #include "emit.h"
 
-MAIN(compiler_main)
-
 #ifdef NDEBUG
 #define OUTPUT_BUFFER 1
 #else
@@ -45,13 +44,14 @@ static Target *target(String targetName)
     X(c);
     X(js);
 #undef X
-    unreachable();
-    return NULL;
+    unreachable(return NULL);
 }
 
 static void emit(Interpreter *interpreter, File *f, compile_file *it);
 
-size_t compiler_main(Env env)
+size_t main(Env env);
+
+size_t main(Env env)
 {
     Allocator *allocator = env.allocator;
     Slice(String) args = env.args;

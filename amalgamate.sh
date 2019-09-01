@@ -1,7 +1,6 @@
 #!/bin/sh
 {
     echo "#include \"src/system.c\""
-    echo "#include \"src/system.h\""
     find src -name '*.c' | while read line; do
         if [ $line = 'src/system.c' ]; then continue; fi
         if [ $line = 'src/test.c' ]; then continue; fi

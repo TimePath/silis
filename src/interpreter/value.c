@@ -1,5 +1,7 @@
-#include <system.h>
+#include <prelude.h>
 #include "value.h"
+
+#include <lib/misc.h>
 
 #include "interpreter.h"
 #include "symbols.h"
@@ -12,8 +14,7 @@ Value Value_from(Interpreter *interpreter, InterpreterFileNodeRef it)
         case Node_Ref:
         case Node_ListBegin:
         case Node_ListEnd:
-            unreachable();
-            break;
+            unreachable(break);
         case Node_Atom: {
             const String ident = n->u.Atom.value;
             Symbol symbol;

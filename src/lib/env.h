@@ -11,5 +11,3 @@ typedef struct {
     FileSystem *fs;
     Allocator *allocator;
 } Env;
-
-size_t Env_run(size_t argc, native_string_t argv[], size_t (*run)(Env));

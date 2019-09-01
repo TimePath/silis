@@ -1,5 +1,7 @@
-#include <system.h>
+#include <prelude.h>
 #include "func.h"
+
+#include <lib/misc.h>
 
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>

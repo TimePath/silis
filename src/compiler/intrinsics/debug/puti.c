@@ -1,4 +1,4 @@
-#include <system.h>
+#include <prelude.h>
 #include "puti.h"
 
 #include <lib/stdio.h>

@@ -1,7 +1,8 @@
-#include <system.h>
+#include <prelude.h>
 #include "interpreter.h"
 
 #include <lib/fs.h>
+#include <lib/misc.h>
 #include <lib/stdio.h>
 
 #include <parser/lexer.h>
@@ -85,8 +86,7 @@ InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath pat
     });
     if (!lex.is.ok) {
         ParserError_print(lex.ret.err, self->compilation.debug);
-        unreachable();
-        return (InterpreterFileRef) {0};
+        unreachable(return (InterpreterFileRef) {0});
     }
     Vector(Token) tokens = lex.ret.val;
     if (self->compilation.flags.print_lex) {

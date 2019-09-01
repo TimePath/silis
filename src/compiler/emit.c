@@ -1,6 +1,7 @@
-#include <system.h>
+#include <prelude.h>
 #include "emit.h"
 
+#include <lib/misc.h>
 #include <lib/stdio.h>
 
 #include <interpreter/interpreter.h>
@@ -167,7 +168,7 @@ static void emit_node(emit_ctx *ctx, const compile_file *file, InterpreterFileNo
         case Node_ListBegin:
         case Node_ListEnd:
         case Node_Ref:
-            unreachable();
+            unreachable(break);
         case Node_Atom:
             emit_atom(ctx, file, node->u.Atom.value);
             break;

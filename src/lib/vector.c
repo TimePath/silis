@@ -1,5 +1,7 @@
-#include <system.h>
+#include <prelude.h>
 #include "vector.h"
+
+#include <system.h>
 
 Vector_instantiate(void);
 
@@ -10,7 +12,7 @@ void _Vector_push(size_t sizeof_T, void *_self, size_t dataSize, const void *dat
     const size_t size = Vector_size(self);
     // todo: smarter growth strategy
     _Vector_data(self) = realloc(_Vector_data(self), (size + count) * sizeof_T);
-    memcpy((uint8_t *) _Vector_data(self) + (size * sizeof_T), data, dataSize);
+    libsystem_memcpy((uint8_t *) _Vector_data(self) + (size * sizeof_T), data, dataSize);
     Vector_size(self) += count;
 }
 

@@ -1,7 +1,10 @@
-#include <system.h>
+#include <prelude.h>
 #include "native.h"
 
+#include <system.h>
+
 #include "../fs.h"
+#include "../misc.h"
 #include "../slice.h"
 
 extern File_class File_native;

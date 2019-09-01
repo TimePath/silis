@@ -1,13 +1,16 @@
-#include <system.h>
+#include <prelude.h>
 #include "string.h"
 
+#include <system.h>
+
 #include "allocator.h"
+#include "misc.h"
 
 bool String_equals(String self, String other)
 {
     const size_t selfSize = String_sizeBytes(self);
     const size_t otherSize = String_sizeBytes(other);
-    return selfSize == otherSize && memcmp(String_begin(self), String_begin(other), selfSize) == 0;
+    return selfSize == otherSize && libsystem_memcmp(String_begin(self), String_begin(other), selfSize) == 0;
 }
 
 static native_char_t *spaces(size_t n, Allocator *allocator)
@@ -43,7 +46,7 @@ native_char_t *String_cstr(String self, Allocator *allocator)
 {
     size_t n = String_sizeBytes(self);
     native_char_t *buf = new_arr(native_char_t, n + 1);
-    memcpy(buf, String_begin(self), n);
+    libsystem_memcpy(buf, String_begin(self), n);
     buf[n] = 0;
     return buf;
 }

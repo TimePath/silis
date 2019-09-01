@@ -1,4 +1,4 @@
-#include <system.h>
+#include <prelude.h>
 #include "node.h"
 
 #include <lib/stdio.h>
@@ -23,8 +23,7 @@ static void NodePrinter_print_indent(NodePrinter *self, NodePrinterState *state)
 static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState state, const Node *it, size_t id)
 {
     if (it->kind.val == Node_INVALID) {
-        unreachable();
-        return state;
+        unreachable(return state);
     }
     if (it->kind.val == Node_ListBegin) {
         NodePrinter_print_indent(self, &state);
@@ -84,8 +83,7 @@ static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState st
             case Node_INVALID:
             case Node_ListBegin:
             case Node_ListEnd:
-                unreachable();
-                break;
+                unreachable(break);
             case Node_Ref:
                 fprintf_s(self->out, STR("var_"));
                 fprintf_zu(self->out, it->u.Ref.value);

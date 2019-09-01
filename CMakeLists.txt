@@ -31,12 +31,30 @@ add_definitions(-DUSE_REAL_HEADERS=0)
 
 set(BUILD_SHARED_LIBS OFF)
 
+set(DEBUG OFF)
+if (DEBUG)
+    set(BUILD_SHARED_LIBS ON) # ensure libraries don't have undefined references
+endif ()
+
 set(TEST ON)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 
+function(freestanding target)
+    set(LINK_OPTIONS "")
+    if (DEBUG)
+        list(APPEND LINK_OPTIONS "-nodefaultlibs")
+    endif ()
+    if (NOT target STREQUAL "silis-runtime")
+        list(APPEND LINK_OPTIONS "-Wl,--no-undefined") # check for undefined symbols
+        # list(APPEND LINK_OPTIONS "-Wl,--no-allow-shlib-undefined") # also check dependencies
+    endif ()
+    set_target_properties(${target} PROPERTIES LINK_OPTIONS "${LINK_OPTIONS}")
+endfunction()
+
 function(main)
     add_library(silis-system
+            src/prelude.c
             src/system.c
             )
 
@@ -49,6 +67,7 @@ function(main)
             src/lib/env.c
             src/lib/fs.c
             src/lib/macro.c
+            src/lib/misc.c
             src/lib/result.c
             src/lib/slice.c
             src/lib/stdio.c
@@ -56,7 +75,7 @@ function(main)
             src/lib/trie.c
             src/lib/vector.c
             )
-    target_link_libraries(silis-runtime silis-system)
+    freestanding(silis-runtime)
 
     add_library(silis-parser
             src/parser/error.c
@@ -65,7 +84,10 @@ function(main)
             src/parser/parser.c
             src/parser/token.c
             )
-    target_link_libraries(silis-parser silis-runtime)
+    freestanding(silis-parser)
+    target_link_libraries(silis-parser
+            PRIVATE silis-runtime
+            )
 
     add_library(silis-interpreter
             src/interpreter/eval.c
@@ -78,7 +100,11 @@ function(main)
             src/interpreter/types.c
             src/interpreter/value.c
             )
-    target_link_libraries(silis-interpreter silis-runtime silis-parser)
+    freestanding(silis-interpreter)
+    target_link_libraries(silis-interpreter
+            PRIVATE silis-runtime
+            PUBLIC silis-parser
+            )
 
     add_library(silis-compiler
             src/compiler/emit.c
@@ -106,10 +132,23 @@ function(main)
 
             src/compiler/intrinsics/types/func.c
             )
-    target_link_libraries(silis-compiler silis-runtime silis-interpreter)
+    freestanding(silis-compiler)
+    target_link_libraries(silis-compiler
+            PRIVATE silis-runtime
+            PUBLIC silis-interpreter
+            )
 
-    add_executable(silisc src/compiler/main.c)
-    target_link_libraries(silisc silis-runtime silis-compiler)
+    add_library(exe-silisc src/compiler/main.c)
+    freestanding(exe-silisc)
+    target_link_libraries(exe-silisc
+            PRIVATE silis-runtime
+            PUBLIC silis-compiler
+            )
+    add_executable(silisc src/loader/main.c)
+    target_link_libraries(silisc
+            PRIVATE silis-system silis-runtime
+            PUBLIC exe-silisc
+            )
 
     add_executable(silisc-test src/test.c)
 

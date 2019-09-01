@@ -1,5 +1,7 @@
-#include <system.h>
+#include <prelude.h>
 #include "nodelist.h"
+
+#include <lib/misc.h>
 
 bool NodeList_next(NodeList *self, InterpreterFileNodeRef *out)
 {

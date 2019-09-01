@@ -1,4 +1,4 @@
-#include <system.h>
+#include <prelude.h>
 #include "token.h"
 
 #include <lib/stdio.h>
@@ -23,8 +23,7 @@ static void TokenPrinter_print_indent(TokenPrinter *self, TokenPrinterState *sta
 static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterState state, const Token *it, size_t id)
 {
     if (it->kind.val == Token_INVALID) {
-        unreachable();
-        return state;
+        unreachable(return state);
     }
     if (it->kind.val == Token_ListBegin) {
         TokenPrinter_print_indent(self, &state);
@@ -97,8 +96,7 @@ static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterStat
             case Token_INVALID:
             case Token_ListBegin:
             case Token_ListEnd:
-                unreachable();
-                break;
+                unreachable(break);
         }
         state.needTab = true;
         state.needLine = true;

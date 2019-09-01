@@ -1,7 +1,8 @@
-#include <system.h>
+#include <prelude.h>
 #include "output.h"
 
 #include <lib/fs/memoryfile.h>
+#include <lib/misc.h>
 
 compile_file compile_file_new(InterpreterFileRef file, String ext, size_t flags, Allocator *allocator)
 {

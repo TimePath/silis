@@ -1,9 +1,13 @@
-#include <system.h>
+#include <prelude.h>
 #include "fs.h"
+
+#include <system.h>
+
 #include "fs/memoryfile.h"
 
 #include "allocator.h"
 #include "buffer.h"
+#include "misc.h"
 #include "stdio.h"
 
 void FilePath_delete(FilePath *self)

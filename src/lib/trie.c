@@ -1,5 +1,9 @@
-#include <system.h>
+#include <prelude.h>
 #include "trie.h"
+
+#include <system.h>
+
+#include "misc.h"
 
 #define Trie_node(self, i) ((TrieNode *) (void *) (((uint8_t *) (_Vector_data(&(self)->nodes))) + (TrieNode_Size(self) * (i))))
 
@@ -17,7 +21,7 @@ bool Trie_get(AnyTrie *self, Slice(uint8_t) key, void *out)
     if (!n->initialised) {
         return false;
     }
-    memcpy(out, TrieNode_Value(n), self->t_size);
+    libsystem_memcpy(out, TrieNode_Value(n), self->t_size);
     return true;
 }
 
@@ -43,7 +47,7 @@ void Trie_set(AnyTrie *self, Slice(uint8_t) key, void *value, size_t sizeof_Node
         _Vector_push(TrieNode_Size(self), &self->nodes, sizeof(x), &x, 1);
         n = Trie_node(self, end);
     }
-    memcpy(TrieNode_Value(n), value, self->t_size);
+    libsystem_memcpy(TrieNode_Value(n), value, self->t_size);
     if (!n->initialised) {
         n->initialised = true;
         TrieEntry e = (TrieEntry) {

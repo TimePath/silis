@@ -1,6 +1,7 @@
-#include <system.h>
+#include <prelude.h>
 #include "emit.h"
 
+#include <lib/misc.h>
 #include <lib/stdio.h>
 
 #include <interpreter/intrinsic.h>

@@ -1,7 +1,8 @@
-#include <system.h>
+#include <prelude.h>
 #include "include.h"
 
 #include <lib/fs.h>
+#include <lib/misc.h>
 #include <lib/stdio.h>
 
 #include <interpreter/interpreter.h>

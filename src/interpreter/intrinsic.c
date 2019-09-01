@@ -1,4 +1,4 @@
-#include <system.h>
+#include <prelude.h>
 #include "intrinsic.h"
 
 Value Intrinsic_call(Intrinsic *self, Interpreter *interpreter, InterpreterFileNodeRef node, Slice(Value) argv)
