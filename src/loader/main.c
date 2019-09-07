@@ -56,7 +56,7 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) {
         String s = String_fromSlice(slice, ENCODING_SYSTEM);
         Vector_push(&args, s);
     }
-    size_t ret = silis_main((Env) {
+    size_t ret = main((Env) {
             .args = Vector_toSlice(String, &args),
             .out = out,
             .fs = &fs,
