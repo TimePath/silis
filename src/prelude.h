@@ -8,7 +8,7 @@
 
 #if !USE_REAL_HEADERS
 #ifndef __WORDSIZE
-#if defined __x86_64__ && !defined __ILP32__
+#if defined(__x86_64__) && !defined(__ILP32__)
 #define __WORDSIZE 64
 #else
 #define __WORDSIZE 32
@@ -142,14 +142,10 @@ typedef int64_t off64_t;
 #else
 
 #if __WORDSIZE == 64
-#if !defined(_MSC_VER)
 typedef uint64_t size_t;
-#endif
 typedef int64_t ssize_t;
 #elif  __WORDSIZE == 32
-#if !defined(_MSC_VER)
 typedef uint32_t size_t;
-#endif
 typedef int32_t ssize_t;
 #else
 #error "Unknown  __WORDSIZE"
@@ -199,8 +195,8 @@ typedef const native_char_t *native_string_t;
 #define realloc(ptr, size) Allocator_realloc(allocator, ptr, size)
 #define free(ptr) Allocator_free(allocator, ptr)
 
-#if defined(__TINYC__)
-#define unreachable(alt) alt
-#else
+#if TARGET_COMPILER_CLANG || TARGET_COMPILER_GCC
 #define unreachable(alt) __builtin_unreachable()
+#else
+#define unreachable(alt) alt
 #endif
