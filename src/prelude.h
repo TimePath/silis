@@ -1,45 +1,5 @@
 #pragma once
 
-#ifndef USE_REAL_HEADERS
-#define USE_REAL_HEADERS 1
-#endif
-
-// region __WORDSIZE
-
-#if !USE_REAL_HEADERS
-#ifndef __WORDSIZE
-#if defined(__x86_64__) && !defined(__ILP32__)
-#define __WORDSIZE 64
-#else
-#define __WORDSIZE 32
-#endif
-#endif
-#endif
-
-// endregion
-
-// region OS
-
-#if 0
-
-#elif defined(__APPLE__)
-#define TARGET_OS_WIN 0
-
-#elif defined(__EMSCRIPTEN__)
-#define TARGET_OS_WIN 0
-
-#elif defined(__linux__)
-#define TARGET_OS_WIN 0
-
-#elif defined(_WIN32)
-#define TARGET_OS_WIN 1
-
-#else
-#error "Unknown OS"
-#endif
-
-// endregion
-
 // region Compiler
 
 #if 0
@@ -74,9 +34,58 @@
 
 // endregion
 
+// region OS
+
+#if 0
+
+#elif defined(__APPLE__)
+#define TARGET_OS_MAC 1
+#define TARGET_OS_WIN 0
+
+#elif defined(__EMSCRIPTEN__)
+#define TARGET_OS_MAC 0
+#define TARGET_OS_WIN 0
+
+#elif defined(__linux__)
+#define TARGET_OS_MAC 0
+#define TARGET_OS_WIN 0
+
+#elif defined(_WIN32)
+#define TARGET_OS_MAC 0
+#define TARGET_OS_WIN 1
+
+#else
+#error "Unknown OS"
+#endif
+
+// endregion
+
+#ifndef USE_REAL_HEADERS
+#define USE_REAL_HEADERS 1
+#endif
+
+#if TARGET_OS_MAC
+#undef USE_REAL_HEADERS
+#define USE_REAL_HEADERS 1
+#endif
+
 #if !defined(static_assert)
 #define static_assert(expr, message) extern char (*ct_assert(void)) [sizeof(char[1 - 2*!(expr)])]
 #endif
+
+// region __WORDSIZE
+
+#if !USE_REAL_HEADERS
+#ifndef __WORDSIZE
+#if defined(__x86_64__) && !defined(__ILP32__)
+#define __WORDSIZE 64
+#else
+#define __WORDSIZE 32
+#endif
+#endif
+#endif
+
+// endregion
 
 // region stdint
 
@@ -138,6 +147,7 @@ typedef int64_t off64_t;
 // region stddef
 
 #if USE_REAL_HEADERS
+#include <sys/types.h>
 #include <stddef.h>
 #else
 
