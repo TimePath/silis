@@ -2,7 +2,7 @@
 
 (#define main (#func [() (#types/int)] (#do {
     (#if 1 (#do {
-        (puts "TEST\n")
+        (puts "TEST")
     }))
     0
 })))
