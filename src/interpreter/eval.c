@@ -121,7 +121,7 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
 
 static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef arglist, Slice(Value) argv);
 
-Value func_call(Interpreter *interpreter, Value func, const Slice(Value) argv, InterpreterFileNodeRef it)
+Value func_call(Interpreter *interpreter, Value func, Slice(Value) argv, InterpreterFileNodeRef it)
 {
     if (func.flags.intrinsic) {
         return Intrinsic_call(func.u.intrinsic.value, interpreter, it, argv);
@@ -135,7 +135,7 @@ Value func_call(Interpreter *interpreter, Value func, const Slice(Value) argv, I
     return ret;
 }
 
-static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef arglist, const Slice(Value) argv)
+static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef arglist, Slice(Value) argv)
 {
     NodeList iter = NodeList_iterator(interpreter, arglist);
     InterpreterFileNodeRef ref;

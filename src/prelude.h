@@ -147,16 +147,13 @@ typedef int64_t off64_t;
 // region stddef
 
 #if USE_REAL_HEADERS
-#include <sys/types.h>
 #include <stddef.h>
 #else
 
 #if __WORDSIZE == 64
 typedef uint64_t size_t;
-typedef int64_t ssize_t;
 #elif  __WORDSIZE == 32
 typedef uint32_t size_t;
-typedef int32_t ssize_t;
 #else
 #error "Unknown  __WORDSIZE"
 #endif

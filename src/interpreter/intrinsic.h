@@ -11,7 +11,7 @@ typedef struct Intrinsic {
 
     TypeRef (*load)(Types *types);
 
-    Value (*call)(Interpreter *interpreter, InterpreterFileNodeRef self, const Slice(Value) argv);
+    Value (*call)(Interpreter *interpreter, InterpreterFileNodeRef self, Slice(Value) argv);
 } Intrinsic;
 
 Value Intrinsic_call(Intrinsic *self, Interpreter *interpreter, InterpreterFileNodeRef node, Slice(Value) argv);

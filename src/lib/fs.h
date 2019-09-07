@@ -50,17 +50,17 @@ void FileSystem_newroot(FileSystem *parent, FilePath root, FileSystem *out);
 File *FileSystem_open(FileSystem *self, FilePath path, String mode);
 
 typedef struct {
-    ssize_t (*read)(void *self, Slice(uint8_t) out);
+    size_t (*read)(void *self, Slice(uint8_t) out);
 
-    ssize_t (*write)(void *self, Slice(uint8_t) in);
+    size_t (*write)(void *self, Slice(uint8_t) in);
 
-    ssize_t (*seek)(void *self, off64_t pos, uint8_t whence);
+    size_t (*size)(void *self);
 
-    ssize_t (*tell)(void *self);
+    bool (*rewind)(void *self);
 
-    ssize_t (*flush)(void *self);
+    bool (*flush)(void *self);
 
-    ssize_t (*close)(void *self);
+    bool (*close)(void *self);
 } File_class;
 
 struct File {
@@ -72,23 +72,17 @@ struct File {
 
 File *File_new(File_class class, void *data, FileSystem *owner, Allocator *allocator);
 
-ssize_t File_read(File *self, Slice(uint8_t) out);
+size_t File_read(File *self, Slice(uint8_t) out);
 
-ssize_t File_write(File *self, Slice(uint8_t) in);
+size_t File_write(File *self, Slice(uint8_t) in);
 
-enum {
-    File_seek_invalid,
-    File_seek_begin,
-    File_seek_end,
-};
+size_t File_size(File *self);
 
-ssize_t File_seek(File *self, off64_t pos, uint8_t whence);
+bool File_rewind(File *self);
 
-ssize_t File_tell(File *self);
+bool File_flush(File *self);
 
-ssize_t File_flush(File *self);
-
-ssize_t File_close(File *self);
+bool File_close(File *self);
 
 bool File_read_all(File *self, Slice(uint8_t) *out, Allocator *allocator);
 

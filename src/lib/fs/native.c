@@ -11,42 +11,47 @@ extern File_class File_native;
 
 extern FileSystem_class FileSystem_native;
 
-static ssize_t File_native_read(void *self, Slice(uint8_t) out)
+static size_t File_native_read(void *self, Slice(uint8_t) out)
 {
-    return (ssize_t) libsystem_fread(Slice_data_mut(&out), sizeof(uint8_t), Slice_size(&out), self);
+    return libsystem_fread(Slice_data_mut(&out), sizeof(uint8_t), Slice_size(&out), self);
 }
 
-static ssize_t File_native_write(void *self, Slice(uint8_t) in)
+static size_t File_native_write(void *self, Slice(uint8_t) in)
 {
-    return (ssize_t) libsystem_fwrite(_Slice_data(&in), sizeof(uint8_t), Slice_size(&in), self);
+    return libsystem_fwrite(_Slice_data(&in), sizeof(uint8_t), Slice_size(&in), self);
 }
 
-static ssize_t File_native_seek(void *self, off64_t pos, uint8_t whence)
+static size_t File_native_size(void *self)
 {
-    uint8_t w = whence == File_seek_begin ? libsystem_SEEK_SET : libsystem_SEEK_END;
-    return libsystem_fseek(self, (native_long_t) pos, w);
+    libsystem_fseek(self, 0, libsystem_SEEK_END);
+    native_long_t ret = libsystem_ftell(self);
+    libsystem_fseek(self, 0, libsystem_SEEK_SET);
+    if (ret < 0) {
+        return 0;
+    }
+    return (size_t) ret;
 }
 
-static ssize_t File_native_tell(void *self)
+static bool File_native_rewind(void *self)
 {
-    return libsystem_ftell(self);
+    return libsystem_fseek(self, 0, libsystem_SEEK_SET) == 0;;
 }
 
-static ssize_t File_native_flush(void *self)
+static bool File_native_flush(void *self)
 {
-    return libsystem_fflush(self);
+    return libsystem_fflush(self) == 0;
 }
 
-static ssize_t File_native_close(void *self)
+static bool File_native_close(void *self)
 {
-    return libsystem_fclose(self);
+    return libsystem_fclose(self) == 0;
 }
 
 File_class File_native = {
         .read = File_native_read,
         .write = File_native_write,
-        .seek = File_native_seek,
-        .tell = File_native_tell,
+        .size = File_native_size,
+        .rewind = File_native_rewind,
         .flush = File_native_flush,
         .close = File_native_close,
 };

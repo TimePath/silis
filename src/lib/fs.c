@@ -166,61 +166,55 @@ File *File_new(File_class class, void *data, FileSystem *owner, Allocator *alloc
     return ret;
 }
 
-ssize_t File_read(File *self, Slice(uint8_t) out)
+size_t File_read(File *self, Slice(uint8_t) out)
 {
-    ssize_t (*func)(void *, Slice(uint8_t)) = self->class.read;
+    size_t (*func)(void *, Slice(uint8_t)) = self->class.read;
     assert(func && "File implements read");
     return func(self->data, out);
 }
 
-ssize_t File_write(File *self, Slice(uint8_t) in)
+size_t File_write(File *self, Slice(uint8_t) in)
 {
-    ssize_t (*func)(void *, Slice(uint8_t)) = self->class.write;
+    size_t (*func)(void *, Slice(uint8_t)) = self->class.write;
     assert(func && "File implements write");
     return func(self->data, in);
 }
 
-ssize_t File_seek(File *self, off64_t pos, uint8_t whence)
+size_t File_size(File *self)
 {
-    ssize_t (*func)(void *, off64_t pos, uint8_t whence) = self->class.seek;
-    assert(func && "File implements seek");
-    return func(self->data, pos, whence);
-}
-
-ssize_t File_tell(File *self)
-{
-    ssize_t (*func)(void *) = self->class.tell;
-    assert(func && "File implements tell");
+    size_t (*func)(void *) = self->class.size;
+    assert(func && "File implements size");
     return func(self->data);
 }
 
-ssize_t File_flush(File *self)
+bool File_rewind(File *self)
 {
-    ssize_t (*func)(void *) = self->class.flush;
+    bool (*func)(void *) = self->class.rewind;
+    assert(func && "File implements rewind");
+    return func(self->data);
+}
+
+bool File_flush(File *self)
+{
+    bool (*func)(void *) = self->class.flush;
     if (!func) {
         return 0;
     }
     return func(self->data);
 }
 
-ssize_t File_close(File *self)
+bool File_close(File *self)
 {
     Allocator *allocator = self->allocator;
-    ssize_t (*func)(void *) = self->class.close;
-    ssize_t ret = !func ? 0 : func(self->data);
+    bool (*func)(void *) = self->class.close;
+    bool ret = !func ? true : func(self->data);
     free(self);
     return ret;
 }
 
 bool File_read_all(File *self, Slice(uint8_t) *out, Allocator *allocator)
 {
-    File_seek(self, 0, File_seek_end);
-    ssize_t ret = File_tell(self);
-    if (ret < 0) {
-        return false;
-    }
-    const size_t len = (size_t) ret;
-    File_seek(self, 0, File_seek_begin);
+    const size_t len = File_size(self);
     uint8_t *buf = new_arr(uint8_t, len + 1);
     Slice(uint8_t) slice = (Slice(uint8_t)) {._begin.r = buf, ._end = buf + len};
     File_read(self, slice);

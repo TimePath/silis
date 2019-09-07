@@ -352,7 +352,7 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
         InterpreterFileNodeRef d = Interpreter_lookup_node_ref(ctx->interpreter, childref);
         Vector_push(&_children, d);
     }
-    const Slice(InterpreterFileNodeRef) children = Vector_toSlice(InterpreterFileNodeRef, &_children);
+    Slice(InterpreterFileNodeRef) children = Vector_toSlice(InterpreterFileNodeRef, &_children);
     do {
         if (visit_node_macro(ctx, file, ret, first, children)) {
             break;

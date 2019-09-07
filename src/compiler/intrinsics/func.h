@@ -4,7 +4,7 @@
 
 INTRINSIC(func);
 
-Value func_call(Interpreter *interpreter, Value func, const Slice(Value) argv, InterpreterFileNodeRef self);
+Value func_call(Interpreter *interpreter, Value func, Slice(Value) argv, InterpreterFileNodeRef self);
 
 void func_args_types(Interpreter *interpreter, NodeList iter, TypeRef out[]);
 

@@ -6,7 +6,7 @@
 #include "node.h"
 
 typedef struct {
-    const Slice(Token) tokens;
+    Slice(Token) tokens;
     Allocator *allocator;
 } silis_parser_parse_input;
 
