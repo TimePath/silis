@@ -1,4 +1,4 @@
-# silis
+# silis [![Build Status](https://travis-ci.org/TimePath/silis.svg?branch=master)](https://travis-ci.org/TimePath/silis)
 
 static interchange lisp in stages
 
