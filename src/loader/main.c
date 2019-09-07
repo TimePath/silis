@@ -66,7 +66,7 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) {
     FileSystem_delete(&fs);
     File_close(out);
 
-    assert(!debugAllocator.size && "no memory leaked"); // fixme: fails when assertions are enabled with optimizations
+    assert(!debugAllocator.size && "no memory leaked");
     return (native_int_t) ret;
 }
 

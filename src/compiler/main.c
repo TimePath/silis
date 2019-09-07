@@ -182,8 +182,9 @@ size_t main(Env env)
         }
         Vector_delete(compile_file, &ret.files);
         if (flags.buffer) {
-            File_close(f);
             fprintf_raw(outputFile, Buffer_toSlice(&outBuf));
+            File_close(f);
+            Buffer_delete(&outBuf);
         }
         if (outputFile != out) {
             FilePath_delete(&outputFilePath);
