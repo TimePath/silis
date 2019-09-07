@@ -2,7 +2,7 @@
 
 #include "macro.h"
 
-#if defined(__TINYC__)
+#if TARGET_COMPILER_TCC
 #define SLICE_PADDING PADDING(32)
 #else
 #define SLICE_PADDING

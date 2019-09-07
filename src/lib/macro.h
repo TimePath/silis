@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(_MSC_VER)
+#if TARGET_COMPILER_MSVC
 #define __extension__
 #define INLINE inline
 #else
@@ -27,13 +27,13 @@
 
 #define STRINGIFY(self) #self
 
-#if defined(__clang__)
+#if TARGET_COMPILER_CLANG
 #define NORETURN __attribute__((noreturn))
 #else
 #define NORETURN
 #endif
 
-#if defined(__clang__)
+#if TARGET_COMPILER_CLANG
 #define DIAG_PUSH         _Pragma("GCC diagnostic push")
 #define DIAG_IGNORE(rule) _Pragma(STRINGIFY(GCC diagnostic ignored rule))
 #define DIAG_POP          _Pragma("GCC diagnostic pop")
@@ -53,7 +53,7 @@
 #define DIAG_IGNORE_REDUNDANT_PARENS
 #endif
 
-#if defined(__TINYC__)
+#if TARGET_COMPILER_TCC
 #define ENUM_PADDING PADDING(20)
 #else
 #define ENUM_PADDING
