@@ -116,17 +116,7 @@ typedef long long int64_t;
 static_assert(sizeof(uint64_t) * 8 == 64, "uint64_t");
 static_assert(sizeof(int64_t) * 8 == 64, "int64_t");
 
-#if __WORDSIZE == 64
-typedef int64_t off_t;
-#elif  __WORDSIZE == 32
-typedef int32_t off_t;
-#else
-#error "Unknown  __WORDSIZE"
 #endif
-
-#endif
-
-typedef int64_t off64_t;
 
 // endregion
 
