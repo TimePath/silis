@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+typedef void end_of_system_headers;
+
 #include <prelude.h>
 #include "system.h"
-
-#include <lib/macro.h>
 
 DIAG_PUSH
 DIAG_IGNORE("-Wmissing-prototypes")

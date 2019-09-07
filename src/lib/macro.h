@@ -28,6 +28,12 @@
 #define STRINGIFY(self) #self
 
 #if defined(__clang__)
+#define NORETURN __attribute__((noreturn))
+#else
+#define NORETURN
+#endif
+
+#if defined(__clang__)
 #define DIAG_PUSH         _Pragma("GCC diagnostic push")
 #define DIAG_IGNORE(rule) _Pragma(STRINGIFY(GCC diagnostic ignored rule))
 #define DIAG_POP          _Pragma("GCC diagnostic pop")

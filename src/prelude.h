@@ -5,6 +5,7 @@
 #endif
 
 // region __WORDSIZE
+
 #if !USE_REAL_HEADERS
 #ifndef __WORDSIZE
 #if defined __x86_64__ && !defined __ILP32__
@@ -14,9 +15,11 @@
 #endif
 #endif
 #endif
+
 // endregion
 
 // region OS
+
 #if 0
 
 #elif defined(__APPLE__)
@@ -34,6 +37,7 @@
 #else
 #error "Unknown OS"
 #endif
+
 // endregion
 
 #if !defined(static_assert)
@@ -41,6 +45,7 @@
 #endif
 
 // region stdint
+
 #if USE_REAL_HEADERS
 #include <stdint.h>
 #else
@@ -80,31 +85,10 @@ typedef int32_t off_t;
 
 typedef int64_t off64_t;
 
-// region hide builtin type keywords
-
-typedef char native_char_t;
-typedef unsigned char native_uchar_t;
-#define char __DO_NOT_USE__
-
-typedef short native_short_t;
-typedef unsigned short native_ushort_t;
-#define short __DO_NOT_USE__
-
-typedef int native_int_t;
-typedef unsigned int native_uint_t;
-#define int __DO_NOT_USE__
-
-typedef long native_long_t;
-typedef unsigned long native_ulong_t;
-#define long __DO_NOT_USE__
-
-typedef const native_char_t *native_string_t;
-
-// endregion
-
 // endregion
 
 // region stdbool
+
 #if USE_REAL_HEADERS
 #include <stdbool.h>
 #else
@@ -114,9 +98,11 @@ typedef const native_char_t *native_string_t;
 #define false 0
 
 #endif
+
 // endregion
 
 // region stddef
+
 #if USE_REAL_HEADERS
 #include <stddef.h>
 #else
@@ -140,6 +126,29 @@ typedef int32_t ssize_t;
 #endif
 
 #endif
+
+// endregion
+
+// region hide builtin type keywords
+
+typedef char native_char_t;
+typedef unsigned char native_uchar_t;
+#define char __DO_NOT_USE__
+
+typedef short native_short_t;
+typedef unsigned short native_ushort_t;
+#define short __DO_NOT_USE__
+
+typedef int native_int_t;
+typedef unsigned int native_uint_t;
+#define int __DO_NOT_USE__
+
+typedef long native_long_t;
+typedef unsigned long native_ulong_t;
+#define long __DO_NOT_USE__
+
+typedef const native_char_t *native_string_t;
+
 // endregion
 
 #define main(...) silis_main(__VA_ARGS__)
@@ -160,10 +169,4 @@ typedef int32_t ssize_t;
 #define unreachable(alt) alt
 #else
 #define unreachable(alt) __builtin_unreachable()
-#endif
-
-#if defined(__clang__)
-#define NORETURN __attribute__((noreturn))
-#else
-#define NORETURN
 #endif

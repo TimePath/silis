@@ -1,5 +1,7 @@
 #pragma once
 
+#include <lib/macro.h>
+
 NORETURN void libsystem_assert_fail(native_string_t expr, native_string_t file, native_string_t line, native_string_t func);
 
 void *libsystem_malloc(size_t size);
