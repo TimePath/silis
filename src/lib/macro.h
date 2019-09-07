@@ -15,6 +15,9 @@
 
 #define ARRAY_LEN(x) ((sizeof(x) / sizeof((x)[0])))
 
+#if TARGET_COMPILER_MSVC
+#pragma warning(disable:4116)
+#endif
 #define CAST(T, U, it) ((union { U from; T to; }) { .from = (it) }.to)
 
 #define EMPTY()
