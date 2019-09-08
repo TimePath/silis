@@ -81,6 +81,22 @@ emit_output do_emit(emit_input in)
         Target_file_begin(ctx->target, ctx->interpreter, (InterpreterFileRef) {i + 1}, &files);
     }
 
+    const size_t outputFileByFlagLength = Vector_size(&in.interpreter->compilation.files) * FLAG_COUNT;
+    const compile_file **outputFileByFlag = new_arr(const compile_file *, outputFileByFlagLength);
+    for (size_t i = 0; i < outputFileByFlagLength; ++i) {
+        outputFileByFlag[i] = NULL;
+    }
+    Vector_loop(compile_file, &files, i) {
+        const compile_file *it = Vector_at(&files, i);
+        const size_t inputFile = it->file.id - 1;
+        const size_t flags = it->flags;
+        for (size_t j = 0; j < FLAG_COUNT; ++j) {
+            if (flags & (1 << j)) {
+                outputFileByFlag[inputFile * FLAG_COUNT + j] = it;
+            }
+        }
+    }
+
     const SymbolScope *globals = Vector_at(&ctx->interpreter->symbols->scopes, 0);
     // first pass: emit function prototypes and globals
     Vector_loop(TrieEntry, &globals->t.entries, i) {
@@ -88,7 +104,9 @@ emit_output do_emit(emit_input in)
         const TrieNode(Symbol) *n = Vector_at(&globals->t.nodes, e->value);
         const Symbol _it = n->value;
         const Symbol *it = &_it;
-        const compile_file *file = Vector_at(&files, (it->file.id - 1) * 2 + 0); // FIXME
+        const size_t inputFile = it->file.id - 1;
+        const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_HEADER];
+        assert(file);
         if (it->value.flags.intrinsic) {
             continue;
         }
@@ -117,7 +135,9 @@ emit_output do_emit(emit_input in)
         const TrieNode(Symbol) *n = Vector_at(&globals->t.nodes, e->value);
         const Symbol _it = n->value;
         const Symbol *it = &_it;
-        const compile_file *file = Vector_at(&files, (it->file.id - 1) * 2 + 1); // FIXME
+        const size_t inputFile = it->file.id - 1;
+        const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_IMPL];
+        assert(file);
         if (it->value.flags.intrinsic || it->value.flags.native) {
             continue;
         }
@@ -143,6 +163,8 @@ emit_output do_emit(emit_input in)
         fprintf_s(file->out, STR("}"));
         LINE();
     }
+
+    free(outputFileByFlag);
 
     Vector_loop(compile_file, &files, i) {
         const compile_file *file = Vector_at(&files, i);

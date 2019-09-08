@@ -170,15 +170,13 @@ size_t main(Env env)
                 .interpreter = interpreter,
                 .target = target(targetName),
         });
-        Vector_loop(compile_file, &ret.files, i) {
-            compile_file *it = Vector_at(&ret.files, i);
-            if (!String_equals(it->ext, STR("h"))) continue; // FIXME
-            emit(interpreter, f, it);
-        }
-        Vector_loop(compile_file, &ret.files, i) {
-            compile_file *it = Vector_at(&ret.files, i);
-            if (!String_equals(it->ext, STR("c"))) continue; // FIXME
-            emit(interpreter, f, it);
+        for (size_t processed = 0, n = Vector_size(&ret.files), stage = 0; processed < n; ++stage) {
+            Vector_loop(compile_file, &ret.files, i) {
+                compile_file *it = Vector_at(&ret.files, i);
+                if (it->stage != stage) continue;
+                emit(interpreter, f, it);
+                processed += 1;
+            }
         }
         Vector_delete(compile_file, &ret.files);
         if (flags.buffer) {

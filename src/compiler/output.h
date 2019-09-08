@@ -10,10 +10,21 @@ typedef struct {
     Buffer *content;
     File *out;
     String ext;
+    /** output order, starting from 0 */
+    size_t stage;
+    /** role in code generation */
     size_t flags;
 } compile_file;
 
-compile_file compile_file_new(InterpreterFileRef file, String ext, size_t flags, Allocator *allocator);
+typedef enum {
+    FLAG_HEADER,
+    FLAG_IMPL,
+    FLAG_COUNT,
+} file_flag;
+
+Slice_instantiate(file_flag);
+
+compile_file compile_file_new(InterpreterFileRef file, String ext, size_t stage, Slice(file_flag) flags, Allocator *allocator);
 
 void compile_file_delete(compile_file *self);
 

@@ -32,6 +32,10 @@ Target target_js = {
         ._identifier = tgt_js_identifier,
 };
 
+enum {
+    STAGE_DEFAULT,
+};
+
 typedef struct {
     bool local;
     bool anonymous;
@@ -47,7 +51,7 @@ static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, I
 {
     (void) target;
     Allocator *allocator = interpreter->allocator;
-    compile_file _file = compile_file_new(file_ref, types ? STR("ts") : STR("js"), 0, allocator);
+    compile_file _file = compile_file_new(file_ref, types ? STR("ts") : STR("js"), STAGE_DEFAULT, Slice_of(file_flag, ((file_flag[]) { FLAG_HEADER, FLAG_IMPL })), allocator);
     Vector_push(files, _file);
 }
 

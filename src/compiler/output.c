@@ -4,16 +4,21 @@
 #include <lib/fs/memoryfile.h>
 #include <lib/misc.h>
 
-compile_file compile_file_new(InterpreterFileRef file, String ext, size_t flags, Allocator *allocator)
+compile_file compile_file_new(InterpreterFileRef file, String ext, size_t stage, Slice(file_flag) flags, Allocator *allocator)
 {
     Buffer *content = new(Buffer, Buffer_new(allocator));
+    size_t flagsMask = 0;
+    Slice_loop(&flags, i) {
+        flagsMask |= 1 << *Slice_at(&flags, i);
+    }
     return (compile_file) {
             .allocator = allocator,
             .file = file,
             .content = content,
             .out = MemoryFile_new(content),
             .ext = ext,
-            .flags = flags,
+            .stage = stage,
+            .flags = flagsMask,
     };
 }
 

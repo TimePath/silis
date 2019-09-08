@@ -30,7 +30,10 @@ Target target_c = {
         ._identifier = tgt_c_identifier,
 };
 
-static const size_t FLAG_HEADER = 1 << 0;
+enum {
+    STAGE_HEADER,
+    STAGE_IMPL,
+};
 
 typedef struct {
     bool local;
@@ -47,13 +50,13 @@ static void tgt_c_file_begin(Target *self, Interpreter *interpreter, Interpreter
 {
     (void) self;
     Allocator *allocator = interpreter->allocator;
-    compile_file _header = compile_file_new(file_ref, STR("h"), FLAG_HEADER, allocator);
+    compile_file _header = compile_file_new(file_ref, STR("h"), STAGE_HEADER, Slice_of(file_flag, ((file_flag[]) { FLAG_HEADER })), allocator);
     compile_file *header = &_header;
     fprintf_s(header->out, STR("#pragma once\n"));
     fprintf_s(header->out, STR("typedef const char *string;\n"));
     Vector_push(files, _header);
 
-    compile_file _impl = compile_file_new(file_ref, STR("c"), 0, allocator);
+    compile_file _impl = compile_file_new(file_ref, STR("c"), STAGE_IMPL, Slice_of(file_flag, ((file_flag[]) { FLAG_IMPL })), allocator);
     Vector_push(files, _impl);
 }
 
@@ -66,7 +69,7 @@ static void tgt_c_file_end(Target *self, Interpreter *interpreter, const compile
 
 static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String name)
 {
-    if (!(file->flags & FLAG_HEADER)) {
+    if (!(file->flags & (1 << FLAG_HEADER))) {
         return;
     }
     tgt_c_print_function(self, interpreter, file, T, name, NULL);
