@@ -32,12 +32,6 @@
 
 #include "emit.h"
 
-#ifdef NDEBUG
-#define OUTPUT_BUFFER 1
-#else
-#define OUTPUT_BUFFER 0
-#endif
-
 static Target *target(String targetName)
 {
 #define X(id) if (String_equals(targetName, STR(#id))) return &target_##id;
@@ -47,7 +41,7 @@ static Target *target(String targetName)
     unreachable(return NULL);
 }
 
-static void emit(Interpreter *interpreter, File *f, compile_file *it);
+static void emit(Interpreter *interpreter, compile_file *it, FileSystem *fs_out);
 
 size_t main(Env env);
 
@@ -57,7 +51,7 @@ size_t main(Env env)
     Slice(String) args = env.args;
     #define arg(name) 1
     #define opt(name) 0
-    assert(Slice_size(&args) >= arg(self) + arg(target) + arg(dir_in) + arg(dir_out) + arg(main) + opt(out));
+    assert(Slice_size(&args) >= arg(self) + arg(target) + arg(dir_in) + arg(dir_out) + arg(main));
     #undef opt
     #undef arg
     struct {
@@ -67,8 +61,7 @@ size_t main(Env env)
         bool print_eval : 1;
         bool print_emit : 1;
         bool print_run : 1;
-        bool buffer : 1;
-        BIT_PADDING(uint8_t, 1)
+        BIT_PADDING(uint8_t, 2)
     } flags = {
             .run = false,
             .print_lex = true,
@@ -76,22 +69,15 @@ size_t main(Env env)
             .print_eval = true,
             .print_emit = true,
             .print_run = true,
-            .buffer = OUTPUT_BUFFER,
     };
 
-    File *out = env.out;
+    File *stdout = env.stdout;
     String targetName = *Slice_at(&args, 1);
     FileSystem _fs_in, *fs_in = &_fs_in;
     FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 2), allocator), fs_in);
     FileSystem _fs_out, *fs_out = &_fs_out;
     FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 3), allocator), fs_out);
     FilePath inputFilePath = FilePath_from_native(*Slice_at(&args, 4), allocator);
-    FilePath outputFilePath;
-    File *outputFile = out;
-    if (Slice_size(&args) > 5) {
-        outputFilePath = FilePath_from_native(*Slice_at(&args, 5), allocator);
-        outputFile = FileSystem_open(fs_out, outputFilePath, STR("w"));
-    }
 
     Types _types = Types_new(allocator);
     Types *types = &_types;
@@ -134,7 +120,7 @@ size_t main(Env env)
             .allocator = allocator,
             .fs_in = fs_in,
             .compilation = {
-                    .debug = out,
+                    .debug = stdout,
                     .flags = {
                             .print_lex = flags.print_lex,
                             .print_parse = flags.print_parse,
@@ -144,7 +130,7 @@ size_t main(Env env)
             },
             .types = types,
             .symbols = symbols,
-            .out = out,
+            .out = stdout,
     };
     Interpreter *interpreter = &_interpreter;
 
@@ -153,7 +139,7 @@ size_t main(Env env)
 
     if (flags.run) {
         if (flags.print_run) {
-            fprintf_s(out, STR("RUN:\n---\n"));
+            fprintf_s(stdout, STR("RUN:\n---\n"));
         }
         Symbol entry;
         bool hasMain = Symbols_lookup(symbols, STR("main"), &entry);
@@ -162,10 +148,8 @@ size_t main(Env env)
         func_call(interpreter, entry.value, (Slice(Value)) {._begin.r = NULL, ._end = NULL,}, (InterpreterFileNodeRef) {.file = {0}, .node = {0}});
     } else {
         if (flags.print_emit) {
-            fprintf_s(out, STR("EMIT:\n----\n"));
+            fprintf_s(stdout, STR("EMIT:\n----\n"));
         }
-        Buffer outBuf = Buffer_new(allocator);
-        File *f = flags.buffer ? MemoryFile_new(&outBuf) : outputFile;
         emit_output ret = do_emit((emit_input) {
                 .interpreter = interpreter,
                 .target = target(targetName),
@@ -174,23 +158,14 @@ size_t main(Env env)
             Vector_loop(compile_file, &ret.files, i) {
                 compile_file *it = Vector_at(&ret.files, i);
                 if (it->stage != stage) continue;
-                emit(interpreter, f, it);
+                emit(interpreter, it, fs_out);
                 processed += 1;
             }
         }
         Vector_delete(compile_file, &ret.files);
-        if (flags.buffer) {
-            fprintf_raw(outputFile, Buffer_toSlice(&outBuf));
-            File_close(f);
-            Buffer_delete(&outBuf);
-        }
-        if (outputFile != out) {
-            FilePath_delete(&outputFilePath);
-            File_close(outputFile);
-        }
     }
 
-    fprintf_s(out, STR("\n"));
+    fprintf_s(stdout, STR("\n"));
     Vector_delete(InterpreterFilePtr, &interpreter->compilation.files);
     Vector_delete(Type, &interpreter->types->all);
     Vector_delete(SymbolScope, &interpreter->symbols->scopes);
@@ -199,22 +174,38 @@ size_t main(Env env)
     return 0;
 }
 
-static void emit(Interpreter *interpreter, File *f, compile_file *it)
+static void emit(Interpreter *interpreter, compile_file *it, FileSystem *fs_out)
 {
     Allocator *allocator = interpreter->allocator;
-    fprintf_s(f, STR("// file://"));
-    Buffer buf = Buffer_new(allocator);
-    FilePath_to_native(interpreter->fs_in->root, &buf);
-    String slash = STR("/");
-    Vector_push(&buf, *Slice_at(&slash.bytes, 0));
-    const InterpreterFile *infile = Interpreter_lookup_file(interpreter, it->file);
-    FilePath_to_native(infile->path, &buf);
-    String dot = STR(".");
-    Vector_push(&buf, *Slice_at(&dot.bytes, 0));
-    _Vector_push(sizeof(uint8_t), &buf, String_sizeBytes(it->ext), String_begin(it->ext), String_sizeBytes(it->ext));
-    fprintf_s(f, String_fromSlice(Buffer_toSlice(&buf), ENCODING_DEFAULT));
-    Buffer_delete(&buf);
-    fprintf_s(f, STR("\n\n"));
-    fprintf_raw(f, Buffer_toSlice(it->content));
-    fprintf_s(f, STR("\n"));
+    File *stdout = interpreter->out;
+    Buffer bufRoot = Buffer_new(allocator);
+    {
+        FilePath_to_native(interpreter->fs_in->root, &bufRoot);
+        String slash = STR("/");
+        Vector_push(&bufRoot, *Slice_at(&slash.bytes, 0));
+    }
+    const String strRoot = String_fromSlice(Buffer_toSlice(&bufRoot), ENCODING_DEFAULT);
+    Buffer bufBase = Buffer_new(allocator);
+    {
+        FilePath_to_native(Interpreter_lookup_file(interpreter, it->file)->path, &bufBase);
+        String dot = STR(".");
+        Vector_push(&bufBase, *Slice_at(&dot.bytes, 0));
+        const size_t sizeBytes = String_sizeBytes(it->ext);
+        _Vector_push(sizeof(uint8_t), &bufBase, sizeBytes, String_begin(it->ext), sizeBytes);
+    }
+    const String strBase = String_fromSlice(Buffer_toSlice(&bufBase), ENCODING_DEFAULT);
+    FilePath outputFilePath = FilePath_from_native(strBase, allocator);
+    File *outputFile = FileSystem_open(fs_out, outputFilePath, STR("w"));
+    {
+        fprintf_s(stdout, STR(" * file://"));
+        fprintf_s(stdout, strRoot);
+        fprintf_s(stdout, strBase);
+        fprintf_s(stdout, STR("\n"));
+    }
+    fprintf_raw(outputFile, Buffer_toSlice(it->content));
+    File_close(outputFile);
+    FilePath_delete(&outputFilePath);
+    Buffer_delete(&bufBase);
+    Buffer_delete(&bufRoot);
+
 }

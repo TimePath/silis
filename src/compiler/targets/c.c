@@ -57,6 +57,16 @@ static void tgt_c_file_begin(Target *self, Interpreter *interpreter, Interpreter
     Vector_push(files, _header);
 
     compile_file _impl = compile_file_new(file_ref, STR("c"), STAGE_IMPL, Slice_of(file_flag, ((file_flag[]) { FLAG_IMPL })), allocator);
+    compile_file *impl = &_impl;
+    fprintf_s(impl->out, STR("#include \"./"));
+    Buffer buf = Buffer_new(allocator);
+    const InterpreterFile *infile = Interpreter_lookup_file(interpreter, file_ref);
+    FilePath basename = FilePath_basename(infile->path, allocator);
+    FilePath_to_native(basename, &buf);
+    FilePath_delete(&basename);
+    fprintf_s(impl->out, String_fromSlice(Buffer_toSlice(&buf), ENCODING_DEFAULT));
+    Buffer_delete(&buf);
+    fprintf_s(impl->out, STR(".h\"\n"));
     Vector_push(files, _impl);
 }
 

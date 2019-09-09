@@ -123,6 +123,19 @@ FilePath FilePath_dirname(FilePath self, Allocator *allocator)
     };
 }
 
+FilePath FilePath_basename(FilePath self, Allocator *allocator)
+{
+    Vector(String) parts = Vector_new(allocator);
+    Slice(String) slice = Vector_toSlice(String, &self.parts);
+    String it = *Slice_at(&slice, Slice_size(&slice) - 1);
+    Vector_push(&parts, it);
+    return (FilePath) {
+            ._data = STR(""),
+            .parts = parts,
+            .absolute = false,
+    };
+}
+
 void FileSystem_delete(FileSystem *self)
 {
     FilePath_delete(&self->root);

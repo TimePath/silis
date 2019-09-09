@@ -7,7 +7,7 @@
 
 typedef struct {
     Slice(String) args;
-    File *out;
+    File *stdout;
     FileSystem *fs;
     Allocator *allocator;
 } Env;

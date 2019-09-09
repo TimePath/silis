@@ -50,7 +50,7 @@ int main(int argc, const char *argv[]) {
     printf("dir_in=%s\n", dir_in);
     printf("dir_out=%s\n", dir_out);
     printf("test=%s\n", test);
-    run_or_exit("%s %s %s %s %s %s.c", silis, target, dir_in, dir_out, test, test);
+    run_or_exit("%s %s %s %s %s", silis, target, dir_in, dir_out, test);
 #ifdef _WIN32
     run_or_exit("\"%s\" %s\\%s.c /Fe:%s\\%s.exe", CC, dir_out, test, dir_out, test);
     run("%s\\%s.exe", dir_out, test);

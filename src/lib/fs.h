@@ -30,6 +30,8 @@ String FilePath_to_native_(FilePath path, Buffer *buf, bool nix);
 
 FilePath FilePath_dirname(FilePath self, Allocator *allocator);
 
+FilePath FilePath_basename(FilePath self, Allocator *allocator);
+
 typedef struct {
     File *(*open)(void *self, FilePath path, String mode);
 } FileSystem_class;

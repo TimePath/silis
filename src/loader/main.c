@@ -46,7 +46,7 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) {
     };
     Allocator *allocator = &debugAllocator.interface;
     extern File_class File_native;
-    File *out = File_new(File_native, libsystem_stdout(), NULL, allocator);
+    File *stdout = File_new(File_native, libsystem_stdout(), NULL, allocator);
     extern FileSystem_class FileSystem_native;
     FileSystem fs = FileSystem_new(FileSystem_native, &fs, allocator);
     Vector(String) args = Vector_new(allocator);
@@ -58,13 +58,13 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) {
     }
     size_t ret = main((Env) {
             .args = Vector_toSlice(String, &args),
-            .out = out,
+            .stdout = stdout,
             .fs = &fs,
             .allocator = allocator,
     });
     Vector_delete(String, &args);
     FileSystem_delete(&fs);
-    File_close(out);
+    File_close(stdout);
 
     assert(!debugAllocator.size && "no memory leaked");
     return (native_int_t) ret;

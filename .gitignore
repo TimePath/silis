@@ -5,5 +5,5 @@ result-*
 silis.inc
 silis.c
 
-tests/*.c
-tests/*.exe
+tests/*
+!tests/*.sil
