@@ -31,12 +31,12 @@ FilePath FilePath_from_native_(String path, bool nix, Allocator *allocator)
 
 static FilePath FilePath_from_native_unix(String path, Allocator *allocator)
 {
-    String delim = STR("/");
+    Slice(String) delims = Slice_of(String, ((String[]) { STR("/") }));
     bool absolute = false;
     Vector(String) parts = Vector_new(allocator);
     uint8_t i = 0;
     String state = path;
-    for (String head; String_delim(&state, delim, &head); ++i) {
+    for (String head; String_delim(&state, delims, &head); ++i) {
         if (!String_sizeBytes(head)) {
             if (i == 0) {
                 absolute = true;
@@ -51,12 +51,12 @@ static FilePath FilePath_from_native_unix(String path, Allocator *allocator)
 
 static FilePath FilePath_from_native_win(String path, Allocator *allocator)
 {
-    String delim = STR("\\");
+    Slice(String) delims = Slice_of(String, ((String[2]) { STR("\\"), STR("/") }));
     bool absolute = false;
     Vector(String) parts = Vector_new(allocator);
     uint8_t i = 0;
     String state = path;
-    for (String head; String_delim(&state, delim, &head); ++i) {
+    for (String head; String_delim(&state, delims, &head); ++i) {
         Vector_push(&parts, head);
     }
     Vector_push(&parts, state);

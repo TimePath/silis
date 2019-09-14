@@ -6,7 +6,11 @@ set(CMAKE_C_STANDARD 99)
 include(CheckCCompilerFlag)
 function(try_flag LIST FLAG)
     string(REGEX REPLACE "[/=-]" "_" TEST ${FLAG})
-    set(CMAKE_REQUIRED_FLAGS "-Werror")
+    if (WIN32)
+        set(CMAKE_REQUIRED_FLAGS "")
+    else ()
+        set(CMAKE_REQUIRED_FLAGS "-Werror")
+    endif ()
     check_c_compiler_flag("${FLAG}" ${TEST})
     set(CMAKE_REQUIRED_FLAGS "")
     if (${TEST})
@@ -19,12 +23,17 @@ try_flag(CMAKE_C_FLAGS "-pedantic")
 try_flag(CMAKE_C_FLAGS "-Wall")
 try_flag(CMAKE_C_FLAGS "-Wextra")
 try_flag(CMAKE_C_FLAGS "-Weverything")
+try_flag(CMAKE_C_FLAGS "/utf-8")
 
 # keep
 try_flag(CMAKE_C_FLAGS "-Wno-keyword-macro")
 try_flag(CMAKE_C_FLAGS "-Wno-reserved-id-macro")
 try_flag(CMAKE_C_FLAGS "-Wno-unused-command-line-argument")
 try_flag(CMAKE_C_FLAGS "-Wno-unused-macros")
+try_flag(CMAKE_C_FLAGS "/wd4204")  # non-constant aggregate initializer
+try_flag(CMAKE_C_FLAGS "/wd4214")  # bit field types other than int
+try_flag(CMAKE_C_FLAGS "/wd4464")  # relative include path contains '..'
+try_flag(CMAKE_C_FLAGS "/wd5045")  # spectre mitigation
 
 include_directories(src)
 add_definitions(-DUSE_REAL_HEADERS=0)
@@ -152,10 +161,10 @@ function(main)
 
     add_executable(silisc-test src/test.c)
 
-    silisc_test(tests/01-simple.sil)
-    silisc_test(tests/02-extern.sil)
-    silisc_test(tests/03-if.sil)
-    silisc_test(tests/04-while.sil)
+    silisc_test("01-simple.sil")
+    silisc_test("02-extern.sil")
+    silisc_test("03-if.sil")
+    silisc_test("04-while.sil")
 endfunction()
 
 enable_testing()
@@ -183,11 +192,12 @@ if (${CMAKE_VERSION} VERSION_LESS "3.1.0")
     set(ENV env)
 endif ()
 function(silisc_test file)
-    set(pwd ${CMAKE_CURRENT_SOURCE_DIR})
+    set(pwd "${CMAKE_CURRENT_SOURCE_DIR}/tests")
     get_filename_component(name ${file} NAME)
     set(name test-${name})
     add_test(
             NAME ${name}
+            WORKING_DIRECTORY ${pwd}
             COMMAND ${ENV}
             CC=${CMAKE_C_COMPILER}
             $<TARGET_FILE:silisc-test> $<TARGET_FILE:silisc> ${pwd} ${pwd} ${file}

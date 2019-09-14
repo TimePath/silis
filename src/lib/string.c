@@ -51,17 +51,20 @@ native_char_t *String_cstr(String self, Allocator *allocator)
     return buf;
 }
 
-bool String_delim(String *tail, String delim, String *head)
+bool String_delim(String *tail, Slice(String) delims, String *head)
 {
     const StringEncoding *enc = tail->encoding;
     const uint8_t *begin = String_begin(*tail);
     Slice(uint8_t) it = tail->bytes;
     for (Slice(uint8_t) next; (void) (next = enc->next(it)), Slice_begin(&it) != Slice_end(&it); it = next) {
         size_t c = enc->get(it);
-        if (c == *Slice_at(&delim.bytes, 0)) { // todo: use all of `delim`
-            *head = String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc);
-            *tail = String_fromSlice(next, enc);
-            return true;
+        Slice_loop(&delims, i) {
+            String delim = *Slice_at(&delims, i);
+            if (c == *Slice_at(&delim.bytes, 0)) { // todo: use all of `delim`
+                *head = String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}, enc);
+                *tail = String_fromSlice(next, enc);
+                return true;
+            }
         }
     }
     return false;

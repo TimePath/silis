@@ -24,33 +24,39 @@ NORETURN void libsystem_assert_fail(native_string_t expr, native_string_t file, 
     abort();
 }
 
+extern void *(malloc)(size_t size);
+
 void *libsystem_malloc(size_t size) {
-    extern void *(malloc)(size_t size);
     return (malloc)(size);
 }
 
+extern void *(realloc)(void *ptr, size_t size);
+
 void *libsystem_realloc(void *ptr, size_t size) {
-    extern void *(realloc)(void *ptr, size_t size);
     return (realloc)(ptr, size);
 }
 
+extern void (free)(void *ptr);
+
 void libsystem_free(void *ptr) {
-    extern void (free)(void *ptr);
     (free)(ptr);
 }
 
+extern native_int_t memcmp(const void *s1, const void *s2, size_t n);
+
 native_int_t libsystem_memcmp(const void *s1, const void *s2, size_t n) {
-    extern native_int_t memcmp(const void *s1, const void *s2, size_t n);
     return memcmp(s1, s2, n);
 }
 
+extern void *memcpy(void *dest, const void *src, size_t n);
+
 void *libsystem_memcpy(void *dest, const void *src, size_t n) {
-    extern void *memcpy(void *dest, const void *src, size_t n);
     return memcpy(dest, src, n);
 }
 
+extern size_t strlen(const native_char_t *s);
+
 size_t libsystem_strlen(const native_char_t *s) {
-    extern size_t strlen(const native_char_t *s);
     return strlen(s);
 }
 
@@ -86,13 +92,15 @@ struct libsystem_FILE *libsystem_stdout(void) {
     return (struct libsystem_FILE *) stdout;
 }
 
+extern native_char_t *getcwd(native_char_t *buf, size_t size);
+
 native_char_t *libsystem_getcwd(native_char_t *buf, size_t size) {
-    extern native_char_t *getcwd(native_char_t *buf, size_t size);
     return getcwd(buf, size);
 }
 
+extern native_int_t chdir(const native_char_t *path);
+
 native_int_t libsystem_chdir(const native_char_t *path) {
-    extern native_int_t chdir(const native_char_t *path);
     return chdir(path);
 }
 
