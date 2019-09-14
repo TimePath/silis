@@ -97,9 +97,16 @@ pid_t waitpid(pid_t pid, int *status, int options);
 
 static char *getcwd_full(void);
 
+
 static int spawn(char const *argv[]) {
     pid_t pid;
-    int ret = posix_spawn(&pid, argv[0], NULL, NULL, (void *) argv, NULL);
+#if TARGET_OS_LIN
+    extern char **_environ;
+    char **envp = _environ;
+#else
+    char **envp = NULL;
+#endif
+    int ret = posix_spawn(&pid, argv[0], NULL, NULL, (void *) argv, envp);
     if (ret) return ret;
     waitpid(pid, &ret, 0);
     return ret;

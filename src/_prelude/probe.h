@@ -39,18 +39,22 @@
 #if 0
 
 #elif defined(__APPLE__)
+#define TARGET_OS_LIN 0
 #define TARGET_OS_MAC 1
 #define TARGET_OS_WIN 0
 
 #elif defined(__EMSCRIPTEN__)
+#define TARGET_OS_LIN 0
 #define TARGET_OS_MAC 0
 #define TARGET_OS_WIN 0
 
 #elif defined(__linux__)
+#define TARGET_OS_LIN 1
 #define TARGET_OS_MAC 0
 #define TARGET_OS_WIN 0
 
 #elif defined(_WIN32)
+#define TARGET_OS_LIN 0
 #define TARGET_OS_MAC 0
 #define TARGET_OS_WIN 1
 
