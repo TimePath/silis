@@ -125,11 +125,12 @@ function(main)
 
             src/compiler/intrinsics/debug/puti.c
             src/compiler/intrinsics/debug/puts.c
+            src/compiler/intrinsics/actual.c
             src/compiler/intrinsics/cond.c
             src/compiler/intrinsics/define.c
             src/compiler/intrinsics/do.c
             src/compiler/intrinsics/emit.c
-            src/compiler/intrinsics/extern.c
+            src/compiler/intrinsics/expect.c
             src/compiler/intrinsics/func.c
             src/compiler/intrinsics/if.c
             src/compiler/intrinsics/include.c
@@ -162,7 +163,7 @@ function(main)
     add_executable(silisc-test src/test.c)
 
     silisc_test("01-simple.sil")
-    silisc_test("02-extern.sil")
+    silisc_test("02-expect.sil")
     silisc_test("03-if.sil")
     silisc_test("04-while.sil")
 endfunction()

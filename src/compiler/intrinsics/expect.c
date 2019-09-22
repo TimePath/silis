@@ -1,12 +1,12 @@
 #include <prelude.h>
-#include "extern.h"
+#include "expect.h"
 
 #include <lib/misc.h>
 
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(extern, ((TypeRef[]) {
+INTRINSIC_IMPL(expect, ((TypeRef[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))
@@ -24,7 +24,7 @@ INTRINSIC_IMPL(extern, ((TypeRef[]) {
     Symbols_define(interpreter->symbols, name->u.Atom.value, (Symbol) {
             .file = self.file,
             .type = T,
-            .value = {.type = T, .node = self, .flags = { .abstract = true, .native = true, }},
+            .value = {.type = T, .node = self, .flags = { .abstract = true, .expect = true, }},
     });
     return (Value) {.type = interpreter->types->t_unit, .node = self};
 }

@@ -2,8 +2,6 @@
 (#actual puts "c" "extern int puts(char const *)")
 
 (#define main (#func [() (#types/int)] (#do {
-    (#if 1 (#do {
-        (puts "TEST")
-    }))
+    (puts "TEST")
     0
 })))

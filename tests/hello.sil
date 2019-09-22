@@ -1,4 +1,5 @@
-(#extern puts (#types/func [#types/string #types/int]))
+(#expect puts (#types/func [#types/string #types/int]))
+(#actual puts "c" "extern int puts(char const *)")
 
 (#define GREETING "Hello, world\n")
 

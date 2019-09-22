@@ -105,24 +105,23 @@ emit_output do_emit(emit_input in)
         const size_t inputFile = it->file.id - 1;
         const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_HEADER];
         assert(file);
-        if (it->value.flags.intrinsic) {
+        const TypeRef type = it->type;
+        if (type.value == ctx->interpreter->types->t_untyped.value) {
+            fprintf_s(file->out, STR("extern thingy"));
+            continue;
+        }
+        if (it->value.flags.intrinsic || it->value.flags.expect) {
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const TypeRef type = it->type;
-        if (it->value.flags.native) {
-            fprintf_s(file->out, STR("extern ")); // FIXME
-        }
         if (Types_lookup(ctx->interpreter->types, type)->kind.val == Type_Function) {
             Target_func_forward(ctx->target, ctx->interpreter, file, type, ident);
         } else {
             Target_var_begin(ctx->target, ctx->interpreter, file, type);
             fprintf_s(file->out, ident);
             Target_var_end(ctx->target, ctx->interpreter, file, type);
-            if (!it->value.flags.native) {
-                fprintf_s(file->out, STR(" = "));
-                emit_value(ctx, file, &it->value);
-            }
+            fprintf_s(file->out, STR(" = "));
+            emit_value(ctx, file, &it->value);
             SEMI();
         }
         LINE();
@@ -134,7 +133,7 @@ emit_output do_emit(emit_input in)
         const size_t inputFile = it->file.id - 1;
         const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_IMPL];
         assert(file);
-        if (it->value.flags.intrinsic || it->value.flags.native) {
+        if (it->value.flags.intrinsic || it->value.flags.expect) {
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
@@ -549,7 +548,10 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         return true;
     }
     if (intrin == &intrin_untyped) {
-        const Node *code = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
+        const Node *target = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));
+        assert(target->kind.val == Node_String);
+        // todo: verify target
+        const Node *code = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 2));
         assert(code->kind.val == Node_String);
         emit_return_assign(ctx, file, ret);
         fprintf_s(file->out, code->u.String.value);
