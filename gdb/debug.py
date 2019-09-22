@@ -158,8 +158,28 @@ class String(Printer):
         begin = val["bytes"]["_begin"]["r"]
         end = val["bytes"]["_end"]
         n = end - begin
-        return json.dumps("".join(chr(begin[i]) for i in range(n)))
+        return json.dumps(bytes(begin[i] for i in range(n)).decode("utf8"))
 
     def children(self, val):
         yield ("encoding", val["encoding"])
         yield ("bytes", val["bytes"])
+
+
+@printer("Trie__(.*)")
+class Trie(Printer):
+    def to_type_string(self, type, args):
+        return f"Trie<{args[0]}>"
+
+    def to_string(self, val):
+        n = val["entries"]["_size"]
+        return f"Trie of {n}"
+
+    def children(self, val):
+        n = val["entries"]["_size"]
+        for i in range(n):
+            it = val["entries"]["_data"][i]
+            v = it["value"]
+            begin = it["key"]["_begin"]["r"]
+            end = it["key"]["_end"]
+            k = json.dumps(bytes(begin[i] for i in range(end - begin)).decode("utf8"))
+            yield (k, v)

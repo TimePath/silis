@@ -62,7 +62,7 @@ static bool SymbolScope_get(SymbolScope *self, String ident, Symbol *out)
 
 static void SymbolScope_set(SymbolScope *self, String ident, Symbol val)
 {
-    Trie_set((void *) &self->t, ident.bytes, &val, sizeof(TrieNode(Symbol)));
+    Trie_set((void *) &self->t, ident.bytes, &val);
 }
 
 void Symbols_push(Symbols *symbols)

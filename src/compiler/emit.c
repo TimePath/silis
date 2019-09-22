@@ -99,11 +99,9 @@ emit_output do_emit(emit_input in)
 
     const SymbolScope *globals = Vector_at(&ctx->interpreter->symbols->scopes, 0);
     // first pass: emit function prototypes and globals
-    Vector_loop(TrieEntry, &globals->t.entries, i) {
-        const TrieEntry *e = Vector_at(&globals->t.entries, i);
-        const TrieNode(Symbol) *n = Vector_at(&globals->t.nodes, e->value);
-        const Symbol _it = n->value;
-        const Symbol *it = &_it;
+    Vector_loop(TrieEntry(Symbol), &globals->t.entries, i) {
+        const TrieEntry(Symbol) *e = Vector_at(&globals->t.entries, i);
+        const Symbol _it = e->value, *it = &_it;
         const size_t inputFile = it->file.id - 1;
         const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_HEADER];
         assert(file);
@@ -130,11 +128,9 @@ emit_output do_emit(emit_input in)
         LINE();
     }
     // second pass: emit functions
-    Vector_loop(TrieEntry, &globals->t.entries, i) {
-        const TrieEntry *e = Vector_at(&globals->t.entries, i);
-        const TrieNode(Symbol) *n = Vector_at(&globals->t.nodes, e->value);
-        const Symbol _it = n->value;
-        const Symbol *it = &_it;
+    Vector_loop(TrieEntry(Symbol), &globals->t.entries, i) {
+        const TrieEntry(Symbol) *e = Vector_at(&globals->t.entries, i);
+        const Symbol _it = e->value, *it = &_it;
         const size_t inputFile = it->file.id - 1;
         const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_IMPL];
         assert(file);

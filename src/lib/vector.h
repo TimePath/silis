@@ -21,9 +21,9 @@ struct { \
 /**/
 
 #define Vector_size(self) ((self)->_size)
-#define _Vector_data(self) ((self)->_data)
-#define Vector_at(self, i) (&_Vector_data(self)[i])
-#define Vector_toSlice(T, self) ((Slice(T)) { ._begin.r = _Vector_data(self), ._end = _Vector_data(self) + Vector_size(self) })
+#define Vector_at(self, i) (&(self)->_data[i])
+#define _Vector_at(T, sizeof_T, self, i) ((T *) (void *) &((uint8_t *) (self)->_data)[(sizeof_T) * (i)])
+#define Vector_toSlice(T, self) ((Slice(T)) { ._begin.r = (self)->_data, ._end = (self)->_data + Vector_size(self) })
 
 #define Vector_loop(T, self, i) Slice_loop(&Vector_toSlice(T, self), i)
 
@@ -31,7 +31,7 @@ void _Vector_push(size_t sizeof_T, void *self, size_t dataSize, const void *data
 
 #define Vector_push(self, val) \
 MACRO_BEGIN \
-    if (0) { (void) (_Vector_data(self) == &(val)); } \
+    if (0) { (void) ((self)->_data == &(val)); } \
     _Vector_push(sizeof(val), self, sizeof(val), &(val), 1); \
 MACRO_END
 

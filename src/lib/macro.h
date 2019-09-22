@@ -15,6 +15,8 @@
 
 #define ARRAY_LEN(x) ((sizeof(x) / sizeof((x)[0])))
 
+#define OFFSETOF(T, fld) ((size_t) &(((T *) 0)->fld))
+
 #if TARGET_COMPILER_MSVC
 #pragma warning(disable:4116)
 #endif

@@ -9,21 +9,22 @@ void _Vector_push(size_t sizeof_T, void *_self, size_t dataSize, const void *dat
 {
     Vector(void) *self = (Vector(void) *) _self;
     Allocator *allocator = self->_allocator;
-    const size_t size = Vector_size(self);
+    size_t oldSize = Vector_size(self);
     // todo: smarter growth strategy
-    _Vector_data(self) = realloc(_Vector_data(self), (size + count) * sizeof_T);
-    libsystem_memcpy((uint8_t *) _Vector_data(self) + (size * sizeof_T), data, dataSize);
-    Vector_size(self) += count;
+    size_t size = oldSize + count;
+    self->_data = realloc(self->_data, sizeof_T * size);
+    self->_size = size;
+    libsystem_memcpy(_Vector_at(uint8_t, sizeof_T, self, oldSize), data, dataSize);
 }
 
 void Vector_pop(void *_self)
 {
     Vector(void) *self = (Vector(void) *) _self;
     Allocator *allocator = self->_allocator;
-    --Vector_size(self);
+    self->_size -= 1;
     if (Vector_size(self) == 0) {
-        free(_Vector_data(self));
-        _Vector_data(self) = NULL;
+        free(self->_data);
+        self->_data = NULL;
     }
 }
 
@@ -31,7 +32,7 @@ void _Vector_delete(void *_self)
 {
     Vector(void) *self = (Vector(void) *) _self;
     Allocator *allocator = self->_allocator;
-    Vector_size(self) = 0;
-    free(_Vector_data(self));
-    _Vector_data(self) = NULL;
+    self->_size = 0;
+    free(self->_data);
+    self->_data = NULL;
 }
