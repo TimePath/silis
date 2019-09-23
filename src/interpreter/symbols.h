@@ -6,10 +6,12 @@
 #include "symbol.h"
 #include "types.h"
 
+Ref_instantiate(SymbolScope, size_t);
+
 Trie_instantiate(Symbol);
 typedef struct {
     Trie(Symbol) t;
-    size_t parent;
+    Ref(SymbolScope) parent;
 } SymbolScope;
 
 void SymbolScope_delete(SymbolScope *self);

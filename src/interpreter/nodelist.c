@@ -19,7 +19,7 @@ InterpreterFileNodeRef NodeList_get(NodeList *self, size_t index)
 {
     return (InterpreterFileNodeRef) {
             .file = self->head.file,
-            .node = { .id = self->head.node.id + index }
+            .node = Ref_fromIndex(Ref_toIndex(self->head.node) + index),
     };
 }
 
@@ -29,7 +29,7 @@ NodeList NodeList_iterator(const Interpreter *compilation, InterpreterFileNodeRe
     assert(node->kind.val == Node_ListBegin);
     return (NodeList) {
             .compilation = compilation,
-            .head = (InterpreterFileNodeRef) { .file = list.file, .node = { .id = list.node.id + 1 }},
+            .head = (InterpreterFileNodeRef) { .file = list.file, .node = Ref_fromIndex(Ref_toIndex(list.node) + 1)},
             ._i = 0,
             ._n = node->u.ListBegin.size,
     };

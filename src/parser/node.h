@@ -7,23 +7,25 @@
 
 #include "token.h"
 
+Ref_instantiate(Node, size_t);
+
 #define Node(id, _) \
     /** Generated at runtime. Index to address of expression in AST buffer */ \
     _(id, Ref, { \
-        size_t value; \
+        Ref(Node) value; \
     }) \
     /** ( */ \
     _(id, ListBegin, { \
         const Token *token; \
         size_t size; \
-        /** indices for first and last child; 0 means null */ \
-        size_t begin; \
-        size_t end; \
+        /** indices for first and last child */ \
+        Ref(Node) begin; \
+        Ref(Node) end; \
     }) \
     /** ) */ \
     _(id, ListEnd, { \
         const Token *token; \
-        size_t begin; \
+        Ref(Node) begin; \
     }) \
     /** ) */ \
     _(id, Atom, { \

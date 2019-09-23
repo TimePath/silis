@@ -36,5 +36,5 @@ Value Value_from(Interpreter *interpreter, InterpreterFileNodeRef it)
                     .u.string.value = n->u.String.value,
             };
     }
-    return (Value) {.type = {.value = 0}};
+    return (Value) {.type = Ref_null};
 }

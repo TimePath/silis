@@ -3,9 +3,9 @@
 #include <lib/slice.h>
 #include <lib/vector.h>
 
-typedef struct {
-    size_t value;
-} TypeRef;
+Ref_instantiate(Type, size_t);
+
+typedef Ref(Type) TypeRef;
 
 Slice_instantiate(TypeRef);
 Vector_instantiate(TypeRef);

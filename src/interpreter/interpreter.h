@@ -8,18 +8,18 @@
 
 #include "types.h"
 
-typedef struct {
-    size_t id;
-} InterpreterFileRef;
+Ref_instantiate(InterpreterFile, size_t);
+
+typedef Ref(InterpreterFile) InterpreterFileRef;
 
 typedef struct {
-    InterpreterFileRef file;
-    struct { size_t id; } token;
+    Ref(InterpreterFile) file;
+    Ref(Token) token;
 } InterpreterFileTokenRef;
 
 typedef struct {
-    InterpreterFileRef file;
-    struct { size_t id; } node;
+    Ref(InterpreterFile) file;
+    Ref(Node) node;
 } InterpreterFileNodeRef;
 
 #define InterpreterFileNodeRef_delete(self) ((void) (self))

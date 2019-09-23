@@ -40,12 +40,12 @@ static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState st
                 fprintf_s(self->out, STR(" .children = {"));
                 {
                     fprintf_s(self->out, STR(" .begin = "));
-                    fprintf_zu(self->out, it->u.ListBegin.begin);
+                    fprintf_zu(self->out, Ref_value(it->u.ListBegin.begin));
                     fprintf_s(self->out, STR(","));
                 }
                 {
                     fprintf_s(self->out, STR(" .end = "));
-                    fprintf_zu(self->out, it->u.ListBegin.end);
+                    fprintf_zu(self->out, Ref_value(it->u.ListBegin.end));
                     fprintf_s(self->out, STR(","));
                 }
                 {
@@ -73,7 +73,7 @@ static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState st
             }
             {
                 fprintf_s(self->out, STR(" .begin = "));
-                fprintf_zu(self->out, it->u.ListEnd.begin);
+                fprintf_zu(self->out, Ref_value(it->u.ListEnd.begin));
                 fprintf_s(self->out, STR(","));
             }
         }
@@ -86,7 +86,7 @@ static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState st
                 unreachable(break);
             case Node_Ref:
                 fprintf_s(self->out, STR("var_"));
-                fprintf_zu(self->out, it->u.Ref.value);
+                fprintf_zu(self->out, Ref_value(it->u.Ref.value));
                 fprintf_s(self->out, STR(" ;"));
                 {
                     {

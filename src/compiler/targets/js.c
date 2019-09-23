@@ -143,7 +143,7 @@ static void tgt_js_print_function(struct Target *target, Interpreter *interprete
 
 static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T)
 {
-#define CASE(t) if (T.value == interpreter->types->t.value)
+#define CASE(t) if (Ref_eq(T, interpreter->types->t))
     CASE(t_unit) {
         fprintf_s(file->out, STR("void"));
         return;
@@ -176,7 +176,7 @@ static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, c
         return;
     }
     fprintf_s(file->out, STR("type<"));
-    fprintf_zu(file->out, T.value);
+    fprintf_zu(file->out, Ref_value(T));
     fprintf_s(file->out, STR(">"));
 }
 
@@ -206,7 +206,7 @@ static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpret
     size_t i = 0;
     while (true) {
         const TypeRef arg = argp->u.Function.in;
-        if (arg.value == interpreter->types->t_unit.value) {
+        if (Ref_eq(arg, interpreter->types->t_unit)) {
             break;
         }
         const String s = idents ? idents[i++] : STR("");

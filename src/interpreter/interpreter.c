@@ -22,24 +22,24 @@ void InterpreterFile_delete(InterpreterFile *self)
 
 const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, InterpreterFileRef ref)
 {
-    assert(ref.id && "file exists");
-    const InterpreterFile *file = *Vector_at(&self->compilation.files, ref.id - 1);
+    assert(Ref_toBool(ref) && "file exists");
+    const InterpreterFile *file = *Vector_at(&self->compilation.files, Ref_toIndex(ref));
     return file;
 }
 
 const Token *Interpreter_lookup_file_token(const Interpreter *self, InterpreterFileTokenRef ref)
 {
-    assert(ref.token.id && "token exists");
+    assert(Ref_toBool(ref.token) && "token exists");
     const InterpreterFile *file = Interpreter_lookup_file(self, ref.file);
-    const Token *token = Vector_at(&file->tokens, ref.token.id - 1);
+    const Token *token = Vector_at(&file->tokens, Ref_toIndex(ref.token));
     return token;
 }
 
 const Node *Interpreter_lookup_file_node(const Interpreter *self, InterpreterFileNodeRef ref)
 {
-    assert(ref.node.id && "node exists");
+    assert(Ref_toBool(ref.node) && "node exists");
     const InterpreterFile *file = Interpreter_lookup_file(self, ref.file);
-    const Node *node = Vector_at(&file->nodes, ref.node.id - 1);
+    const Node *node = Vector_at(&file->nodes, Ref_toIndex(ref.node));
     return node;
 }
 
@@ -47,7 +47,7 @@ InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, Inte
 {
     const Node *it = Interpreter_lookup_file_node(self, ref);
     if (it->kind.val == Node_Ref) {
-        ref.node.id = it->u.Ref.value;
+        ref.node = it->u.Ref.value;
         assert(Interpreter_lookup_file_node(self, ref)->kind.val == Node_ListBegin && "references refer to lists");
     }
     return ref;
@@ -60,13 +60,13 @@ InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath 
     File *file = FileSystem_open(fs, path, STR("rb"));
     if (!file) {
         assert(file && "read from file");
-        return (InterpreterFileRef) {0};
+        return (InterpreterFileRef) Ref_null;
     }
     bool read = File_read_all(file, &bytes, allocator);
     File_close(file);
     if (!read) {
         assert(read && "read from file");
-        return (InterpreterFileRef) {0};
+        return (InterpreterFileRef) Ref_null;
     }
     String fileStr = String_fromSlice(bytes, ENCODING_DEFAULT);
     return Interpreter_read(self, fileStr, path);
@@ -75,7 +75,7 @@ InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath 
 InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath path)
 {
     Allocator *allocator = self->allocator;
-    InterpreterFileRef ret = {.id = Vector_size(&self->compilation.files) + 1};
+    InterpreterFileRef ret = Ref_fromIndex(Vector_size(&self->compilation.files));
 
     if (self->compilation.flags.print_lex) {
         fprintf_s(self->compilation.debug, STR("LEX:\n---\n"));
@@ -86,7 +86,7 @@ InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath pat
     });
     if (!lex.is.ok) {
         ParserError_print(lex.ret.err, self->compilation.debug);
-        unreachable(return (InterpreterFileRef) {0});
+        unreachable(return (InterpreterFileRef) Ref_null);
     }
     Vector(Token) tokens = lex.ret.val;
     if (self->compilation.flags.print_lex) {
@@ -111,7 +111,7 @@ InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath pat
             .content = Slice_data_mut(&file.bytes),
             .tokens = tokens,
             .nodes = parse.nodes,
-            .entry = {.file = ret, .node = {.id = parse.root_id}},
+            .entry = {.file = ret, .node = parse.root},
     }));
     Vector_push(&self->compilation.files, f);
 

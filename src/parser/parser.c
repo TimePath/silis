@@ -71,14 +71,14 @@ static size_t Parser_parse(Parser *self, const Token *it)
     const Token *end = it;
     // just parsed a full expression
     const size_t argc = Vector_size(&self->stack) - argv_begin;
-    size_t autoid = Vector_size(&self->nodes) + 1;
+    size_t autoid = Vector_size(&self->nodes);
     {
         const Node header = (Node) {
                 .kind.val = Node_ListBegin,
                 .u.ListBegin = {
                         .token = begin,
-                        .begin = !argc ? 0 : autoid + 1,
-                        .end = !argc ? 0 : autoid + argc,
+                        .begin = !argc ? (Ref(Node)) Ref_null : (Ref(Node)) Ref_fromIndex(autoid + 1),
+                        .end = !argc ? (Ref(Node)) Ref_null : (Ref(Node)) Ref_fromIndex(autoid + argc),
                         .size = argc,
                 },
         };
@@ -93,14 +93,14 @@ static size_t Parser_parse(Parser *self, const Token *it)
                 .kind.val = Node_ListEnd,
                 .u.ListEnd = {
                         .token = end,
-                        .begin = autoid,
+                        .begin = Ref_fromIndex(autoid),
                 },
         };
         Parser_yield(self, footer);
     }
     const Node ret = (Node) {
             .kind.val = Node_Ref,
-            .u.Ref.value = autoid,
+            .u.Ref.value = Ref_fromIndex(autoid),
     };
     Vector_push(&self->stack, ret);
     return 1 + (size_t) (end - begin);
@@ -123,7 +123,7 @@ silis_parser_parse_output silis_parser_parse(silis_parser_parse_input in)
     assert(Vector_size(&parser.stack) == 1 && "stack contains result");
     Node *it = Vector_at(&parser.stack, 0);
     assert(it->kind.val == Node_Ref && "result is a reference");
-    size_t root_id = it->u.Ref.value;
+    Ref(Node) root = it->u.Ref.value;
     Vector_pop(&parser.stack);
-    return (silis_parser_parse_output) {.nodes = parser.nodes, .root_id = root_id};
+    return (silis_parser_parse_output) {.nodes = parser.nodes, .root = root};
 }

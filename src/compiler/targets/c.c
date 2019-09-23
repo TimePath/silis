@@ -167,7 +167,7 @@ static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const c
 {
     const Type *type = Types_lookup(interpreter->types, T);
     if (type->kind.val != Type_Function) {
-#define CASE(t) if (T.value == interpreter->types->t.value)
+#define CASE(t) if (Ref_eq(T, interpreter->types->t))
         CASE(t_unit) {
             fprintf_s(file->out, !opts.anonymous ? STR("void ") : STR("void"));
             return;
@@ -182,7 +182,7 @@ static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const c
         }
 #undef CASE
         fprintf_s(file->out, STR("type<"));
-        fprintf_zu(file->out, T.value);
+        fprintf_zu(file->out, Ref_value(T));
         fprintf_s(file->out, !opts.anonymous ? STR("> ") : STR(">"));
         return;
     }

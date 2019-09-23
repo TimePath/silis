@@ -19,7 +19,7 @@ INTRINSIC_IMPL(extern, ((TypeRef[]) {
     InterpreterFileNodeRef val = arg_type->u.expr.value;
 
     const Value v = eval_node(interpreter, val);
-    assert(v.type.value == interpreter->types->t_type.value && "argument is a type");
+    assert(Ref_eq(v.type, interpreter->types->t_type) && "argument is a type");
     TypeRef T = v.u.type.value;
     Symbols_define(interpreter->symbols, name->u.Atom.value, (Symbol) {
             .file = self.file,

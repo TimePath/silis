@@ -23,7 +23,7 @@ Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolIni
     Slice_loop(&init, i) {
         SymbolInitializer it = *Slice_at(&init, i);
         Symbols_define(self, it.id, (Symbol) {
-                .file = {0},
+                .file = Ref_null,
                 .type = it.value.type,
                 .value = it.value
         });
@@ -32,7 +32,7 @@ Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolIni
         SymbolInitializer_intrin it = *Slice_at(&initIntrin, i);
         TypeRef T = it.value->load(types);
         Symbols_define(self, it.id, (Symbol) {
-                .file = {0},
+                .file = Ref_null,
                 .type = T,
                 .value = {
                         .type = T,
@@ -47,7 +47,7 @@ Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolIni
     return ret;
 }
 
-static SymbolScope SymbolScope_new(size_t parent, Allocator *allocator)
+static SymbolScope SymbolScope_new(Ref(SymbolScope) parent, Allocator *allocator)
 {
     SymbolScope ret = (SymbolScope) {.parent = parent};
     SymbolScope *self = &ret;
@@ -69,7 +69,7 @@ void Symbols_push(Symbols *symbols)
 {
     Allocator *allocator = symbols->allocator;
     size_t size = Vector_size(&symbols->scopes);
-    size_t parent = !size ? 0 : size - 1;
+    Ref(SymbolScope) parent = !size ? (Ref(SymbolScope)) Ref_null : (Ref(SymbolScope)) Ref_fromIndex(size - 1);
     SymbolScope newscope = SymbolScope_new(parent, allocator);
     Vector_push(&symbols->scopes, newscope);
 }
@@ -82,17 +82,17 @@ void Symbols_pop(Symbols *symbols)
 
 bool Symbols_lookup(const Symbols *symbols, String ident, Symbol *out)
 {
-    size_t i = Vector_size(&symbols->scopes) - 1;
+    Ref(SymbolScope) scope = Ref_fromIndex(Vector_size(&symbols->scopes) - 1);
     for (;;) {
-        SymbolScope *it = Vector_at(&symbols->scopes, i);
+        SymbolScope *it = Vector_at(&symbols->scopes, Ref_toIndex(scope));
         if (SymbolScope_get(it, ident, out)) {
             return true;
         }
-        const size_t next = it->parent;
-        if (i == next) {
+        const Ref(SymbolScope) next = it->parent;
+        if (Ref_eq(scope, next)) {
             return false;
         }
-        i = next;
+        scope = next;
     }
 }
 

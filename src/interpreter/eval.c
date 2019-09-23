@@ -86,7 +86,7 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
         arg = Interpreter_lookup_node_ref(ctx->interpreter, arg);
         const TypeRef arg_t = argType->u.Function.in;
         Value v;
-        if (arg_t.value == expr_t.value) {
+        if (Ref_eq(arg_t, expr_t)) {
             v = (Value) {
                     .type = expr_t,
                     .node = arg,
@@ -150,7 +150,7 @@ static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef argl
 
             const Value *v = Slice_at(&argv, i);
             Symbols_define(interpreter->symbols, idNode->u.Atom.value, (Symbol) {
-                    .file = {0},
+                    .file = Ref_null,
                     .type = v->type,
                     .value = *v,
                     .flags = { .eval = true, },

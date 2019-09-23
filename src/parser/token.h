@@ -5,6 +5,8 @@
 #include <lib/string.h>
 #include <lib/vector.h>
 
+Ref_instantiate(Token, size_t);
+
 #define Token(id, _) \
     /** ( */ \
     _(id, ListBegin, { PADDING(1) }) \

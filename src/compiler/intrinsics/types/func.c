@@ -37,11 +37,11 @@ static void types_func_args_types(Interpreter *interpreter, NodeList iter, TypeR
         InterpreterFileNodeRef it = Interpreter_lookup_node_ref(interpreter, ref);
         const Value v = eval_node(interpreter, it);
         TypeRef T = v.type;
-        if (T.value == interpreter->types->t_unit.value) {
+        if (Ref_eq(T, interpreter->types->t_unit)) {
             out[i] = interpreter->types->t_unit;
             continue;
         }
-        assert(T.value == interpreter->types->t_type.value && "argument is a type");
+        assert(Ref_eq(T, interpreter->types->t_type) && "argument is a type");
         out[i] = v.u.type.value;
     }
 }

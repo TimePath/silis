@@ -7,19 +7,19 @@ Types Types_new(Allocator *allocator)
 {
     Types _self = {
             .all = Vector_new(allocator),
-            .t_untyped = {.value = 0},
-            .t_unit = {.value = 0},
-            .t_type = {.value = 0},
-            .t_expr = {.value = 0},
-            .t_string = {.value = 0},
-            .t_int = {.value = 0},
+            .t_untyped = Ref_null,
+            .t_unit = Ref_null,
+            .t_type = Ref_null,
+            .t_expr = Ref_null,
+            .t_string = Ref_null,
+            .t_int = Ref_null,
     };
     Types *self = &_self;
     self->t_untyped = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
             .u.Opaque.size = 0,
     });
-    assert(self->t_untyped.value == 1 && "untyped has type id 1");
+    assert(Ref_value(self->t_untyped) == 1 && "untyped has type id 1");
     self->t_unit = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
             .u.Opaque.size = 0,
@@ -45,13 +45,10 @@ Types Types_new(Allocator *allocator)
 
 bool Types_assign(Types *self, TypeRef src, TypeRef dst)
 {
-    if (src.value == dst.value) {
+    if (Ref_eq(dst, src)) {
         return true;
     }
-    if (dst.value == self->t_untyped.value) {
-        return true;
-    }
-    if (src.value == self->t_untyped.value) {
+    if (Ref_eq(dst, self->t_untyped) || Ref_eq(src, self->t_untyped)) {
         return true;
     }
     return false;
@@ -59,8 +56,9 @@ bool Types_assign(Types *self, TypeRef src, TypeRef dst)
 
 TypeRef Types_register(Types *self, Type it)
 {
+    const size_t idx = Vector_size(&self->all);
     Vector_push(&self->all, it);
-    return (TypeRef) {.value = Vector_size(&self->all)};
+    return (TypeRef) Ref_fromIndex(idx);
 }
 
 TypeRef Types_register_func(Types *self, Slice(TypeRef) types)
@@ -80,12 +78,12 @@ TypeRef Types_register_func(Types *self, Slice(TypeRef) types)
 
 const Type *Types_lookup(const Types *self, TypeRef ref)
 {
-    return Vector_at(&self->all, ref.value - 1);
+    return Vector_at(&self->all, Ref_toIndex(ref));
 }
 
 TypeRef Types_function_result(const Types *self, TypeRef T)
 {
-    TypeRef ret = {.value = 0};
+    TypeRef ret = Ref_null;
     for (const Type *it = Types_lookup(self, T); it->kind.val == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
         ret = it->u.Function.out;
     }

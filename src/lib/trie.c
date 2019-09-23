@@ -18,48 +18,45 @@ bool Trie_get(Trie *self, Slice(uint8_t) key, void *value)
     TrieNode *it = Trie_node(self, 0);
     Slice_loop(&key, i) {
         const uint8_t b = *Slice_at(&key, i);
-        const TrieRef idx = it->children[b];
-        if (idx != 0) {
-            it = Trie_node(self, idx);
+        const TrieRef ref = it->children[b];
+        if (Ref_toBool(ref)) {
+            it = Trie_node(self, Ref_toIndex(ref));
             continue;
         }
         return false;
     }
-    if (!it->entry) {
+    if (!Ref_toBool(it->entry)) {
         return false;
     }
-    TrieEntry *e = Trie_entry(self, it->entry - 1);
+    TrieEntry *e = Trie_entry(self, Ref_toIndex(it->entry));
     libsystem_memcpy(value, Trie_entryvalue(e), self->_sizeofT);
     return true;
 }
-
-static const size_t TrieRef_max = (TrieRef) -1;
 
 void Trie_set(Trie *self, Slice(uint8_t) key, void *value)
 {
     TrieNode *it = Trie_node(self, 0);
     Slice_loop(&key, i) {
         const uint8_t b = *Slice_at(&key, i);
-        const TrieRef idx = it->children[b];
-        if (idx != 0) {
-            it = Trie_node(self, idx);
+        const TrieRef ref = it->children[b];
+        if (Ref_toBool(ref)) {
+            it = Trie_node(self, Ref_toIndex(ref));
             continue;
         }
         const size_t end = Vector_size(&self->nodes);
-        (void) TrieRef_max;
-        assert(end < TrieRef_max && "size is constrained");
-        it->children[b] = (TrieRef) end;
-        TrieNode n = {.children = {0}, .entry = 0};
+        assert(Ref_fromIndexCheck(TrieNode, end) && "size is constrained");
+        it->children[b] = (TrieRef) Ref_fromIndex(end);
+        TrieNode n = {.children = {Ref_null}, .entry = Ref_null};
         Vector_push(&self->nodes, n);
         it = Trie_node(self, end);
     }
-    if (!it->entry) {
-        it->entry = (TrieRef) (Vector_size(&self->entries) + 1);
+    if (!Ref_toBool(it->entry)) {
+        it->entry = (TrieRef) Ref_fromIndex(Vector_size(&self->entries));
         TrieEntry e = (TrieEntry) {
                 .key = key,
         };
         _Vector_push(Trie_entrysize(self), &self->entries, sizeof(e), &e, 1);
     }
-    TrieEntry *e = Trie_entry(self, it->entry - 1);
+    TrieEntry *e = Trie_entry(self, Ref_toIndex(it->entry));
     libsystem_memcpy(Trie_entryvalue(e), value, self->_sizeofT);
 }

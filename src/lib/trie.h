@@ -4,7 +4,9 @@
 #include "slice.h"
 #include "vector.h"
 
-typedef uint16_t TrieRef;
+Ref_instantiate(TrieNode, uint16_t);
+
+typedef Ref(TrieNode) TrieRef;
 
 #define TrieNode(T) CAT2(TrieNode__, T)
 #define TrieNode_instantiate(T) typedef TrieNode_(T) TrieNode(T)
@@ -43,7 +45,7 @@ struct { \
 #define Trie_new(T, allocator, self) \
 MACRO_BEGIN \
 *(self) = (Trie(T)) { ._sizeofT = sizeof (T), ._sizeofEntry = sizeof (TrieEntry(T)), .nodes = Vector_new(allocator), .entries = Vector_new(allocator), }; \
-const TrieNode(T) root = (TrieNode(T)) {.children = {0}, .entry = 0}; \
+const TrieNode(T) root = (TrieNode(T)) {.children = {Ref_null}, .entry = Ref_null}; \
 Vector_push(&(self)->nodes, root); \
 MACRO_END
 

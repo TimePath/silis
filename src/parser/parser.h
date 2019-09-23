@@ -13,7 +13,7 @@ typedef struct {
 typedef struct {
     const Vector(Node) nodes;
     /// id of root node
-    const size_t root_id;
+    const Ref(Node) root;
 } silis_parser_parse_output;
 
 silis_parser_parse_output silis_parser_parse(silis_parser_parse_input in);

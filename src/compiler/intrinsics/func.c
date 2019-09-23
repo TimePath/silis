@@ -44,7 +44,7 @@ void func_args_types(Interpreter *interpreter, NodeList iter, TypeRef out[])
             continue;
         }
         const Value type = eval_node(interpreter, typeRef);
-        assert(type.type.value == interpreter->types->t_type.value && "argument is a type");
+        assert(Ref_eq(type.type, interpreter->types->t_type) && "argument is a type");
         out[i] = type.u.type.value;
         InterpreterFileNodeRef id;
         if (NodeList_next(&children, &id)) {

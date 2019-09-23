@@ -78,7 +78,7 @@ emit_output do_emit(emit_input in)
     assert(hasMain && Types_lookup(ctx->interpreter->types, entry.value.type)->kind.val == Type_Function && "main is a function");
 
     Vector_loop(InterpreterFilePtr, &in.interpreter->compilation.files, i) {
-        Target_file_begin(ctx->target, ctx->interpreter, (InterpreterFileRef) {i + 1}, &files);
+        Target_file_begin(ctx->target, ctx->interpreter, (InterpreterFileRef) Ref_fromIndex(i), &files);
     }
 
     const size_t outputFileByFlagLength = Vector_size(&in.interpreter->compilation.files) * FLAG_COUNT;
@@ -88,11 +88,10 @@ emit_output do_emit(emit_input in)
     }
     Vector_loop(compile_file, &files, i) {
         const compile_file *it = Vector_at(&files, i);
-        const size_t inputFile = it->file.id - 1;
         const size_t flags = it->flags;
         for (size_t j = 0; j < FLAG_COUNT; ++j) {
             if (flags & (1 << j)) {
-                outputFileByFlag[inputFile * FLAG_COUNT + j] = it;
+                outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + j] = it;
             }
         }
     }
@@ -102,8 +101,7 @@ emit_output do_emit(emit_input in)
     Vector_loop(TrieEntry(Symbol), &globals->t.entries, i) {
         const TrieEntry(Symbol) *e = Vector_at(&globals->t.entries, i);
         const Symbol _it = e->value, *it = &_it;
-        const size_t inputFile = it->file.id - 1;
-        const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_HEADER];
+        const compile_file *file = outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + FLAG_HEADER];
         assert(file);
         if (it->value.flags.intrinsic) {
             continue;
@@ -131,8 +129,7 @@ emit_output do_emit(emit_input in)
     Vector_loop(TrieEntry(Symbol), &globals->t.entries, i) {
         const TrieEntry(Symbol) *e = Vector_at(&globals->t.entries, i);
         const Symbol _it = e->value, *it = &_it;
-        const size_t inputFile = it->file.id - 1;
-        const compile_file *file = outputFileByFlag[inputFile * FLAG_COUNT + FLAG_IMPL];
+        const compile_file *file = outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + FLAG_IMPL];
         assert(file);
         if (it->value.flags.intrinsic || it->value.flags.native) {
             continue;
@@ -142,7 +139,7 @@ emit_output do_emit(emit_input in)
         if (Types_lookup(ctx->interpreter->types, type)->kind.val != Type_Function) {
             continue;
         }
-        assert(it->file.id && "global is user-defined");
+        assert(Ref_toBool(it->file) && "global is user-defined");
         LINE();
         NodeList argv = NodeList_iterator(ctx->interpreter, it->value.u.func.arglist);
         size_t argc = argv._n;
@@ -201,11 +198,11 @@ static void emit_node(emit_ctx *ctx, const compile_file *file, InterpreterFileNo
 
 static void emit_value(emit_ctx *ctx, const compile_file *file, const Value *it)
 {
-    if (it->type.value == ctx->interpreter->types->t_int.value) {
+    if (Ref_eq(it->type, ctx->interpreter->types->t_int)) {
         emit_integral(ctx, file, it->u.integral.value);
         return;
     }
-    if (it->type.value == ctx->interpreter->types->t_string.value) {
+    if (Ref_eq(it->type, ctx->interpreter->types->t_string)) {
         emit_string(ctx, file, it->u.string.value);
         return;
     }
@@ -254,7 +251,7 @@ static void emit_ref(emit_ctx *ctx, const compile_file *file, InterpreterFileNod
 {
     (void) ctx;
     fprintf_s(file->out, STR("_"));
-    fprintf_zu(file->out, ref.node.id);
+    fprintf_zu(file->out, Ref_value(ref.node));
 }
 
 static void emit_return_ref(emit_ctx *ctx, const compile_file *file, return_t ret)
@@ -404,7 +401,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     while (true) {
         i += 1;
         const TypeRef arg = argp->u.Function.in;
-        if (arg.value != ctx->interpreter->types->t_unit.value) {
+        if (!Ref_eq(arg, ctx->interpreter->types->t_unit)) {
             InterpreterFileNodeRef ref = *Slice_at(&children, i);
             const return_t outArg = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = ref};
             emit_return_declare(ctx, file, arg, outArg);
@@ -430,7 +427,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     while (true) {
         i += 1;
         const TypeRef arg = argp->u.Function.in;
-        if (arg.value != ctx->interpreter->types->t_unit.value) {
+        if (!Ref_eq(arg, ctx->interpreter->types->t_unit)) {
             if (!first) {
                 fprintf_s(file->out, STR(", "));
             }
@@ -474,7 +471,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         assert(name->kind.val == Node_Atom);
         InterpreterFileNodeRef ref = *Slice_at(&children, 2);
         Value v = eval_node(ctx->interpreter, ref);
-        assert(v.type.value != ctx->interpreter->types->t_unit.value && "definition is not void");
+        assert(!Ref_eq(v.type, ctx->interpreter->types->t_unit) && "definition is not void");
         const return_t out = (return_t) {
                 .kind = RETURN_NAMED,
                 .u.named.val = name->u.Atom.value,
@@ -490,7 +487,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
         InterpreterFileNodeRef ref = *Slice_at(&children, 2);
         Value v = eval_node(ctx->interpreter, ref);
         (void) v;
-        assert(v.type.value != ctx->interpreter->types->t_unit.value && "definition is not void");
+        assert(!Ref_eq(v.type, ctx->interpreter->types->t_unit) && "definition is not void");
         const return_t out = (return_t) {
                 .kind = RETURN_NAMED,
                 .u.named.val = name->u.Atom.value,
@@ -514,7 +511,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
                     .u.temporary.val = ref,
             };
             Value v = eval_node(ctx->interpreter, ref);
-            if (!last && v.type.value != ctx->interpreter->types->t_unit.value) {
+            if (!last && !Ref_eq(v.type, ctx->interpreter->types->t_unit)) {
                 emit_return_declare(ctx, file, v.type, out);
                 LINE();
             }

@@ -71,7 +71,7 @@ typedef struct { \
             CAT2(id, _INVALID), \
             id(id, _ENUM_TAG) \
         } val; \
-        size_t id; \
+        size_t _val; \
         ENUM_PADDING \
     } kind; \
     union { id(id, _ENUM_VARIANT) } u; \
@@ -84,3 +84,27 @@ typedef struct { \
 
 #define _ENUM_VAL(id, variant) .kind.val = CAT3(id, _, variant), .u.variant
 #define ENUM_VAL(id, variant, it) (id) { _ENUM_VAL(id, variant) = it }
+
+#define Ref(T) CAT2(Ref__, T)
+#define Ref_instantiate(T, U) typedef Ref_(T, size_t) Ref(T)
+#define Ref_(T, U) \
+struct { \
+    struct { \
+        void *(*deref)(void *owner); \
+        void *owner; \
+        U id; \
+    } priv; \
+}
+
+#define Ref_value(self) ((self).priv.id)
+
+#define Ref_eq(a, b) (Ref_value(a) == Ref_value(b))
+
+#define Ref_null {{ NULL, NULL, 0 }}
+#define Ref_max {{ NULL, NULL, (size_t) -1 }}
+
+#define Ref_fromIndexCheck(T, i) ((i) < ((size_t) Ref_value((Ref(T)) Ref_max)))
+#define Ref_fromIndex(idx) {{ NULL, NULL, (idx) + 1 }}
+
+#define Ref_toBool(self) (Ref_value(self) != 0)
+#define Ref_toIndex(self) (Ref_value(self) - 1)
