@@ -5,7 +5,7 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(untyped, ((TypeRef[]) {
+INTRINSIC_IMPL(untyped, ((Ref(Type)[]) {
         types->t_string,
         types->t_untyped,
 }))

@@ -6,17 +6,17 @@
 #include <interpreter/type.h>
 #include <interpreter/types.h>
 
-static void tgt_c_file_begin(Target *self, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files);
+static void tgt_c_file_begin(Target *self, Interpreter *interpreter, Ref(InterpreterFile) file_ref, Vector(compile_file) *files);
 
 static void tgt_c_file_end(Target *self, Interpreter *interpreter, const compile_file *file);
 
-static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String name);
+static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name);
 
-static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String name, const String argnames[]);
+static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, const String argnames[]);
 
-static void tgt_c_var_begin(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T);
+static void tgt_c_var_begin(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T);
 
-static void tgt_c_var_end(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T);
+static void tgt_c_var_end(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T);
 
 static void tgt_c_identifier(Target *self, Interpreter *interpreter, const compile_file *file, String name);
 
@@ -40,13 +40,13 @@ typedef struct {
     bool anonymous;
 } tgt_c_print_decl_opts;
 
-static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, tgt_c_print_decl_opts opts);
+static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, const String idents[], tgt_c_print_decl_opts opts);
+static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, const String idents[], tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String ident, const String idents[]);
+static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, const String idents[]);
 
-static void tgt_c_file_begin(Target *self, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files)
+static void tgt_c_file_begin(Target *self, Interpreter *interpreter, Ref(InterpreterFile) file_ref, Vector(compile_file) *files)
 {
     (void) self;
     Allocator *allocator = interpreter->allocator;
@@ -77,7 +77,7 @@ static void tgt_c_file_end(Target *self, Interpreter *interpreter, const compile
     (void) file;
 }
 
-static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String name)
+static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name)
 {
     if (!(file->flags & (1 << FLAG_HEADER))) {
         return;
@@ -86,12 +86,12 @@ static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const com
     fprintf_s(file->out, STR(";"));
 }
 
-static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String name, const String argnames[])
+static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, const String argnames[])
 {
     tgt_c_print_function(self, interpreter, file, T, name, argnames);
 }
 
-static void tgt_c_var_begin(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T)
+static void tgt_c_var_begin(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
@@ -100,7 +100,7 @@ static void tgt_c_var_begin(Target *self, Interpreter *interpreter, const compil
     tgt_c_print_decl_pre(self, interpreter, file, T, opts);
 }
 
-static void tgt_c_var_end(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T)
+static void tgt_c_var_end(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
@@ -137,7 +137,7 @@ static void tgt_c_identifier(Target *self, Interpreter *interpreter, const compi
 
 // implementation
 
-static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String ident, const String idents[])
+static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, const String idents[])
 {
     tgt_c_print_decl_opts opts = {
             .local = false,
@@ -150,7 +150,7 @@ static void tgt_c_print_function(Target *self, Interpreter *interpreter, const c
     tgt_c_print_decl_post(self, interpreter, file, T, idents, opts);
 }
 
-static void tgt_c_print_declaration(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, String ident)
+static void tgt_c_print_declaration(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident)
 {
     tgt_c_print_decl_opts opts = {
             .local = true,
@@ -163,7 +163,7 @@ static void tgt_c_print_declaration(Target *self, Interpreter *interpreter, cons
     tgt_c_print_decl_post(self, interpreter, file, T, NULL, opts);
 }
 
-static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, tgt_c_print_decl_opts opts)
+static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, tgt_c_print_decl_opts opts)
 {
     const Type *type = Types_lookup(interpreter->types, T);
     if (type->kind.val != Type_Function) {
@@ -195,7 +195,7 @@ static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const c
     }
 }
 
-static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, TypeRef T, const String idents[], tgt_c_print_decl_opts opts)
+static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, const String idents[], tgt_c_print_decl_opts opts)
 {
     const Type *type = Types_lookup(interpreter->types, T);
     if (type->kind.val != Type_Function) {
@@ -208,7 +208,7 @@ static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const 
     const Type *argp = type;
     size_t i = 0;
     while (true) {
-        const TypeRef arg = argp->u.Function.in;
+        const Ref(Type) arg = argp->u.Function.in;
         const String s = idents ? idents[i++] : STR("");
         tgt_c_print_declaration(self, interpreter, file, arg, s);
         const Type *next = Types_lookup(interpreter->types, argp->u.Function.out);

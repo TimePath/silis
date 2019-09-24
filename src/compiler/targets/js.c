@@ -8,17 +8,17 @@
 
 static const bool types = false;
 
-static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files);
+static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, Ref(InterpreterFile) file_ref, Vector(compile_file) *files);
 
 static void tgt_js_file_end(struct Target *target, Interpreter *interpreter, const compile_file *file);
 
-static void tgt_js_func_forward(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String name);
+static void tgt_js_func_forward(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name);
 
-static void tgt_js_func_declare(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String name, const String argnames[]);
+static void tgt_js_func_declare(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, const String argnames[]);
 
-static void tgt_js_var_begin(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T);
+static void tgt_js_var_begin(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T);
 
-static void tgt_js_var_end(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T);
+static void tgt_js_var_end(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T);
 
 static void tgt_js_identifier(struct Target *target, Interpreter *interpreter, const compile_file *file, String name);
 
@@ -41,13 +41,13 @@ typedef struct {
     bool anonymous;
 } tgt_js_print_decl_opts;
 
-static void tgt_js_print_decl_pre(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, tgt_js_print_decl_opts opts);
+static void tgt_js_print_decl_pre(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, tgt_js_print_decl_opts opts);
 
-static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, const String idents[], tgt_js_print_decl_opts opts);
+static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, const String idents[], tgt_js_print_decl_opts opts);
 
-static void tgt_js_print_function(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String ident, const String idents[]);
+static void tgt_js_print_function(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, const String idents[]);
 
-static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, InterpreterFileRef file_ref, Vector(compile_file) *files)
+static void tgt_js_file_begin(struct Target *target, Interpreter *interpreter, Ref(InterpreterFile) file_ref, Vector(compile_file) *files)
 {
     (void) target;
     Allocator *allocator = interpreter->allocator;
@@ -62,7 +62,7 @@ static void tgt_js_file_end(struct Target *target, Interpreter *interpreter, con
     (void) file;
 }
 
-static void tgt_js_func_forward(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String name)
+static void tgt_js_func_forward(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name)
 {
     (void) target;
     (void) interpreter;
@@ -71,12 +71,12 @@ static void tgt_js_func_forward(struct Target *target, Interpreter *interpreter,
     (void) name;
 }
 
-static void tgt_js_func_declare(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String name, const String argnames[])
+static void tgt_js_func_declare(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, const String argnames[])
 {
     tgt_js_print_function(target, interpreter, file, T, name, argnames);
 }
 
-static void tgt_js_var_begin(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T)
+static void tgt_js_var_begin(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T)
 {
     tgt_js_print_decl_opts opts = {
             .local = true,
@@ -85,7 +85,7 @@ static void tgt_js_var_begin(struct Target *target, Interpreter *interpreter, co
     tgt_js_print_decl_pre(target, interpreter, file, T, opts);
 }
 
-static void tgt_js_var_end(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T)
+static void tgt_js_var_end(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T)
 {
     tgt_js_print_decl_opts opts = {
             .local = true,
@@ -128,7 +128,7 @@ static void tgt_js_identifier(struct Target *target, Interpreter *interpreter, c
 
 // implementation
 
-static void tgt_js_print_function(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, String ident, const String idents[])
+static void tgt_js_print_function(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, const String idents[])
 {
     tgt_js_print_decl_opts opts = {
             .local = false,
@@ -141,7 +141,7 @@ static void tgt_js_print_function(struct Target *target, Interpreter *interprete
     tgt_js_print_decl_post(target, interpreter, file, T, idents, opts);
 }
 
-static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T)
+static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T)
 {
 #define CASE(t) if (Ref_eq(T, interpreter->types->t))
     CASE(t_unit) {
@@ -160,7 +160,7 @@ static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, c
     const Type *type = Types_lookup(interpreter->types, T);
     if (type->kind.val == Type_Function) {
         fprintf_s(file->out, STR("("));
-        TypeRef argT;
+        Ref(Type) argT;
         const Type *argType = type;
         while (true) {
             tgt_js_print_type(target, interpreter, file, argType->u.Function.in);
@@ -180,7 +180,7 @@ static void tgt_js_print_type(struct Target *target, Interpreter *interpreter, c
     fprintf_s(file->out, STR(">"));
 }
 
-static void tgt_js_print_decl_pre(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, tgt_js_print_decl_opts opts)
+static void tgt_js_print_decl_pre(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, tgt_js_print_decl_opts opts)
 {
     (void) target;
     (void) opts;
@@ -192,7 +192,7 @@ static void tgt_js_print_decl_pre(struct Target *target, Interpreter *interprete
     fprintf_s(file->out, STR("function "));
 }
 
-static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpreter, const compile_file *file, TypeRef T, const String idents[], tgt_js_print_decl_opts opts)
+static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, const String idents[], tgt_js_print_decl_opts opts)
 {
     (void) opts;
     const Type *type = Types_lookup(interpreter->types, T);
@@ -205,7 +205,7 @@ static void tgt_js_print_decl_post(struct Target *target, Interpreter *interpret
     const Type *argp = type;
     size_t i = 0;
     while (true) {
-        const TypeRef arg = argp->u.Function.in;
+        const Ref(Type) arg = argp->u.Function.in;
         if (Ref_eq(arg, interpreter->types->t_unit)) {
             break;
         }

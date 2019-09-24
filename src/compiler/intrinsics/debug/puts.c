@@ -5,7 +5,7 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(debug_puts, ((TypeRef[]) {
+INTRINSIC_IMPL(debug_puts, ((Ref(Type)[]) {
         types->t_string,
         types->t_unit,
 }))

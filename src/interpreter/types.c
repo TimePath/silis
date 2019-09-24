@@ -6,7 +6,7 @@
 Types Types_new(Allocator *allocator)
 {
     Types _self = {
-            .all = Vector_new(allocator),
+            .all = Vector_new(Type, allocator),
             .t_untyped = Ref_null,
             .t_unit = Ref_null,
             .t_type = Ref_null,
@@ -30,7 +30,7 @@ Types Types_new(Allocator *allocator)
     });
     self->t_type = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
-            .u.Opaque.size = sizeof(TypeRef),
+            .u.Opaque.size = sizeof(Ref(Type)),
     });
     self->t_string = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
@@ -43,7 +43,7 @@ Types Types_new(Allocator *allocator)
     return _self;
 }
 
-bool Types_assign(Types *self, TypeRef src, TypeRef dst)
+bool Types_assign(Types *self, Ref(Type) src, Ref(Type) dst)
 {
     if (Ref_eq(dst, src)) {
         return true;
@@ -54,20 +54,20 @@ bool Types_assign(Types *self, TypeRef src, TypeRef dst)
     return false;
 }
 
-TypeRef Types_register(Types *self, Type it)
+Ref(Type) Types_register(Types *self, Type it)
 {
     const size_t idx = Vector_size(&self->all);
     Vector_push(&self->all, it);
-    return (TypeRef) Ref_fromIndex(idx);
+    return (Ref(Type)) Ref_fromIndex(idx);
 }
 
-TypeRef Types_register_func(Types *self, Slice(TypeRef) types)
+Ref(Type) Types_register_func(Types *self, Slice(Ref(Type)) types)
 {
     size_t n = Slice_size(&types);
     size_t i = n - 1;
-    TypeRef ret = *Slice_at(&types, i);
+    Ref(Type) ret = *Slice_at(&types, i);
     while (i-- > 0) {
-        TypeRef in = *Slice_at(&types, i);
+        Ref(Type) in = *Slice_at(&types, i);
         ret = Types_register(self, (Type) {
                 .kind.val = Type_Function,
                 .u.Function = { .in = in, .out = ret },
@@ -76,21 +76,21 @@ TypeRef Types_register_func(Types *self, Slice(TypeRef) types)
     return ret;
 }
 
-const Type *Types_lookup(const Types *self, TypeRef ref)
+const Type *Types_lookup(const Types *self, Ref(Type) ref)
 {
     return Vector_at(&self->all, Ref_toIndex(ref));
 }
 
-TypeRef Types_function_result(const Types *self, TypeRef T)
+Ref(Type) Types_function_result(const Types *self, Ref(Type) T)
 {
-    TypeRef ret = Ref_null;
+    Ref(Type) ret = Ref_null;
     for (const Type *it = Types_lookup(self, T); it->kind.val == Type_Function; it = Types_lookup(self, it->u.Function.out)) {
         ret = it->u.Function.out;
     }
     return ret;
 }
 
-size_t Types_function_arity(const Types *self, TypeRef T)
+size_t Types_function_arity(const Types *self, Ref(Type) T)
 {
     size_t argc = 0;
     for (const Type *it = Types_lookup(self, T); it->kind.val == Type_Function; it = Types_lookup(self, it->u.Function.out)) {

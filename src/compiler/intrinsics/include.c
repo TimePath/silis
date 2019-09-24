@@ -8,7 +8,7 @@
 #include <interpreter/interpreter.h>
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(include, ((TypeRef[]) {
+INTRINSIC_IMPL(include, ((Ref(Type)[]) {
         types->t_expr,
         types->t_unit,
 }))
@@ -18,7 +18,7 @@ INTRINSIC_IMPL(include, ((TypeRef[]) {
     const Node *it = Interpreter_lookup_file_node(interpreter, arg_args->u.expr.value);
     assert(it->kind.val == Node_String && "argument is string literal");
     String path = it->u.String.value;
-    InterpreterFileRef next = Interpreter_load(interpreter, interpreter->fs_in, FilePath_from(path, allocator));
+    Ref(InterpreterFile) next = Interpreter_load(interpreter, interpreter->fs_in, FilePath_from(path, allocator));
     Interpreter_eval(interpreter, next);
     return (Value) {.type = interpreter->types->t_unit, .node = self};
 }

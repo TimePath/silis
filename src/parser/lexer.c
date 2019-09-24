@@ -281,7 +281,7 @@ Result(Vector(Token), ParserError) silis_parser_lex(silis_parser_lex_input in)
 {
     Allocator *allocator = in.allocator;
     Lexer lexer = (Lexer) {
-            .tokens = Vector_new(allocator),
+            .tokens = Vector_new(Token, allocator),
     };
     Result(size_t, ParserError) res = Lexer_list(&lexer, in.source);
     if (!res.is.ok) return (Result(Vector(Token), ParserError)) Result_err(res.ret.err);

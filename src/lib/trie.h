@@ -6,14 +6,12 @@
 
 Ref_instantiate(TrieNode, uint16_t);
 
-typedef Ref(TrieNode) TrieRef;
-
 #define TrieNode(T) CAT2(TrieNode__, T)
 #define TrieNode_instantiate(T) typedef TrieNode_(T) TrieNode(T)
 #define TrieNode_(T) \
 struct { \
-    TrieRef children[256]; \
-    TrieRef entry; \
+    Ref(TrieNode) children[256]; \
+    Ref(TrieNode) entry; \
 }
 
 #define TrieEntry(T) CAT2(TrieEntry__, T)
@@ -37,14 +35,13 @@ struct { \
 #define Trie_(T) \
 struct { \
     size_t _sizeofT; \
-    size_t _sizeofEntry; \
     Vector(TrieNode(T)) nodes; \
     Vector(TrieEntry(T)) entries; \
 }
 
 #define Trie_new(T, allocator, self) \
 MACRO_BEGIN \
-*(self) = (Trie(T)) { ._sizeofT = sizeof (T), ._sizeofEntry = sizeof (TrieEntry(T)), .nodes = Vector_new(allocator), .entries = Vector_new(allocator), }; \
+*(self) = (Trie(T)) { ._sizeofT = sizeof(T), .nodes = Vector_new(TrieNode(T), allocator), .entries = Vector_new(TrieEntry(T), allocator), }; \
 const TrieNode(T) root = (TrieNode(T)) {.children = {Ref_null}, .entry = Ref_null}; \
 Vector_push(&(self)->nodes, root); \
 MACRO_END

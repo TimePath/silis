@@ -33,7 +33,7 @@ static FilePath FilePath_from_native_unix(String path, Allocator *allocator)
 {
     Slice(String) delims = Slice_of(String, ((String[]) { STR("/") }));
     bool absolute = false;
-    Vector(String) parts = Vector_new(allocator);
+    Vector(String) parts = Vector_new(String, allocator);
     uint8_t i = 0;
     String state = path;
     for (String head; String_delim(&state, delims, &head); ++i) {
@@ -53,7 +53,7 @@ static FilePath FilePath_from_native_win(String path, Allocator *allocator)
 {
     Slice(String) delims = Slice_of(String, ((String[2]) { STR("\\"), STR("/") }));
     bool absolute = false;
-    Vector(String) parts = Vector_new(allocator);
+    Vector(String) parts = Vector_new(String, allocator);
     uint8_t i = 0;
     String state = path;
     for (String head; String_delim(&state, delims, &head); ++i) {
@@ -109,7 +109,7 @@ static String FilePath_to_native_win(FilePath path, Buffer *buf)
 
 FilePath FilePath_dirname(FilePath self, Allocator *allocator)
 {
-    Vector(String) parts = Vector_new(allocator);
+    Vector(String) parts = Vector_new(String, allocator);
     Slice(String) slice = Vector_toSlice(String, &self.parts);
     slice._end -= 1;
     Slice_loop(&slice, i) {
@@ -125,7 +125,7 @@ FilePath FilePath_dirname(FilePath self, Allocator *allocator)
 
 FilePath FilePath_basename(FilePath self, Allocator *allocator)
 {
-    Vector(String) parts = Vector_new(allocator);
+    Vector(String) parts = Vector_new(String, allocator);
     Slice(String) slice = Vector_toSlice(String, &self.parts);
     String it = *Slice_at(&slice, Slice_size(&slice) - 1);
     Vector_push(&parts, it);

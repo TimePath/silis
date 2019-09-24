@@ -7,33 +7,33 @@
 typedef struct Types {
     Vector(Type) all;
     /// result of untyped, assignable to anything
-    TypeRef t_untyped;
+    Ref(Type) t_untyped;
     /// can be produced with `()`
-    TypeRef t_unit;
+    Ref(Type) t_unit;
     /// typedefs have this type
-    TypeRef t_type;
+    Ref(Type) t_type;
     /// unevaluated code has this type
     /// when calling such a function, quasiquote the input
     /// todo: more specific types
     /// expr<void> ; returns void
     /// expr<T> ; returns T, whatever that is
-    TypeRef t_expr;
+    Ref(Type) t_expr;
     /// strings
-    TypeRef t_string;
+    Ref(Type) t_string;
     /// integers
-    TypeRef t_int;
+    Ref(Type) t_int;
 } Types;
 
 Types Types_new(Allocator *allocator);
 
-bool Types_assign(Types *self, TypeRef src, TypeRef dst);
+bool Types_assign(Types *self, Ref(Type) src, Ref(Type) dst);
 
-TypeRef Types_register(Types *self, Type it);
+Ref(Type) Types_register(Types *self, Type it);
 
-TypeRef Types_register_func(Types *self, Slice(TypeRef) types);
+Ref(Type) Types_register_func(Types *self, Slice(Ref(Type)) types);
 
-const Type *Types_lookup(const Types *self, TypeRef ref);
+const Type *Types_lookup(const Types *self, Ref(Type) ref);
 
-TypeRef Types_function_result(const Types *self, TypeRef T);
+Ref(Type) Types_function_result(const Types *self, Ref(Type) T);
 
-size_t Types_function_arity(const Types *self, TypeRef T);
+size_t Types_function_arity(const Types *self, Ref(Type) T);

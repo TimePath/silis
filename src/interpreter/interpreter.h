@@ -10,8 +10,6 @@
 
 Ref_instantiate(InterpreterFile, size_t);
 
-typedef Ref(InterpreterFile) InterpreterFileRef;
-
 typedef struct {
     Ref(InterpreterFile) file;
     Ref(Token) token;
@@ -65,7 +63,7 @@ typedef struct {
     File *out;
 } Interpreter;
 
-const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, InterpreterFileRef ref);
+const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, Ref(InterpreterFile) ref);
 
 const Token *Interpreter_lookup_file_token(const Interpreter *self, InterpreterFileTokenRef ref);
 
@@ -73,8 +71,8 @@ const Node *Interpreter_lookup_file_node(const Interpreter *self, InterpreterFil
 
 InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, InterpreterFileNodeRef ref);
 
-InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path);
+Ref(InterpreterFile) Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path);
 
-InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath path);
+Ref(InterpreterFile) Interpreter_read(Interpreter *self, String file, FilePath path);
 
-void Interpreter_eval(Interpreter *self, InterpreterFileRef file);
+void Interpreter_eval(Interpreter *self, Ref(InterpreterFile) file);

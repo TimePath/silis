@@ -6,7 +6,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(extern, ((TypeRef[]) {
+INTRINSIC_IMPL(extern, ((Ref(Type)[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))
@@ -20,7 +20,7 @@ INTRINSIC_IMPL(extern, ((TypeRef[]) {
 
     const Value v = eval_node(interpreter, val);
     assert(Ref_eq(v.type, interpreter->types->t_type) && "argument is a type");
-    TypeRef T = v.u.type.value;
+    Ref(Type) T = v.u.type.value;
     Symbols_define(interpreter->symbols, name->u.Atom.value, (Symbol) {
             .file = self.file,
             .type = T,

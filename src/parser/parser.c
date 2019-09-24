@@ -116,8 +116,8 @@ silis_parser_parse_output silis_parser_parse(silis_parser_parse_input in)
     Allocator *allocator = in.allocator;
     Parser parser = (Parser) {
             .tokens = in.tokens,
-            .nodes = Vector_new(allocator),
-            .stack = Vector_new(allocator),
+            .nodes = Vector_new(Node, allocator),
+            .stack = Vector_new(Node, allocator),
     };
     Parser_parse(&parser, Slice_at(&parser.tokens, 0));
     assert(Vector_size(&parser.stack) == 1 && "stack contains result");

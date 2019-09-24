@@ -7,7 +7,7 @@
 #include "type.h"
 
 typedef struct {
-    TypeRef type;
+    Ref(Type) type;
     InterpreterFileNodeRef node;
     union {
         struct {
@@ -31,7 +31,7 @@ typedef struct {
         } expr;
 
         struct {
-            TypeRef value;
+            Ref(Type) value;
         } type;
 
         struct {

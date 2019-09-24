@@ -44,7 +44,7 @@ typedef enum {
 typedef struct {
     return_e kind;
     PADDING(4)
-    TypeRef type;
+    Ref(Type) type;
     union {
         struct {
             InterpreterFileNodeRef val;
@@ -62,7 +62,7 @@ static void visit_node(emit_ctx *ctx, const compile_file *file, return_t ret, In
 emit_output do_emit(emit_input in)
 {
     Allocator *allocator = in.interpreter->allocator;
-    Vector(compile_file) files = Vector_new(allocator);
+    Vector(compile_file) files = Vector_new(compile_file, allocator);
 
     emit_ctx _ctx = {
             .interpreter = in.interpreter,
@@ -78,7 +78,7 @@ emit_output do_emit(emit_input in)
     assert(hasMain && Types_lookup(ctx->interpreter->types, entry.value.type)->kind.val == Type_Function && "main is a function");
 
     Vector_loop(InterpreterFilePtr, &in.interpreter->compilation.files, i) {
-        Target_file_begin(ctx->target, ctx->interpreter, (InterpreterFileRef) Ref_fromIndex(i), &files);
+        Target_file_begin(ctx->target, ctx->interpreter, (Ref(InterpreterFile)) Ref_fromIndex(i), &files);
     }
 
     const size_t outputFileByFlagLength = Vector_size(&in.interpreter->compilation.files) * FLAG_COUNT;
@@ -107,7 +107,7 @@ emit_output do_emit(emit_input in)
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const TypeRef type = it->type;
+        const Ref(Type) type = it->type;
         if (it->value.flags.native) {
             fprintf_s(file->out, STR("extern ")); // FIXME
         }
@@ -135,7 +135,7 @@ emit_output do_emit(emit_input in)
             continue;
         }
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
-        const TypeRef type = it->type;
+        const Ref(Type) type = it->type;
         if (Types_lookup(ctx->interpreter->types, type)->kind.val != Type_Function) {
             continue;
         }
@@ -270,7 +270,7 @@ static void emit_return_ref(emit_ctx *ctx, const compile_file *file, return_t re
     unreachable(return);
 }
 
-static void emit_return_declare(emit_ctx *ctx, const compile_file *file, TypeRef T, return_t ret)
+static void emit_return_declare(emit_ctx *ctx, const compile_file *file, Ref(Type) T, return_t ret)
 {
     switch (ret.kind) {
         case RETURN_NO:
@@ -360,7 +360,7 @@ static void visit_node_list(emit_ctx *ctx, const compile_file *file, return_t re
         visit_node(ctx, file, ret, first);
         return;
     }
-    Vector(InterpreterFileNodeRef) _children = Vector_new(allocator);
+    Vector(InterpreterFileNodeRef) _children = Vector_new(InterpreterFileNodeRef, allocator);
     Vector_push(&_children, first);
     for (size_t i = 1; i < n; ++i) {
         InterpreterFileNodeRef childref = NodeList_get(&childrenRaw, i);
@@ -400,7 +400,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     size_t i = 0;
     while (true) {
         i += 1;
-        const TypeRef arg = argp->u.Function.in;
+        const Ref(Type) arg = argp->u.Function.in;
         if (!Ref_eq(arg, ctx->interpreter->types->t_unit)) {
             InterpreterFileNodeRef ref = *Slice_at(&children, i);
             const return_t outArg = (return_t) {.kind = RETURN_TEMPORARY, .u.temporary.val = ref};
@@ -426,7 +426,7 @@ static void visit_node_expr(emit_ctx *ctx, const compile_file *file, return_t re
     bool first = true;
     while (true) {
         i += 1;
-        const TypeRef arg = argp->u.Function.in;
+        const Ref(Type) arg = argp->u.Function.in;
         if (!Ref_eq(arg, ctx->interpreter->types->t_unit)) {
             if (!first) {
                 fprintf_s(file->out, STR(", "));

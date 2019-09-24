@@ -6,7 +6,7 @@
 
 typedef struct {
     Allocator *allocator;
-    InterpreterFileRef file;
+    Ref(InterpreterFile) file;
     Buffer *content;
     File *out;
     String ext;
@@ -24,7 +24,7 @@ typedef enum {
 
 Slice_instantiate(file_flag);
 
-compile_file compile_file_new(InterpreterFileRef file, String ext, size_t stage, Slice(file_flag) flags, Allocator *allocator);
+compile_file compile_file_new(Ref(InterpreterFile) file, String ext, size_t stage, Slice(file_flag) flags, Allocator *allocator);
 
 void compile_file_delete(compile_file *self);
 

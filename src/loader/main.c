@@ -49,7 +49,7 @@ native_int_t (main)(native_int_t argc, native_string_t argv[]) {
     File *stdout = File_new(File_native, libsystem_stdout(), NULL, allocator);
     extern FileSystem_class FileSystem_native;
     FileSystem _fs = FileSystem_new(FileSystem_native, &_fs, allocator), *fs = &_fs;
-    Vector(String) args = Vector_new(allocator);
+    Vector(String) args = Vector_new(String, allocator);
     for (size_t i = 0; i < (size_t) argc; ++i) {
         native_string_t cstr = argv[i];
         Slice(uint8_t) slice = {._begin.r = (const uint8_t *) cstr, ._end = (const uint8_t *) (cstr + libsystem_strlen(cstr))};

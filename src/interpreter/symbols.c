@@ -16,7 +16,7 @@ Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolIni
 {
     Symbols ret = (Symbols) {
             .allocator = allocator,
-            .scopes = Vector_new(allocator)
+            .scopes = Vector_new(SymbolScope, allocator)
     };
     Symbols *self = &ret;
     Symbols_push(self);
@@ -30,7 +30,7 @@ Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolIni
     }
     Slice_loop(&initIntrin, i) {
         SymbolInitializer_intrin it = *Slice_at(&initIntrin, i);
-        TypeRef T = it.value->load(types);
+        Ref(Type) T = it.value->load(types);
         Symbols_define(self, it.id, (Symbol) {
                 .file = Ref_null,
                 .type = T,

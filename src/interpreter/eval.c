@@ -13,7 +13,7 @@ typedef struct {
 
 #define eval_ctx_new(_interpreter) ((eval_ctx) { \
     .interpreter = _interpreter, \
-    .stack = Vector_new(_interpreter->allocator), \
+    .stack = Vector_new(Value, _interpreter->allocator), \
 })
 
 static Value do_eval_list_block(eval_ctx *ctx, InterpreterFileNodeRef it);
@@ -77,14 +77,14 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
 
     bool abstract = func.flags.abstract;
     const size_t ofs = Vector_size(&ctx->stack);
-    const TypeRef expr_t = ctx->interpreter->types->t_expr;
+    const Ref(Type) expr_t = ctx->interpreter->types->t_expr;
     size_t T_argc = 0;
-    TypeRef T = func.type;
+    Ref(Type) T = func.type;
     for (const Type *argType = funcType; argType->kind.val == Type_Function; T = argType->u.Function.out, argType = Types_lookup(ctx->interpreter->types, T)) {
         assert((n - 1) > T_argc && "argument underflow");
         InterpreterFileNodeRef arg = NodeList_get(&children, ++T_argc);
         arg = Interpreter_lookup_node_ref(ctx->interpreter, arg);
-        const TypeRef arg_t = argType->u.Function.in;
+        const Ref(Type) arg_t = argType->u.Function.in;
         Value v;
         if (Ref_eq(arg_t, expr_t)) {
             v = (Value) {

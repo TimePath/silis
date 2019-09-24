@@ -5,10 +5,8 @@
 
 Ref_instantiate(Type, size_t);
 
-typedef Ref(Type) TypeRef;
-
-Slice_instantiate(TypeRef);
-Vector_instantiate(TypeRef);
+Slice_instantiate(Ref(Type));
+Vector_instantiate(Ref(Type));
 
 #define Type(id, _) \
     /** The leaf types of the type system */ \
@@ -17,19 +15,19 @@ Vector_instantiate(TypeRef);
     }) \
     /** A function, represented as arg0 -> argN -> ret */ \
     _(id, Function, { \
-        TypeRef in; \
-        TypeRef out; \
+        Ref(Type) in; \
+        Ref(Type) out; \
     }) \
     /** Structs. TODO */ \
     _(id, Aggregate, { \
         /** index to self */ \
-        TypeRef self; \
+        Ref(Type) self; \
         /** index to next child, or 0 */ \
-        TypeRef next; \
+        Ref(Type) next; \
     }) \
     /** Pointers. TODO */ \
     _(id, Pointer, { \
-        TypeRef pointee; \
+        Ref(Type) pointee; \
     }) \
 /**/
 

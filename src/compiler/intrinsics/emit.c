@@ -6,7 +6,7 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(emit, ((TypeRef[]) {
+INTRINSIC_IMPL(emit, ((Ref(Type)[]) {
         types->t_expr,
         types->t_unit,
 }))

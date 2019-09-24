@@ -90,7 +90,7 @@ typedef struct { \
 #define Ref_(T, U) \
 struct { \
     struct { \
-        void *(*deref)(void *owner); \
+        void *(*deref)(void *owner, U id); \
         void *owner; \
         U id; \
     } priv; \

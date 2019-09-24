@@ -6,7 +6,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(define, ((TypeRef[]) {
+INTRINSIC_IMPL(define, ((Ref(Type)[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))

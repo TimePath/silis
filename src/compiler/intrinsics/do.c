@@ -4,7 +4,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(do, ((TypeRef[]) {
+INTRINSIC_IMPL(do, ((Ref(Type)[]) {
         types->t_expr,
         types->t_unit, // fixme: return type depends on input
 }))

@@ -5,8 +5,8 @@
 #include "value.h"
 
 typedef struct {
-    InterpreterFileRef file;
-    TypeRef type; // could be removed if values could be tagged as undefined
+    Ref(InterpreterFile) file;
+    Ref(Type) type; // could be removed if values could be tagged as undefined
     Value value;
     struct {
         /// interpreter variable (function call)

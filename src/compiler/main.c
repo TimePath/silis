@@ -126,7 +126,8 @@ size_t main(Env env)
                             .print_parse = flags.print_parse,
                             .print_eval = flags.print_eval,
                     },
-                    .files = Vector_new(allocator),
+                    .files = Vector_new(InterpreterFilePtr, allocator),
+                    ._padding = {0},
             },
             .types = types,
             .symbols = symbols,
@@ -134,7 +135,7 @@ size_t main(Env env)
     };
     Interpreter *interpreter = &_interpreter;
 
-    InterpreterFileRef mainFile = Interpreter_load(interpreter, fs_in, inputFilePath);
+    Ref(InterpreterFile) mainFile = Interpreter_load(interpreter, fs_in, inputFilePath);
     Interpreter_eval(interpreter, mainFile);
 
     if (flags.run) {
@@ -191,7 +192,7 @@ static void emit(Interpreter *interpreter, compile_file *it, FileSystem *fs_out)
         String dot = STR(".");
         Vector_push(&bufBase, *Slice_at(&dot.bytes, 0));
         const size_t sizeBytes = String_sizeBytes(it->ext);
-        _Vector_push(sizeof(uint8_t), &bufBase, sizeBytes, String_begin(it->ext), sizeBytes);
+        _Vector_push(&bufBase, sizeBytes, String_begin(it->ext), sizeBytes);
     }
     const String strBase = String_fromSlice(Buffer_toSlice(&bufBase), ENCODING_DEFAULT);
     FilePath outputFilePath = FilePath_from_native(strBase, allocator);

@@ -6,7 +6,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(func, ((TypeRef[]) {
+INTRINSIC_IMPL(func, ((Ref(Type)[]) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))
@@ -18,9 +18,9 @@ INTRINSIC_IMPL(func, ((TypeRef[]) {
     NodeList children = NodeList_iterator(interpreter, arg_args->u.expr.value);
     const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
-    TypeRef *Ts = new_arr(TypeRef, argc);
+    Ref(Type) *Ts = new_arr(Ref(Type), argc);
     func_args_types(interpreter, children, Ts);
-    TypeRef T = Types_register_func(interpreter->types, Slice_of_n(TypeRef, Ts, argc));
+    Ref(Type) T = Types_register_func(interpreter->types, Slice_of_n(Ref(Type), Ts, argc));
     free(Ts);
     return (Value) {
             .type = T,
@@ -32,18 +32,18 @@ INTRINSIC_IMPL(func, ((TypeRef[]) {
     };
 }
 
-void func_args_types(Interpreter *interpreter, NodeList iter, TypeRef out[])
+void func_args_types(Interpreter *interpreter, NodeList iter, Ref(Type) out[])
 {
     InterpreterFileNodeRef ref;
     for (size_t i = 0; NodeList_next(&iter, &ref); ++i) {
         InterpreterFileNodeRef it = Interpreter_lookup_node_ref(interpreter, ref);
         NodeList children = NodeList_iterator(interpreter, it);
-        InterpreterFileNodeRef typeRef;
-        if (!NodeList_next(&children, &typeRef)) {
+        InterpreterFileNodeRef Ref(Type);
+        if (!NodeList_next(&children, &Ref(Type))) {
             out[i] = interpreter->types->t_unit;
             continue;
         }
-        const Value type = eval_node(interpreter, typeRef);
+        const Value type = eval_node(interpreter, Ref(Type));
         assert(Ref_eq(type.type, interpreter->types->t_type) && "argument is a type");
         out[i] = type.u.type.value;
         InterpreterFileNodeRef id;

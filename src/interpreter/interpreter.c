@@ -20,7 +20,7 @@ void InterpreterFile_delete(InterpreterFile *self)
     free(self);
 }
 
-const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, InterpreterFileRef ref)
+const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, Ref(InterpreterFile) ref)
 {
     assert(Ref_toBool(ref) && "file exists");
     const InterpreterFile *file = *Vector_at(&self->compilation.files, Ref_toIndex(ref));
@@ -53,29 +53,29 @@ InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, Inte
     return ref;
 }
 
-InterpreterFileRef Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path)
+Ref(InterpreterFile) Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path)
 {
     Allocator *allocator = self->allocator;
     Slice(uint8_t) bytes;
     File *file = FileSystem_open(fs, path, STR("rb"));
     if (!file) {
         assert(file && "read from file");
-        return (InterpreterFileRef) Ref_null;
+        return (Ref(InterpreterFile)) Ref_null;
     }
     bool read = File_read_all(file, &bytes, allocator);
     File_close(file);
     if (!read) {
         assert(read && "read from file");
-        return (InterpreterFileRef) Ref_null;
+        return (Ref(InterpreterFile)) Ref_null;
     }
     String fileStr = String_fromSlice(bytes, ENCODING_DEFAULT);
     return Interpreter_read(self, fileStr, path);
 }
 
-InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath path)
+Ref(InterpreterFile) Interpreter_read(Interpreter *self, String file, FilePath path)
 {
     Allocator *allocator = self->allocator;
-    InterpreterFileRef ret = Ref_fromIndex(Vector_size(&self->compilation.files));
+    Ref(InterpreterFile) ret = Ref_fromIndex(Vector_size(&self->compilation.files));
 
     if (self->compilation.flags.print_lex) {
         fprintf_s(self->compilation.debug, STR("LEX:\n---\n"));
@@ -86,7 +86,7 @@ InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath pat
     });
     if (!lex.is.ok) {
         ParserError_print(lex.ret.err, self->compilation.debug);
-        unreachable(return (InterpreterFileRef) Ref_null);
+        unreachable(return (Ref(InterpreterFile)) Ref_null);
     }
     Vector(Token) tokens = lex.ret.val;
     if (self->compilation.flags.print_lex) {
@@ -118,7 +118,7 @@ InterpreterFileRef Interpreter_read(Interpreter *self, String file, FilePath pat
     return ret;
 }
 
-void Interpreter_eval(Interpreter *self, InterpreterFileRef file)
+void Interpreter_eval(Interpreter *self, Ref(InterpreterFile) file)
 {
     Allocator *allocator = self->allocator;
     const InterpreterFile *f = Interpreter_lookup_file(self, file);
