@@ -50,7 +50,7 @@ void Trie_set(Trie *self, Slice(uint8_t) key, void *value)
         it = Trie_node(self, end);
     }
     if (!Ref_toBool(it->entry)) {
-        it->entry = (Ref(TrieNode)) Ref_fromIndex(Vector_size(&self->entries));
+        it->entry = (Ref(TrieNode)) Vector_ref(&self->entries, Vector_size(&self->entries));
         TrieEntry e = (TrieEntry) {
                 .key = key,
         };

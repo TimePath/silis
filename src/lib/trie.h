@@ -46,7 +46,7 @@ const TrieNode(T) root = (TrieNode(T)) {.children = {Ref_null}, .entry = Ref_nul
 Vector_push(&(self)->nodes, root); \
 MACRO_END
 
-typedef struct { PADDING(8) } TriePlaceholder;
+typedef struct { PADDING(8); } TriePlaceholder;
 Trie_instantiate(TriePlaceholder);
 typedef Trie(TriePlaceholder) Trie;
 

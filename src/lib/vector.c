@@ -36,3 +36,12 @@ void _Vector_delete(void *_self)
     free(self->_data);
     self->_data = NULL;
 }
+
+void *_Vector_deref(void const *_self, size_t id)
+{
+    if (!id) {
+        return NULL;
+    }
+    Vector(void) const *self = (Vector(void) const *) _self;
+    return _Vector_at(void, self, id - 1);
+}

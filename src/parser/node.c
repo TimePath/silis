@@ -13,7 +13,7 @@ typedef struct {
     size_t depth;
     bool needLine;
     bool needTab;
-    PADDING(6)
+    PADDING(6);
 } NodePrinterState;
 
 static NodePrinterState NodePrinter_print(NodePrinter *self, NodePrinterState state, const Node *it, size_t id);

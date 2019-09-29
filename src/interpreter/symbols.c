@@ -36,7 +36,7 @@ Symbols Symbols_new(Types *types, Slice(SymbolInitializer) init, Slice(SymbolIni
                 .type = T,
                 .value = {
                         .type = T,
-                        .u.intrinsic.value = it.value,
+                        .u.Intrinsic = it.value,
                         .flags = {
                                 .abstract = it.flags.abstract,
                                 .intrinsic = true,
@@ -69,7 +69,7 @@ void Symbols_push(Symbols *symbols)
 {
     Allocator *allocator = symbols->allocator;
     size_t size = Vector_size(&symbols->scopes);
-    Ref(SymbolScope) parent = !size ? (Ref(SymbolScope)) Ref_null : (Ref(SymbolScope)) Ref_fromIndex(size - 1);
+    Ref(SymbolScope) parent = !size ? (Ref(SymbolScope)) Ref_null : (Ref(SymbolScope)) Vector_ref(&symbols->scopes, size - 1);
     SymbolScope newscope = SymbolScope_new(parent, allocator);
     Vector_push(&symbols->scopes, newscope);
 }
@@ -82,7 +82,7 @@ void Symbols_pop(Symbols *symbols)
 
 bool Symbols_lookup(const Symbols *symbols, String ident, Symbol *out)
 {
-    Ref(SymbolScope) scope = Ref_fromIndex(Vector_size(&symbols->scopes) - 1);
+    Ref(SymbolScope) scope = Vector_ref(&symbols->scopes, Vector_size(&symbols->scopes) - 1);
     for (;;) {
         SymbolScope *it = Vector_at(&symbols->scopes, Ref_toIndex(scope));
         if (SymbolScope_get(it, ident, out)) {

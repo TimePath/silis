@@ -5,13 +5,17 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(debug_puts, ((Ref(Type)[]) {
+INTRINSIC_IMPL(debug_puts, ((Ref(Type)[2]) {
         types->t_string,
         types->t_unit,
 }))
 {
     const Value *arg_val = Slice_at(&argv, 0);
-    const String val = arg_val->u.string.value;
+    const String val = arg_val->u.String;
     fprintf_s(interpreter->out, val);
-    return (Value) {.type = interpreter->types->t_unit, .node = self};
+    return (Value) {
+            .type = interpreter->types->t_unit,
+            .node = self,
+            .kind.val = Value_Opaque,
+    };
 }

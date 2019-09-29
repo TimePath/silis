@@ -3,10 +3,11 @@
 #include <lib/fs.h>
 #include <lib/stdio.h>
 
-#define ParserError(id, _) \
-    _(id, UnexpectedEscape, { size_t c; }) \
+#define ParserError(_, case) \
+    case(_, UnexpectedEscape, struct { size_t c; }) \
 /**/
 
-ENUM(ParserError)
+ADT_instantiate(ParserError);
+#undef ParserError
 
 void ParserError_print(ParserError self, File *out);

@@ -27,14 +27,22 @@ Value Value_from(Interpreter *interpreter, InterpreterFileNodeRef it)
             return (Value) {
                     .type = interpreter->types->t_int,
                     .node = it,
-                    .u.integral.value = n->u.Integral.value,
+                    .kind.val = Value_Integral,
+                    .u.Integral = n->u.Integral.value,
             };
         case Node_String:
             return (Value) {
                     .type = interpreter->types->t_string,
                     .node = it,
-                    .u.string.value = n->u.String.value,
+                    .kind.val = Value_String,
+                    .u.String = n->u.String.value,
             };
     }
-    return (Value) {.type = Ref_null};
+    return (Value) {
+            .type = Ref_null,
+            .node = {
+                    .file = Ref_null,
+                    .node = Ref_null,
+            },
+    };
 }

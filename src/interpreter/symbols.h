@@ -34,9 +34,9 @@ typedef struct {
     struct Intrinsic *value;
     struct {
         bool abstract : 1;
-        BIT_PADDING(uint8_t, 7)
+        BIT_PADDING(uint8_t, 7);
     } flags;
-    PADDING(7)
+    PADDING(7);
 } SymbolInitializer_intrin;
 Slice_instantiate(SymbolInitializer_intrin);
 

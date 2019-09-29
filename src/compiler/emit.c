@@ -43,7 +43,7 @@ typedef enum {
 
 typedef struct {
     return_e kind;
-    PADDING(4)
+    PADDING(4);
     Ref(Type) type;
     union {
         struct {
@@ -78,7 +78,7 @@ emit_output do_emit(emit_input in)
     assert(hasMain && Types_lookup(ctx->interpreter->types, entry.value.type)->kind.val == Type_Function && "main is a function");
 
     Vector_loop(InterpreterFilePtr, &in.interpreter->compilation.files, i) {
-        Target_file_begin(ctx->target, ctx->interpreter, (Ref(InterpreterFile)) Ref_fromIndex(i), &files);
+        Target_file_begin(ctx->target, ctx->interpreter, (Ref(InterpreterFilePtr)) Vector_ref(&in.interpreter->compilation.files, i), &files);
     }
 
     const size_t outputFileByFlagLength = Vector_size(&in.interpreter->compilation.files) * FLAG_COUNT;
@@ -141,7 +141,7 @@ emit_output do_emit(emit_input in)
         }
         assert(Ref_toBool(it->file) && "global is user-defined");
         LINE();
-        NodeList argv = NodeList_iterator(ctx->interpreter, it->value.u.func.arglist);
+        NodeList argv = NodeList_iterator(ctx->interpreter, it->value.u.Func.arglist);
         size_t argc = argv._n;
         String *argnames = new_arr(String, argc);
         func_args_names(ctx->interpreter, argv, argnames);
@@ -150,7 +150,7 @@ emit_output do_emit(emit_input in)
         LINE();
         fprintf_s(file->out, STR("{"));
         LINE(+1);
-        InterpreterFileNodeRef body = it->value.u.func.value;
+        InterpreterFileNodeRef body = it->value.u.Func.value;
         visit_node(ctx, file, (return_t) {.kind = RETURN_FUNC}, body);
         LINE(-1);
         fprintf_s(file->out, STR("}"));
@@ -199,11 +199,11 @@ static void emit_node(emit_ctx *ctx, const compile_file *file, InterpreterFileNo
 static void emit_value(emit_ctx *ctx, const compile_file *file, const Value *it)
 {
     if (Ref_eq(it->type, ctx->interpreter->types->t_int)) {
-        emit_integral(ctx, file, it->u.integral.value);
+        emit_integral(ctx, file, it->u.Integral);
         return;
     }
     if (Ref_eq(it->type, ctx->interpreter->types->t_string)) {
-        emit_string(ctx, file, it->u.string.value);
+        emit_string(ctx, file, it->u.String);
         return;
     }
     unreachable(return);
@@ -464,7 +464,7 @@ static bool visit_node_macro(emit_ctx *ctx, const compile_file *file, return_t r
     if (!entry.value.flags.intrinsic) {
         return false;
     }
-    struct Intrinsic *intrin = entry.value.u.intrinsic.value;
+    struct Intrinsic *intrin = entry.value.u.Intrinsic;
 
     if (intrin == &intrin_define) {
         const Node *name = Interpreter_lookup_file_node(ctx->interpreter, *Slice_at(&children, 1));

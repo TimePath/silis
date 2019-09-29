@@ -6,18 +6,22 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(emit, ((Ref(Type)[]) {
+INTRINSIC_IMPL(emit, ((Ref(Type)[2]) {
         types->t_expr,
         types->t_unit,
 }))
 {
     const Value *arg_args = Slice_at(&argv, 0);
-    NodeList iter = NodeList_iterator(interpreter, arg_args->u.expr.value);
+    NodeList iter = NodeList_iterator(interpreter, arg_args->u.Expr);
     InterpreterFileNodeRef ref;
     while (NodeList_next(&iter, &ref)) {
         const Node *node = Interpreter_lookup_file_node(interpreter, ref);
         (void) node;
         assert(node->kind.val == Node_String && "argument is string literal");
     }
-    return (Value) {.type = interpreter->types->t_unit, .node = self};
+    return (Value) {
+            .type = interpreter->types->t_unit,
+            .node = self,
+            .kind.val = Value_Opaque,
+    };
 }

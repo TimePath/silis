@@ -13,7 +13,7 @@ struct FilePath {
     String _data;
     Vector(String) parts;
     bool absolute;
-    PADDING(7)
+    PADDING(7);
 };
 
 void FilePath_delete(FilePath *self);

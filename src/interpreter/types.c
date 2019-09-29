@@ -3,9 +3,9 @@
 
 #include <lib/misc.h>
 
-Types Types_new(Allocator *allocator)
+void Types_new(Types *self, Allocator *allocator)
 {
-    Types _self = {
+    *self = (Types) {
             .all = Vector_new(Type, allocator),
             .t_untyped = Ref_null,
             .t_unit = Ref_null,
@@ -14,33 +14,31 @@ Types Types_new(Allocator *allocator)
             .t_string = Ref_null,
             .t_int = Ref_null,
     };
-    Types *self = &_self;
     self->t_untyped = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
-            .u.Opaque.size = 0,
+            .u.Opaque = {.size = 0,},
     });
     assert(Ref_value(self->t_untyped) == 1 && "untyped has type id 1");
     self->t_unit = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
-            .u.Opaque.size = 0,
+            .u.Opaque = {.size = 0,},
     });
     self->t_expr = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
-            .u.Opaque.size = 0,
+            .u.Opaque = {.size = 0,},
     });
     self->t_type = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
-            .u.Opaque.size = sizeof(Ref(Type)),
+            .u.Opaque = {.size = sizeof(Ref(Type)),},
     });
     self->t_string = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
-            .u.Opaque.size = sizeof(const native_char_t *),
+            .u.Opaque = {.size = sizeof(const native_char_t *),},
     });
     self->t_int = Types_register(self, (Type) {
             .kind.val = Type_Opaque,
-            .u.Opaque.size = sizeof(size_t),
+            .u.Opaque = {.size = sizeof(size_t),},
     });
-    return _self;
 }
 
 bool Types_assign(Types *self, Ref(Type) src, Ref(Type) dst)
@@ -58,7 +56,7 @@ Ref(Type) Types_register(Types *self, Type it)
 {
     const size_t idx = Vector_size(&self->all);
     Vector_push(&self->all, it);
-    return (Ref(Type)) Ref_fromIndex(idx);
+    return (Ref(Type)) Vector_ref(&self->all, idx);
 }
 
 Ref(Type) Types_register_func(Types *self, Slice(Ref(Type)) types)

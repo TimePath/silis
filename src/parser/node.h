@@ -9,13 +9,13 @@
 
 Ref_instantiate(Node, size_t);
 
-#define Node(id, _) \
+#define Node(_, case) \
     /** Generated at runtime. Index to address of expression in AST buffer */ \
-    _(id, Ref, { \
+    case(_, Ref, struct { \
         Ref(Node) value; \
     }) \
     /** ( */ \
-    _(id, ListBegin, { \
+    case(_, ListBegin, struct { \
         const Token *token; \
         size_t size; \
         /** indices for first and last child */ \
@@ -23,28 +23,29 @@ Ref_instantiate(Node, size_t);
         Ref(Node) end; \
     }) \
     /** ) */ \
-    _(id, ListEnd, { \
+    case(_, ListEnd, struct { \
         const Token *token; \
         Ref(Node) begin; \
     }) \
     /** ) */ \
-    _(id, Atom, { \
+    case(_, Atom, struct { \
         const Token *token; \
         String value; \
     }) \
     /** ) */ \
-    _(id, Integral, { \
+    case(_, Integral, struct { \
         const Token *token; \
         size_t value; \
     }) \
     /** ) */ \
-    _(id, String, { \
+    case(_, String, struct { \
         const Token *token; \
         String value; \
     }) \
 /**/
 
-ENUM(Node)
+ADT_instantiate(Node);
+#undef Node
 
 Slice_instantiate(Node);
 Vector_instantiate(Node);

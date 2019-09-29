@@ -13,7 +13,7 @@ typedef struct {
     size_t depth;
     bool needLine;
     bool needTab;
-    PADDING(6)
+    PADDING(6);
 } TokenPrinterState;
 
 static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterState state, const Token *it, size_t id);
@@ -58,7 +58,7 @@ static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterStat
         switch (it->kind.val) {
             case Token_Atom:
                 fprintf_s(self->out, STR("`"));
-                fprintf_s(self->out, it->u.Atom.value);
+                fprintf_s(self->out, it->u.Atom);
                 fprintf_s(self->out, STR("`"));
                 fprintf_s(self->out, STR(" ;"));
                 {
@@ -70,7 +70,7 @@ static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterStat
                 }
                 break;
             case Token_Integral:
-                fprintf_zu(self->out, it->u.Integral.value);
+                fprintf_zu(self->out, it->u.Integral);
                 fprintf_s(self->out, STR(" ;"));
                 {
                     {
@@ -82,7 +82,7 @@ static TokenPrinterState TokenPrinter_print(TokenPrinter *self, TokenPrinterStat
                 break;
             case Token_String:
                 fprintf_s(self->out, STR("\""));
-                fprintf_s(self->out, it->u.String.value);
+                fprintf_s(self->out, it->u.String);
                 fprintf_s(self->out, STR("\""));
                 fprintf_s(self->out, STR(" ;"));
                 {

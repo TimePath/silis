@@ -7,8 +7,8 @@
 #define INLINE __attribute__((always_inline)) inline
 #endif
 
-#define PADDING(n) uint8_t _padding[n];
-#define BIT_PADDING(T, N) __extension__ T _padding : N;
+#define PADDING(n) uint8_t _padding[n]
+#define BIT_PADDING(T, N) __extension__ T _padding : N
 
 #define MACRO_BEGIN if (1) {
 #define MACRO_END } else ((void) 0)
@@ -59,39 +59,55 @@
 #endif
 
 #if TARGET_COMPILER_TCC
-#define ENUM_PADDING PADDING(20)
+#define ADT_PADDING PADDING(20);
 #else
-#define ENUM_PADDING
+#define ADT_PADDING
 #endif
 
-#define ENUM(id) \
-typedef struct { \
-    union { \
-        enum { \
-            CAT2(id, _INVALID), \
-            id(id, _ENUM_TAG) \
-        } val; \
-        size_t _val; \
-        ENUM_PADDING \
-    } kind; \
-    union { id(id, _ENUM_VARIANT) } u; \
-} id; \
+#define ADT(T) CAT2(ADT__, T)
+// T: (_: CTX, case: (_: CTX, name: symbol, def: {}) => ...) => ...
+#define ADT_instantiate(T) \
+    typedef struct { ADT_instantiate_(T) } ADT(T); \
+    typedef ADT(T) T
+#define ADT_instantiate_(T) ADT_(T, T, ADT_TAG_GEN, T, ())
+#define ADT_(macro, id, tag_func, tag_data, extra) ADT__(macro, (id, tag_func, tag_data, extra))
+#define ADT__(macro, _) \
+union { \
+    ADT_TAG(_ADT_CTX_TAG_FUNC _, _, _ADT_CTX_TAG_DATA _) val; \
+    size_t _val; \
+    ADT_PADDING \
+} kind; \
+union { macro(_, _ADT_VARIANT) } u; \
 /**/
+#define ADT_TAG(f, _, d) f(_, d)
 
-#define _ENUM_TAG(id, name, def) CAT3(id, _, name),
+#define ADT_TAG_USE(_, data) data
+#define ADT_TAG_GEN(_, macro) \
+enum { \
+    _ADT_TAG(_, INVALID, {}) \
+    macro(_, _ADT_TAG) \
+}
 
-#define _ENUM_VARIANT(id, name, def) struct def name;
+#define _ADT_CTX_ID(id, tag_func, tag_data, extra) id
+#define _ADT_CTX_TAG_FUNC(id, tag_func, tag_data, extra) tag_func
+#define _ADT_CTX_TAG_DATA(id, tag_func, tag_data, extra) tag_data
+#define _ADT_CTX_EXTRA(id, tag_func, tag_data, extra) extra
 
-#define _ENUM_VAL(id, variant) .kind.val = CAT3(id, _, variant), .u.variant
-#define ENUM_VAL(id, variant, it) (id) { _ENUM_VAL(id, variant) = it }
+#define _ADT_TAG(_, name, def) _ADT_TAG_(_ADT_CTX_ID _, name),
+#define _ADT_TAG_(adt, id) CAT3(adt, _, id)
+
+#define _ADT_VARIANT(_, name, def) def name;
+
+#define _ADT_VAL(macro, variant) .kind.val = CAT3(macro, _, variant), .u.variant
+#define ADT_VAL(macro, variant, it) (macro) { _ADT_VAL(macro, variant) = it }
 
 #define Ref(T) CAT2(Ref__, T)
 #define Ref_instantiate(T, U) typedef Ref_(T, size_t) Ref(T)
 #define Ref_(T, U) \
 struct { \
     struct { \
-        void *(*deref)(void *owner, U id); \
-        void *owner; \
+        void const *container; \
+        void *(*deref)(void const *container, U id); \
         U id; \
     } priv; \
 }
@@ -102,6 +118,8 @@ struct { \
 
 #define Ref_null {{ NULL, NULL, 0 }}
 #define Ref_max {{ NULL, NULL, (size_t) -1 }}
+
+#define Ref_from(container, deref, idx) {{ (container), (deref), (idx) + 1 }}
 
 #define Ref_fromIndexCheck(T, i) ((i) < ((size_t) Ref_value((Ref(T)) Ref_max)))
 #define Ref_fromIndex(idx) {{ NULL, NULL, (idx) + 1 }}

@@ -7,20 +7,21 @@
 
 Ref_instantiate(Token, size_t);
 
-#define Token(id, _) \
+#define Token(_, case) \
     /** ( */ \
-    _(id, ListBegin, { PADDING(1) }) \
+    case(_, ListBegin, struct { PADDING(1); }) \
     /** ) */ \
-    _(id, ListEnd, { PADDING(1) }) \
+    case(_, ListEnd, struct { PADDING(1); }) \
     /** A word */ \
-    _(id, Atom, { String value; }) \
+    case(_, Atom, String) \
     /** An integer */ \
-    _(id, Integral, { size_t value; }) \
+    case(_, Integral, size_t) \
     /** A string */ \
-    _(id, String, { String value; }) \
+    case(_, String, String) \
 /**/
 
-ENUM(Token)
+ADT_instantiate(Token);
+#undef Token
 
 Slice_instantiate(Token);
 Vector_instantiate(Token);

@@ -4,7 +4,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(cond, ((Ref(Type)[]) {
+INTRINSIC_IMPL(cond, ((Ref(Type)[4]) {
         types->t_expr, types->t_expr, types->t_expr,
         types->t_unit,
 }))
@@ -14,9 +14,9 @@ INTRINSIC_IMPL(cond, ((Ref(Type)[]) {
     const Value *arg_true = Slice_at(&argv, 1);
     const Value *arg_false = Slice_at(&argv, 2);
 
-    InterpreterFileNodeRef predicate = arg_predicate->u.expr.value;
-    InterpreterFileNodeRef node_true = arg_true->u.expr.value;
-    InterpreterFileNodeRef node_false = arg_false->u.expr.value;
+    InterpreterFileNodeRef predicate = arg_predicate->u.Expr;
+    InterpreterFileNodeRef node_true = arg_true->u.Expr;
+    InterpreterFileNodeRef node_false = arg_false->u.Expr;
     const Value ret = eval_node(interpreter, predicate);
-    return eval_node(interpreter, ret.u.integral.value != 0 ? node_true : node_false);
+    return eval_node(interpreter, ret.u.Integral != 0 ? node_true : node_false);
 }

@@ -61,7 +61,7 @@ size_t main(Env env)
         bool print_eval : 1;
         bool print_emit : 1;
         bool print_run : 1;
-        BIT_PADDING(uint8_t, 2)
+        BIT_PADDING(uint8_t, 2);
     } flags = {
             .run = false,
             .print_lex = true,
@@ -79,19 +79,19 @@ size_t main(Env env)
     FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 3), allocator), fs_out);
     FilePath inputFilePath = FilePath_from_native(*Slice_at(&args, 4), allocator);
 
-    Types _types = Types_new(allocator);
-    Types *types = &_types;
+    Types _types, *types = &_types;
+    Types_new(types, allocator);
 
     Symbols _symbols = Symbols_new(types,
     Slice_of(SymbolInitializer, ((SymbolInitializer[2]) {
             {.id = STR("#types/string"), .value = (Value) {
                     .type = types->t_type,
-                    .u.type.value = types->t_string,
+                    .u.Type = types->t_string,
                     .flags = { .intrinsic = true, }
             }},
             {.id = STR("#types/int"), .value = (Value) {
                     .type = types->t_type,
-                    .u.type.value = types->t_int,
+                    .u.Type = types->t_int,
                     .flags = { .intrinsic = true, }
             }},
     })),
@@ -135,7 +135,7 @@ size_t main(Env env)
     };
     Interpreter *interpreter = &_interpreter;
 
-    Ref(InterpreterFile) mainFile = Interpreter_load(interpreter, fs_in, inputFilePath);
+    Ref(InterpreterFilePtr) mainFile = Interpreter_load(interpreter, fs_in, inputFilePath);
     Interpreter_eval(interpreter, mainFile);
 
     if (flags.run) {

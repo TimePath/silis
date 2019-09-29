@@ -23,6 +23,7 @@ struct { \
 /**/
 
 #define Vector_size(self) ((self)->_size)
+#define Vector_ref(self, i) Ref_from((self), _Vector_deref, i)
 #define Vector_at(self, i) (&(self)->_data[i])
 #define _Vector_at(T, self, i) ((T *) (void *) &((uint8_t *) (self)->_data)[(self)->_sizeofT * (i)])
 #define Vector_toSlice(T, self) ((Slice(T)) { ._begin.r = (self)->_data, ._end = (self)->_data + Vector_size(self) })
@@ -49,3 +50,5 @@ _Vector_delete(self); \
 MACRO_END
 
 void _Vector_delete(void *self);
+
+void *_Vector_deref(void const *self, size_t id);

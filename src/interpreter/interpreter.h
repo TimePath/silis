@@ -8,15 +8,15 @@
 
 #include "types.h"
 
-Ref_instantiate(InterpreterFile, size_t);
+Ref_instantiate(InterpreterFilePtr, size_t);
 
 typedef struct {
-    Ref(InterpreterFile) file;
+    Ref(InterpreterFilePtr) file;
     Ref(Token) token;
 } InterpreterFileTokenRef;
 
 typedef struct {
-    Ref(InterpreterFile) file;
+    Ref(InterpreterFilePtr) file;
     Ref(Node) node;
 } InterpreterFileNodeRef;
 
@@ -53,9 +53,9 @@ typedef struct {
             bool print_lex : 1;
             bool print_parse : 1;
             bool print_eval: 1;
-            BIT_PADDING(uint8_t, 5)
+            BIT_PADDING(uint8_t, 5);
         } flags;
-        PADDING(7)
+        PADDING(7);
     } compilation;
     Types *types;
     struct Symbols *symbols;
@@ -63,7 +63,7 @@ typedef struct {
     File *out;
 } Interpreter;
 
-const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, Ref(InterpreterFile) ref);
+const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, Ref(InterpreterFilePtr) ref);
 
 const Token *Interpreter_lookup_file_token(const Interpreter *self, InterpreterFileTokenRef ref);
 
@@ -71,8 +71,8 @@ const Node *Interpreter_lookup_file_node(const Interpreter *self, InterpreterFil
 
 InterpreterFileNodeRef Interpreter_lookup_node_ref(const Interpreter *self, InterpreterFileNodeRef ref);
 
-Ref(InterpreterFile) Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path);
+Ref(InterpreterFilePtr) Interpreter_load(Interpreter *self, FileSystem *fs, FilePath path);
 
-Ref(InterpreterFile) Interpreter_read(Interpreter *self, String file, FilePath path);
+Ref(InterpreterFilePtr) Interpreter_read(Interpreter *self, String file, FilePath path);
 
-void Interpreter_eval(Interpreter *self, Ref(InterpreterFile) file);
+void Interpreter_eval(Interpreter *self, Ref(InterpreterFilePtr) file);

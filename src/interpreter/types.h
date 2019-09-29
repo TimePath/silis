@@ -24,7 +24,7 @@ typedef struct Types {
     Ref(Type) t_int;
 } Types;
 
-Types Types_new(Allocator *allocator);
+void Types_new(Types *self, Allocator *allocator);
 
 bool Types_assign(Types *self, Ref(Type) src, Ref(Type) dst);
 

@@ -164,12 +164,12 @@ static size_t Lexer_atom(Lexer *self, String prog)
         }
         Lexer_yield(self, (Token) {
                 .kind.val = Token_Integral,
-                .u.Integral.value = val,
+                .u.Integral = val,
         });
     } else {
         Lexer_yield(self, (Token) {
                 .kind.val = Token_Atom,
-                .u.Atom.value = atom,
+                .u.Atom = atom,
         });
     }
     return String_sizeUnits(atom);
@@ -213,7 +213,7 @@ static Result(size_t, ParserError) Lexer_string(Lexer *self, String prog)
     const String value = String_fromSlice((Slice(uint8_t)) {._begin.r = begin, ._end = (const uint8_t *) out}, enc);
     Lexer_yield(self, (Token) {
             .kind.val = Token_String,
-            .u.String.value = value,
+            .u.String = value,
     });
     size_t ret = 1 + enc->count_units((Slice(uint8_t)) {._begin.r = begin, ._end = Slice_begin(&it)}) + 1;
     return (Result(size_t, ParserError)) Result_ok(ret);
@@ -248,8 +248,8 @@ static Result(size_t, ParserError) Lexer_list(Lexer *self, String prog)
             case '{': // sugar
             {
                 Result(size_t, ParserError) res = Lexer_list(self, String_fromSlice(next, enc));
-                if (!res.is.ok) return res;
-                next = enc->skip_units(it, res.ret.val);
+                if (res.kind.val != Result_Ok) return res;
+                next = enc->skip_units(it, res.u.Ok);
                 break;
             }
             case ')':
@@ -260,8 +260,8 @@ static Result(size_t, ParserError) Lexer_list(Lexer *self, String prog)
             case '"':
             {
                 Result(size_t, ParserError) res = Lexer_string(self, String_fromSlice(next, enc));
-                if (!res.is.ok) return res;
-                next = enc->skip_units(it, res.ret.val);
+                if (res.kind.val != Result_Ok) return res;
+                next = enc->skip_units(it, res.u.Ok);
                 break;
             }
             default:
@@ -284,6 +284,6 @@ Result(Vector(Token), ParserError) silis_parser_lex(silis_parser_lex_input in)
             .tokens = Vector_new(Token, allocator),
     };
     Result(size_t, ParserError) res = Lexer_list(&lexer, in.source);
-    if (!res.is.ok) return (Result(Vector(Token), ParserError)) Result_err(res.ret.err);
+    if (res.kind.val != Result_Ok) return (Result(Vector(Token), ParserError)) Result_err(res.u.Err);
     return (Result(Vector(Token), ParserError)) Result_ok(lexer.tokens);
 }

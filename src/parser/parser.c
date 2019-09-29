@@ -27,7 +27,7 @@ static Node Parser_convert(const Token *it)
                     .kind.val = Node_Atom,
                     .u.Atom = {
                             .token = it,
-                            .value = it->u.Atom.value,
+                            .value = it->u.Atom,
                     },
             };
         case Token_Integral:
@@ -35,7 +35,7 @@ static Node Parser_convert(const Token *it)
                     .kind.val = Node_Integral,
                     .u.Integral = {
                             .token = it,
-                            .value = it->u.Integral.value,
+                            .value = it->u.Integral,
                     },
             };
         case Token_String:
@@ -43,7 +43,7 @@ static Node Parser_convert(const Token *it)
                     .kind.val = Node_String,
                     .u.String = {
                             .token = it,
-                            .value = it->u.String.value,
+                            .value = it->u.String,
                     },
             };
     }
@@ -77,8 +77,8 @@ static size_t Parser_parse(Parser *self, const Token *it)
                 .kind.val = Node_ListBegin,
                 .u.ListBegin = {
                         .token = begin,
-                        .begin = !argc ? (Ref(Node)) Ref_null : (Ref(Node)) Ref_fromIndex(autoid + 1),
-                        .end = !argc ? (Ref(Node)) Ref_null : (Ref(Node)) Ref_fromIndex(autoid + argc),
+                        .begin = !argc ? (Ref(Node)) Ref_null : (Ref(Node)) Vector_ref(&self->nodes, autoid + 1),
+                        .end = !argc ? (Ref(Node)) Ref_null : (Ref(Node)) Vector_ref(&self->nodes, autoid + argc),
                         .size = argc,
                 },
         };
@@ -93,14 +93,14 @@ static size_t Parser_parse(Parser *self, const Token *it)
                 .kind.val = Node_ListEnd,
                 .u.ListEnd = {
                         .token = end,
-                        .begin = Ref_fromIndex(autoid),
+                        .begin = Vector_ref(&self->nodes, autoid),
                 },
         };
         Parser_yield(self, footer);
     }
     const Node ret = (Node) {
             .kind.val = Node_Ref,
-            .u.Ref.value = Ref_fromIndex(autoid),
+            .u.Ref = {.value = Vector_ref(&self->nodes, autoid),},
     };
     Vector_push(&self->stack, ret);
     return 1 + (size_t) (end - begin);

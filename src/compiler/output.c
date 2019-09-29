@@ -4,7 +4,7 @@
 #include <lib/fs/memoryfile.h>
 #include <lib/misc.h>
 
-compile_file compile_file_new(Ref(InterpreterFile) file, String ext, size_t stage, Slice(file_flag) flags, Allocator *allocator)
+compile_file compile_file_new(Ref(InterpreterFilePtr) file, String ext, size_t stage, Slice(file_flag) flags, Allocator *allocator)
 {
     Buffer *content = new(Buffer, Buffer_new(allocator));
     size_t flagsMask = 0;

@@ -41,7 +41,11 @@ Value eval_list_block(Interpreter *interpreter, InterpreterFileNodeRef it)
 static Value do_eval_list_block(eval_ctx *ctx, InterpreterFileNodeRef it)
 {
     assert(Interpreter_lookup_file_node(ctx->interpreter, it)->kind.val == Node_ListBegin);
-    Value ret = (Value) {.type = ctx->interpreter->types->t_unit, .node = it};
+    Value ret = (Value) {
+            .type = ctx->interpreter->types->t_unit,
+            .node = it,
+            .kind.val = Value_Opaque,
+    };
     NodeList iter = NodeList_iterator(ctx->interpreter, it);
     InterpreterFileNodeRef ref;
     for (size_t i = 0; NodeList_next(&iter, &ref); ++i) {
@@ -62,7 +66,11 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
     const size_t n = children._n;
     if (!n) {
         // ()
-        return (Value) {.type = ctx->interpreter->types->t_unit, .node = it};
+        return (Value) {
+                .type = ctx->interpreter->types->t_unit,
+                .node = it,
+                .kind.val = Value_Opaque,
+        };
     }
     InterpreterFileNodeRef ref;
     NodeList_next(&children, &ref);
@@ -90,7 +98,8 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
             v = (Value) {
                     .type = expr_t,
                     .node = arg,
-                    .u.expr.value = arg,
+                    .kind.val = Value_Expr,
+                    .u.Expr = arg,
             };
         } else {
             v = do_eval_node(ctx, arg);
@@ -107,6 +116,7 @@ static Value do_eval_node(eval_ctx *ctx, InterpreterFileNodeRef it)
         ret = (Value) {
             .type = T,
             .node = it,
+            .kind.val = Value_Opaque,
             .flags = { .abstract = true, },
         };
     } else {
@@ -124,11 +134,11 @@ static void func_args_load(Interpreter *interpreter, InterpreterFileNodeRef argl
 Value func_call(Interpreter *interpreter, Value func, Slice(Value) argv, InterpreterFileNodeRef it)
 {
     if (func.flags.intrinsic) {
-        return Intrinsic_call(func.u.intrinsic.value, interpreter, it, argv);
+        return Intrinsic_call(func.u.Intrinsic, interpreter, it, argv);
     }
     Symbols_push(interpreter->symbols);
-    InterpreterFileNodeRef body = func.u.func.value;
-    InterpreterFileNodeRef arglist = func.u.func.arglist;
+    InterpreterFileNodeRef body = func.u.Func.value;
+    InterpreterFileNodeRef arglist = func.u.Func.arglist;
     func_args_load(interpreter, arglist, argv);
     const Value ret = eval_node(interpreter, body);
     Symbols_pop(interpreter->symbols);

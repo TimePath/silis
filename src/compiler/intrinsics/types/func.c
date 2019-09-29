@@ -8,7 +8,7 @@
 
 static void types_func_args_types(Interpreter *interpreter, NodeList iter, Ref(Type) out[]);
 
-INTRINSIC_IMPL(types_func, ((Ref(Type)[]) {
+INTRINSIC_IMPL(types_func, ((Ref(Type)[2]) {
         types->t_expr,
         types->t_unit,
 }))
@@ -16,7 +16,7 @@ INTRINSIC_IMPL(types_func, ((Ref(Type)[]) {
     Allocator *allocator = interpreter->allocator;
     const Value *arg_args = Slice_at(&argv, 0);
 
-    NodeList children = NodeList_iterator(interpreter, arg_args->u.expr.value);
+    NodeList children = NodeList_iterator(interpreter, arg_args->u.Expr);
     const size_t argc = children._n;
     assert(argc >= 2 && "has enough arguments");
     Ref(Type) *Ts = new_arr(Ref(Type), argc);
@@ -26,7 +26,8 @@ INTRINSIC_IMPL(types_func, ((Ref(Type)[]) {
     return (Value) {
             .type = interpreter->types->t_type,
             .node = self,
-            .u.type.value = T,
+            .kind.val = Value_Type,
+            .u.Type = T,
     };
 }
 
@@ -42,6 +43,6 @@ static void types_func_args_types(Interpreter *interpreter, NodeList iter, Ref(T
             continue;
         }
         assert(Ref_eq(T, interpreter->types->t_type) && "argument is a type");
-        out[i] = v.u.type.value;
+        out[i] = v.u.Type;
     }
 }

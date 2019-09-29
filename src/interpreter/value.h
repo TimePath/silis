@@ -6,50 +6,35 @@
 #include "nodelist.h"
 #include "type.h"
 
+#define Value(_, case) \
+    case(_, Opaque, struct { PADDING(1); }) \
+    case(_, Integral, size_t) \
+    case(_, String, String) \
+    case(_, Intrinsic, struct Intrinsic *) \
+    case(_, Expr, InterpreterFileNodeRef) \
+    case(_, Type, Ref(Type)) \
+    case(_, Func, struct { \
+        InterpreterFileNodeRef value; \
+        InterpreterFileNodeRef arglist; \
+    }) \
+/**/
+
 typedef struct {
     Ref(Type) type;
     InterpreterFileNodeRef node;
-    union {
-        struct {
-            void *value;
-        } voidp;
-
-        struct {
-            size_t value;
-        } integral;
-
-        struct {
-            String value;
-        } string;
-
-        struct {
-            struct Intrinsic *value;
-        } intrinsic;
-
-        struct {
-            InterpreterFileNodeRef value;
-        } expr;
-
-        struct {
-            Ref(Type) value;
-        } type;
-
-        struct {
-            InterpreterFileNodeRef value;
-            InterpreterFileNodeRef arglist;
-        } func;
-    } u;
+    ADT_instantiate_(Value)
     struct {
-        /// unknown value
+        /** unknown value */
         bool abstract : 1;
-        /// intrinsic, can't be compiled as-is
+        /** intrinsic, can't be compiled as-is */
         bool intrinsic : 1;
-        /// native declaration (libc function, or other external symbol)
+        /** native declaration (libc function, or other external symbol) */
         bool native : 1;
-        BIT_PADDING(uint8_t, 5)
+        BIT_PADDING(uint8_t, 5);
     } flags;
-    PADDING(7)
+    PADDING(7);
 } Value;
+#undef Value
 
 Slice_instantiate(Value);
 Vector_instantiate(Value);

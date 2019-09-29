@@ -5,12 +5,16 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC_IMPL(untyped, ((Ref(Type)[]) {
+INTRINSIC_IMPL(untyped, ((Ref(Type)[2]) {
         types->t_string,
         types->t_untyped,
 }))
 {
     (void) argv;
     assert(false && "is never called");
-    return (Value) {.type = interpreter->types->t_unit, .node = self};
+    return (Value) {
+            .type = interpreter->types->t_unit,
+            .node = self,
+            .kind.val = Value_Opaque,
+    };
 }
