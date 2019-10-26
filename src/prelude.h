@@ -19,9 +19,9 @@
 
 #if !USE_REAL_HEADERS
 #ifndef __WORDSIZE
-#if defined(__x86_64__) && !defined(__ILP32__)
+#if defined(__LP64__) || defined(__x86_64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
 #define __WORDSIZE 64
-#else
+#elif defined(__ILP32__) || defined(__i386__) || defined(_M_IX86) || defined(__arm__) || defined(_M_ARM)
 #define __WORDSIZE 32
 #endif
 #endif

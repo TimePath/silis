@@ -1,7 +1,22 @@
 language: c
-os:
-  - linux
-  - osx
-  - windows
+matrix:
+  include:
+    - os: linux
+      arch: amd64
+      compiler: clang
+    - os: linux
+      arch: amd64
+      compiler: gcc
+    - os: linux
+      arch: arm64
+      compiler: clang
+    - os: linux
+      arch: arm64
+      compiler: gcc
+
+    - os: osx
+      compiler: clang
+
+    - os: windows
 script:
   - cmake -H. -Bcmake-build && cmake --build cmake-build
