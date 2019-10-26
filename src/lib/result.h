@@ -17,10 +17,12 @@ typedef enum {
     case(_, Err, Result_ADT_E(_)) \
     /**/
 
-#define Result_ADT_T(_) Result_ADT_T_ _ADT_CTX_EXTRA _
+#define Result_ADT_Eval(it) it
+
+#define Result_ADT_T(_) Result_ADT_Eval(Result_ADT_T_ _ADT_CTX_EXTRA _)
 #define Result_ADT_T_(T, E) T
 
-#define Result_ADT_E(_) Result_ADT_E_ _ADT_CTX_EXTRA _
+#define Result_ADT_E(_) Result_ADT_Eval(Result_ADT_E_ _ADT_CTX_EXTRA _)
 #define Result_ADT_E_(T, E) E
 
 #define Result_ok(it) { .kind.val = Result_Ok, .u.Ok = (it), }
