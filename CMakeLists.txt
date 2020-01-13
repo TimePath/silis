@@ -28,6 +28,7 @@ try_flag(CMAKE_C_FLAGS "/utf-8")
 # keep
 try_flag(CMAKE_C_FLAGS "-Wno-keyword-macro")
 try_flag(CMAKE_C_FLAGS "-Wno-reserved-id-macro")
+try_flag(CMAKE_C_FLAGS "-Wno-unreachable-code")
 try_flag(CMAKE_C_FLAGS "-Wno-unused-command-line-argument")
 try_flag(CMAKE_C_FLAGS "-Wno-unused-macros")
 try_flag(CMAKE_C_FLAGS "/wd4204")  # non-constant aggregate initializer
