@@ -1,6 +1,6 @@
 #pragma once
 
-#if TARGET_COMPILER_MSVC
+#if TARGET_COMPILER == COMPILER_MSVC
 #define __extension__
 #define INLINE inline
 #else
@@ -17,7 +17,7 @@
 
 #define OFFSETOF(T, fld) ((size_t) &(((T *) 0)->fld))
 
-#if TARGET_COMPILER_MSVC
+#if TARGET_COMPILER == COMPILER_MSVC
 #pragma warning(disable:4116)
 #endif
 #define CAST(T, U, it) ((union { U from; T to; }) { .from = (it) }.to)
@@ -32,13 +32,13 @@
 
 #define STRINGIFY(self) #self
 
-#if TARGET_COMPILER_CLANG
+#if TARGET_COMPILER == COMPILER_CLANG
 #define NORETURN __attribute__((noreturn))
 #else
 #define NORETURN
 #endif
 
-#if TARGET_COMPILER_CLANG
+#if TARGET_COMPILER == COMPILER_CLANG
 #define DIAG_PUSH         _Pragma("GCC diagnostic push")
 #define DIAG_IGNORE(rule) _Pragma(STRINGIFY(GCC diagnostic ignored rule))
 #define DIAG_POP          _Pragma("GCC diagnostic pop")
@@ -58,7 +58,7 @@
 #define DIAG_IGNORE_REDUNDANT_PARENS
 #endif
 
-#if TARGET_COMPILER_TCC
+#if TARGET_COMPILER == COMPILER_TCC
 #define ADT_PADDING PADDING(20);
 #else
 #define ADT_PADDING

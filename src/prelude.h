@@ -6,7 +6,7 @@
 #define USE_REAL_HEADERS 1
 #endif
 
-#if TARGET_OS_MAC
+#if TARGET_OS == OS_MACOS
 #undef USE_REAL_HEADERS
 #define USE_REAL_HEADERS 1
 #endif
@@ -134,7 +134,7 @@ typedef const native_char_t *native_string_t;
 #define realloc(ptr, size) Allocator_realloc(allocator, ptr, size)
 #define free(ptr) Allocator_free(allocator, ptr)
 
-#if TARGET_COMPILER_CLANG || TARGET_COMPILER_GCC
+#if TARGET_COMPILER == COMPILER_CLANG || TARGET_COMPILER == COMPILER_GCC
 #define unreachable(alt) __builtin_unreachable()
 #else
 #define unreachable(alt) alt

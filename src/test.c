@@ -7,7 +7,7 @@
 #undef _FORTIFY_SOURCE
 #endif
 
-#if TARGET_OS_WIN
+#if TARGET_OS == OS_WINDOWS
 #pragma warning(push, 0)
 #endif
 
@@ -16,7 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if TARGET_OS_WIN
+#if TARGET_OS == OS_WINDOWS
 
 #include <Windows.h>
 
@@ -64,7 +64,7 @@ static char const *va(char const *fmt, ...) {
     run_check(ret); \
 } while (0)
 
-#if TARGET_OS_WIN
+#if TARGET_OS == OS_WINDOWS
 #define run_check(ret) do { \
     printf("run: status: %d\n", ret); \
 } while (0)
@@ -76,7 +76,7 @@ static char const *va(char const *fmt, ...) {
 } while (0)
 #endif
 
-#if TARGET_OS_WIN
+#if TARGET_OS == OS_WINDOWS
 
 typedef PROCESS_INFORMATION pid_t;
 typedef void posix_spawn_file_actions_t;
@@ -100,7 +100,7 @@ static char *getcwd_full(void);
 
 static int spawn(char const *argv[]) {
     pid_t pid;
-#if TARGET_OS_LIN
+#if TARGET_OS == OS_LINUX
     extern char **_environ;
     char **envp = _environ;
 #else
@@ -113,7 +113,7 @@ static int spawn(char const *argv[]) {
 }
 
 int main(int argc, char const *argv[]) {
-#if TARGET_OS_WIN
+#if TARGET_OS == OS_WINDOWS
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 #endif
@@ -136,8 +136,8 @@ int main(int argc, char const *argv[]) {
     printf("dir_out=%s\n", dir_out);
     printf("test=%s\n", test);
     run_or_exit(silis, target, dir_in, dir_out, test);
-    char const *exe = va(TARGET_OS_WIN ? "%s\\%s.exe" : "%s/%s.exe", dir_out, test);
-#if TARGET_OS_WIN
+    char const *exe = va(TARGET_OS == OS_WINDOWS ? "%s\\%s.exe" : "%s/%s.exe", dir_out, test);
+#if TARGET_OS == OS_WINDOWS
     run_or_exit(CC, "/nologo", va("%s\\%s.c", dir_out, test), "/Fe:", exe);
 #else
     run_or_exit(CC, va("%s/%s.c", dir_out, test), "-o", exe);
@@ -146,7 +146,7 @@ int main(int argc, char const *argv[]) {
     return EXIT_SUCCESS;
 }
 
-#if TARGET_OS_WIN
+#if TARGET_OS == OS_WINDOWS
 
 static wchar_t *u8_to_u16(size_t len, char const *str) {
     size_t wlen = MultiByteToWideChar(CP_UTF8, 0, str, len, NULL, 0);

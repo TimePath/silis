@@ -20,11 +20,11 @@ void FilePath_delete(FilePath *self);
 
 FilePath FilePath_from(String path, Allocator *allocator);
 
-#define FilePath_from_native(path, allocator) FilePath_from_native_(path, !TARGET_OS_WIN, allocator)
+#define FilePath_from_native(path, allocator) FilePath_from_native_(path, TARGET_OS != OS_WINDOWS, allocator)
 
 FilePath FilePath_from_native_(String path, bool nix, Allocator *allocator);
 
-#define FilePath_to_native(path, buf) FilePath_to_native_(path, buf, !TARGET_OS_WIN)
+#define FilePath_to_native(path, buf) FilePath_to_native_(path, buf, TARGET_OS != OS_WINDOWS)
 
 String FilePath_to_native_(FilePath path, Buffer *buf, bool nix);
 

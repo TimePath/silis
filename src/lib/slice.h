@@ -2,7 +2,7 @@
 
 #include "macro.h"
 
-#if TARGET_COMPILER_TCC
+#if TARGET_COMPILER == COMPILER_TCC
 #define SLICE_PADDING PADDING(32);
 #else
 #define SLICE_PADDING
