@@ -183,7 +183,7 @@ function(add_tests)
             OUTPUT ${CMAKE_BINARY_DIR}/tested
             DEPENDS silisc-test silisc ${silisc_tests}
             WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-            COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION> --output-on-failure
+            COMMAND ${CMAKE_COMMAND} -E env CTEST_OUTPUT_ON_FAILURE=1 ${CMAKE_CTEST_COMMAND} -C $<CONFIGURATION>
             COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_BINARY_DIR}/tested
     )
 endfunction()
