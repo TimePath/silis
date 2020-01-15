@@ -1,5 +1,6 @@
 #pragma once
 
+#include "array.h"
 #include "macro.h"
 
 #if TARGET_COMPILER == COMPILER_TCC

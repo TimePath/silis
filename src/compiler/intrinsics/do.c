@@ -4,7 +4,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(do, ((Ref(Type)[2]) {
+INTRINSIC_IMPL(do, ((Array(Ref(Type), 2)) {
         types->t_expr,
         types->t_unit, // fixme: return type depends on input
 }))

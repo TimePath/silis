@@ -9,7 +9,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/value.h>
 
-INTRINSIC_IMPL(include, ((Ref(Type)[2]) {
+INTRINSIC_IMPL(include, ((Array(Ref(Type), 2)) {
         types->t_expr,
         types->t_unit,
 }))

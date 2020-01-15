@@ -12,7 +12,7 @@ static void tgt_c_file_end(Target *self, Interpreter *interpreter, const compile
 
 static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name);
 
-static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, const String argnames[]);
+static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, Slice(String) argnames);
 
 static void tgt_c_var_begin(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T);
 
@@ -42,21 +42,21 @@ typedef struct {
 
 static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, const String idents[], tgt_c_print_decl_opts opts);
+static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, Slice(String) idents, tgt_c_print_decl_opts opts);
 
-static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, const String idents[]);
+static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, Slice(String) idents);
 
 static void tgt_c_file_begin(Target *self, Interpreter *interpreter, Ref(InterpreterFilePtr) file_ref, Vector(compile_file) *files)
 {
     (void) self;
     Allocator *allocator = interpreter->allocator;
-    compile_file _header = compile_file_new(file_ref, STR("h"), STAGE_HEADER, Slice_of(file_flag, ((file_flag[]) { FLAG_HEADER })), allocator);
+    compile_file _header = compile_file_new(file_ref, STR("h"), STAGE_HEADER, Slice_of(file_flag, ((Array(file_flag, 1)) { FLAG_HEADER })), allocator);
     compile_file *header = &_header;
     fprintf_s(header->out, STR("#pragma once\n"));
     fprintf_s(header->out, STR("typedef const char *string;\n"));
     Vector_push(files, _header);
 
-    compile_file _impl = compile_file_new(file_ref, STR("c"), STAGE_IMPL, Slice_of(file_flag, ((file_flag[]) { FLAG_IMPL })), allocator);
+    compile_file _impl = compile_file_new(file_ref, STR("c"), STAGE_IMPL, Slice_of(file_flag, ((Array(file_flag, 1)) { FLAG_IMPL })), allocator);
     compile_file *impl = &_impl;
     fprintf_s(impl->out, STR("#include \"./"));
     Buffer buf = Buffer_new(allocator);
@@ -82,11 +82,11 @@ static void tgt_c_func_forward(Target *self, Interpreter *interpreter, const com
     if (!(file->flags & (1 << FLAG_HEADER))) {
         return;
     }
-    tgt_c_print_function(self, interpreter, file, T, name, NULL);
+    tgt_c_print_function(self, interpreter, file, T, name, Slice_of_n(String, NULL, 0));
     fprintf_s(file->out, STR(";"));
 }
 
-static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, const String argnames[])
+static void tgt_c_func_declare(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, Slice(String) argnames)
 {
     tgt_c_print_function(self, interpreter, file, T, name, argnames);
 }
@@ -106,7 +106,7 @@ static void tgt_c_var_end(Target *self, Interpreter *interpreter, const compile_
             .local = true,
             .anonymous = false,
     };
-    tgt_c_print_decl_post(self, interpreter, file, T, NULL, opts);
+    tgt_c_print_decl_post(self, interpreter, file, T, Slice_of_n(String, NULL, 0), opts);
 }
 
 static void tgt_c_identifier(Target *self, Interpreter *interpreter, const compile_file *file, String name)
@@ -137,7 +137,7 @@ static void tgt_c_identifier(Target *self, Interpreter *interpreter, const compi
 
 // implementation
 
-static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, const String idents[])
+static void tgt_c_print_function(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String ident, Slice(String) idents)
 {
     tgt_c_print_decl_opts opts = {
             .local = false,
@@ -160,7 +160,7 @@ static void tgt_c_print_declaration(Target *self, Interpreter *interpreter, cons
     if (!opts.anonymous) {
         tgt_c_identifier(self, interpreter, file, ident);
     }
-    tgt_c_print_decl_post(self, interpreter, file, T, NULL, opts);
+    tgt_c_print_decl_post(self, interpreter, file, T, Slice_of_n(String, NULL, 0), opts);
 }
 
 static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, tgt_c_print_decl_opts opts)
@@ -195,7 +195,7 @@ static void tgt_c_print_decl_pre(Target *self, Interpreter *interpreter, const c
     }
 }
 
-static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, const String idents[], tgt_c_print_decl_opts opts)
+static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const compile_file *file, Ref(Type) T, Slice(String) idents, tgt_c_print_decl_opts opts)
 {
     const Type *type = Types_lookup(interpreter->types, T);
     if (type->kind.val != Type_Function) {
@@ -209,7 +209,7 @@ static void tgt_c_print_decl_post(Target *self, Interpreter *interpreter, const 
     size_t i = 0;
     while (true) {
         const Ref(Type) arg = argp->u.Function.in;
-        const String s = idents ? idents[i++] : STR("");
+        const String s = i < Slice_size(&idents) ? *Slice_at(&idents, i++) : STR("");
         tgt_c_print_declaration(self, interpreter, file, arg, s);
         const Type *next = Types_lookup(interpreter->types, argp->u.Function.out);
         if (next->kind.val != Type_Function) {

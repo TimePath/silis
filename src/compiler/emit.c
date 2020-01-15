@@ -91,6 +91,7 @@ emit_output do_emit(emit_input in)
         const size_t flags = it->flags;
         for (size_t j = 0; j < FLAG_COUNT; ++j) {
             if (flags & (1 << j)) {
+                assert(Ref_toBool(it->file));
                 outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + j] = it;
             }
         }
@@ -101,11 +102,12 @@ emit_output do_emit(emit_input in)
     Vector_loop(TrieEntry(Symbol), &globals->t.entries, i) {
         const TrieEntry(Symbol) *e = Vector_at(&globals->t.entries, i);
         const Symbol _it = e->value, *it = &_it;
-        const compile_file *file = outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + FLAG_HEADER];
-        assert(file);
         if (it->value.flags.intrinsic) {
             continue;
         }
+        assert(Ref_toBool(it->file));
+        const compile_file *file = outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + FLAG_HEADER];
+        assert(file);
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
         const Ref(Type) type = it->type;
         if (it->value.flags.native) {
@@ -129,11 +131,12 @@ emit_output do_emit(emit_input in)
     Vector_loop(TrieEntry(Symbol), &globals->t.entries, i) {
         const TrieEntry(Symbol) *e = Vector_at(&globals->t.entries, i);
         const Symbol _it = e->value, *it = &_it;
-        const compile_file *file = outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + FLAG_IMPL];
-        assert(file);
         if (it->value.flags.intrinsic || it->value.flags.native) {
             continue;
         }
+        assert(Ref_toBool(it->file));
+        const compile_file *file = outputFileByFlag[Ref_toIndex(it->file) * FLAG_COUNT + FLAG_IMPL];
+        assert(file);
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
         const Ref(Type) type = it->type;
         if (Types_lookup(ctx->interpreter->types, type)->kind.val != Type_Function) {
@@ -145,7 +148,7 @@ emit_output do_emit(emit_input in)
         size_t argc = argv._n;
         String *argnames = new_arr(String, argc);
         func_args_names(ctx->interpreter, argv, argnames);
-        Target_func_declare(ctx->target, ctx->interpreter, file, type, ident, argnames);
+        Target_func_declare(ctx->target, ctx->interpreter, file, type, ident, Slice_of_n(String, argnames, argc));
         free(argnames);
         LINE();
         fprintf_s(file->out, STR("{"));

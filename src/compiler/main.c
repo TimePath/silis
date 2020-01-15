@@ -83,7 +83,7 @@ size_t main(Env env)
     Types_new(types, allocator);
 
     Symbols _symbols = Symbols_new(types,
-    Slice_of(SymbolInitializer, ((SymbolInitializer[2]) {
+    Slice_of(SymbolInitializer, ((Array(SymbolInitializer, 2)) {
             {.id = STR("#types/string"), .value = (Value) {
                     .type = types->t_type,
                     .u.Type = types->t_string,
@@ -95,7 +95,7 @@ size_t main(Env env)
                     .flags = { .intrinsic = true, }
             }},
     })),
-    Slice_of(SymbolInitializer_intrin, ((SymbolInitializer_intrin[16]) {
+    Slice_of(SymbolInitializer_intrin, ((Array(SymbolInitializer_intrin, 16)) {
             {.id = STR("#puti"), .value = &intrin_debug_puti},
             {.id = STR("#puts"), .value = &intrin_debug_puts},
             {.id = STR("#types/func"), .value = &intrin_types_func},

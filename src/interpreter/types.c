@@ -76,6 +76,7 @@ Ref(Type) Types_register_func(Types *self, Slice(Ref(Type)) types)
 
 const Type *Types_lookup(const Types *self, Ref(Type) ref)
 {
+    assert(Ref_toBool(ref));
     return Vector_at(&self->all, Ref_toIndex(ref));
 }
 

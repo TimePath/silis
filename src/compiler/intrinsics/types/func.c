@@ -8,7 +8,7 @@
 
 static void types_func_args_types(Interpreter *interpreter, NodeList iter, Ref(Type) out[]);
 
-INTRINSIC_IMPL(types_func, ((Ref(Type)[2]) {
+INTRINSIC_IMPL(types_func, ((Array(Ref(Type), 2)) {
         types->t_expr,
         types->t_unit,
 }))

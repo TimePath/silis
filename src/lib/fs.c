@@ -31,7 +31,7 @@ FilePath FilePath_from_native_(String path, bool nix, Allocator *allocator)
 
 static FilePath FilePath_from_native_unix(String path, Allocator *allocator)
 {
-    Slice(String) delims = Slice_of(String, ((String[]) { STR("/") }));
+    Slice(String) delims = Slice_of(String, ((Array(String, 1)) { STR("/") }));
     bool absolute = false;
     Vector(String) parts = Vector_new(String, allocator);
     uint8_t i = 0;
@@ -51,7 +51,7 @@ static FilePath FilePath_from_native_unix(String path, Allocator *allocator)
 
 static FilePath FilePath_from_native_win(String path, Allocator *allocator)
 {
-    Slice(String) delims = Slice_of(String, ((String[2]) { STR("\\"), STR("/") }));
+    Slice(String) delims = Slice_of(String, ((Array(String, 2)) { STR("\\"), STR("/") }));
     bool absolute = false;
     Vector(String) parts = Vector_new(String, allocator);
     uint8_t i = 0;

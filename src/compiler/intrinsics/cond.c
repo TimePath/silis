@@ -4,7 +4,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(cond, ((Ref(Type)[4]) {
+INTRINSIC_IMPL(cond, ((Array(Ref(Type), 4)) {
         types->t_expr, types->t_expr, types->t_expr,
         types->t_unit,
 }))

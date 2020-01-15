@@ -16,7 +16,7 @@ void Target_func_forward(Target *target, Interpreter *interpreter, const compile
     target->_func_forward(target, interpreter, file, T, name);
 }
 
-void Target_func_declare(Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, const String argnames[])
+void Target_func_declare(Target *target, Interpreter *interpreter, const compile_file *file, Ref(Type) T, String name, Slice(String) argnames)
 {
     target->_func_declare(target, interpreter, file, T, name, argnames);
 }

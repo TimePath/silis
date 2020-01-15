@@ -6,7 +6,7 @@
 #include <interpreter/intrinsic.h>
 #include <interpreter/eval.h>
 
-INTRINSIC_IMPL(extern, ((Ref(Type)[3]) {
+INTRINSIC_IMPL(extern, ((Array(Ref(Type), 3)) {
         types->t_expr, types->t_expr,
         types->t_unit,
 }))
