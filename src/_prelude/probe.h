@@ -55,3 +55,66 @@
 #endif
 
 // endregion
+
+// region Data model
+#if 0
+
+#elif defined(__SILP64__)
+
+#define TARGET_SIZEOF_CHAR 8
+#define TARGET_SIZEOF_SHORT 64
+#define TARGET_SIZEOF_INT 64
+#define TARGET_SIZEOF_LONG 64
+#define TARGET_SIZEOF_LONGLONG 64
+#define TARGET_SIZEOF_POINTER 64
+
+#elif defined(__ILP64__)
+
+#define TARGET_SIZEOF_CHAR 8
+#define TARGET_SIZEOF_SHORT 16
+#define TARGET_SIZEOF_INT 64
+#define TARGET_SIZEOF_LONG 64
+#define TARGET_SIZEOF_LONGLONG 64
+#define TARGET_SIZEOF_POINTER 64
+
+#elif defined(__LLP64__)
+
+#define TARGET_SIZEOF_CHAR 8
+#define TARGET_SIZEOF_SHORT 16
+#define TARGET_SIZEOF_INT 32
+#define TARGET_SIZEOF_LONG 32
+#define TARGET_SIZEOF_LONGLONG 64
+#define TARGET_SIZEOF_POINTER 64
+
+#elif defined(__LP64__) || defined(__x86_64__) || defined(_M_X64) || defined(__aarch64__) || defined(_M_ARM64)
+
+#define TARGET_SIZEOF_CHAR 8
+#define TARGET_SIZEOF_SHORT 16
+#define TARGET_SIZEOF_INT 32
+#define TARGET_SIZEOF_LONG 64
+#define TARGET_SIZEOF_LONGLONG 64
+#define TARGET_SIZEOF_POINTER 64
+
+#elif defined(__ILP32__) || defined(__i386__) || defined(_M_IX86) || defined(__arm__) || defined(_M_ARM)
+
+#define TARGET_SIZEOF_CHAR 8
+#define TARGET_SIZEOF_SHORT 16
+#define TARGET_SIZEOF_INT 32
+#define TARGET_SIZEOF_LONG 32
+#define TARGET_SIZEOF_LONGLONG 64
+#define TARGET_SIZEOF_POINTER 32
+
+#elif defined(__LP32__)
+
+#define TARGET_SIZEOF_CHAR 8
+#define TARGET_SIZEOF_SHORT 16
+#define TARGET_SIZEOF_INT 16
+#define TARGET_SIZEOF_LONG 32
+#define TARGET_SIZEOF_LONGLONG 64
+#define TARGET_SIZEOF_POINTER 32
+
+#else
+#error "Unknown data model"
+#endif
+
+// endregion

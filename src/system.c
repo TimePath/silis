@@ -1,7 +1,9 @@
+typedef void headers_begin_system;
+
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef void end_of_system_headers;
+typedef void headers_end_system;
 
 #include <prelude.h>
 #include "system.h"
