@@ -38,7 +38,7 @@ void InterpreterFile_delete(InterpreterFile *self);
 
 typedef InterpreterFile *InterpreterFilePtr;
 
-#define InterpreterFilePtr_delete(self) InterpreterFile_delete(*self)
+#define InterpreterFilePtr_delete(self) InterpreterFile_delete(*(self))
 
 Slice_instantiate(InterpreterFilePtr);
 Vector_instantiate(InterpreterFilePtr);

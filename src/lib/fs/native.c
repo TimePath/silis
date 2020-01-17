@@ -34,7 +34,7 @@ static size_t File_native_size(void *self)
 
 static bool File_native_rewind(void *self)
 {
-    return libsystem_fseek(self, 0, libsystem_SEEK_SET) == 0;;
+    return libsystem_fseek(self, 0, libsystem_SEEK_SET) == 0;
 }
 
 static bool File_native_flush(void *self)

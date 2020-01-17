@@ -34,7 +34,7 @@
 
 static Target *target(String targetName)
 {
-#define X(id) if (String_equals(targetName, STR(#id))) return &target_##id;
+#define X(id) MACRO_BEGIN if (String_equals(targetName, STR(#id))) return &target_##id; MACRO_END
     X(c);
     X(js);
 #undef X

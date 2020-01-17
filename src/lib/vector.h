@@ -16,7 +16,7 @@ struct { \
 
 #define Vector_new(T, allocator) (Vector(T)) { \
     ._sizeofT = sizeof(T), \
-    ._allocator = allocator, \
+    ._allocator = (allocator), \
     ._size = 0, \
     ._data = NULL, \
 } \

@@ -41,11 +41,11 @@ DIAG_POP \
 Slice_instantiate(void);
 
 #define Slice_of(T, expr) _Slice_of_n(T, expr, sizeof(expr))
-#define Slice_of_n(T, expr, n) _Slice_of_n(T, expr, sizeof(T) * n)
+#define Slice_of_n(T, expr, n) _Slice_of_n(T, expr, sizeof(T) * (n))
 
 #define _Slice_of_n(T, expr, n) CAST(Slice(T), Slice(void), _Slice_of((expr), (n)))
 
-#define __Slice_of(begin, length) ((Slice(void)) { ._begin.r = begin, ._end = (uint8_t *) begin + length, })
+#define __Slice_of(begin, length) ((Slice(void)) { ._begin.r = (begin), ._end = (uint8_t *) (begin) + (length), })
 
 INLINE Slice(void) _Slice_of(void *begin, size_t length)
 {

@@ -163,7 +163,7 @@ void FileSystem_newroot(FileSystem *parent, FilePath root, FileSystem *out)
 
 File *FileSystem_open(FileSystem *self, FilePath path, String mode)
 {
-    File *(*func)(void *, FilePath path, String mode) = self->class.open;
+    File *(*func)(void *, FilePath, String) = self->class.open;
     assert(func && "FileSystem implements open");
     return func(self->data, path, mode);
 }

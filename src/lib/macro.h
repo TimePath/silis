@@ -99,7 +99,7 @@ enum { \
 #define _ADT_VARIANT(_, name, def) def name;
 
 #define _ADT_VAL(macro, variant) .kind.val = CAT3(macro, _, variant), .u.variant
-#define ADT_VAL(macro, variant, it) (macro) { _ADT_VAL(macro, variant) = it }
+#define ADT_VAL(macro, variant, it) (macro) { _ADT_VAL(macro, variant) = (it) }
 
 #define Ref(T) CAT2(Ref__, T)
 #define Ref_instantiate(T, U) typedef Ref_(T, size_t) Ref(T)

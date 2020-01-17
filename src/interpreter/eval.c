@@ -12,8 +12,8 @@ typedef struct {
 } eval_ctx;
 
 #define eval_ctx_new(_interpreter) ((eval_ctx) { \
-    .interpreter = _interpreter, \
-    .stack = Vector_new(Value, _interpreter->allocator), \
+    .interpreter = (_interpreter), \
+    .stack = Vector_new(Value, (_interpreter)->allocator), \
 })
 
 static Value do_eval_list_block(eval_ctx *ctx, InterpreterFileNodeRef it);
