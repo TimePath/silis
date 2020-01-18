@@ -117,32 +117,61 @@ int main(int argc, char const *argv[]) {
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 #endif
-    if (argc != 5) {
-        return EXIT_FAILURE;
-    }
     int ret = 0;
-    char const *CC = getenv("CC");
-    char const *silis = argv[1];
-    char const *target = "c";
-    char const *dir_in = argv[2];
-    char const *dir_out = argv[3];
-    char const *test = argv[4];
     char *cwd = getcwd_full();
     printf("CWD=%s\n", cwd);
     free(cwd);
-    printf("CC=%s\n", CC);
-    printf("silis=%s\n", silis);
-    printf("dir_in=%s\n", dir_in);
-    printf("dir_out=%s\n", dir_out);
-    printf("test=%s\n", test);
-    run_or_exit(silis, target, dir_in, dir_out, test);
-    char const *exe = va(TARGET_OS == OS_WINDOWS ? "%s\\%s.exe" : "%s/%s.exe", dir_out, test);
+
+    int shift_argc = argc;
+    char const **shift_argv = argv;
+    int shift_argi = 1;
+#define shift(var) do { if (shift_argi >= shift_argc) return EXIT_FAILURE; var = shift_argv[shift_argi++]; } while (0)
+    char const *cmd; shift(cmd);
+    if (strcmp(cmd, "") == 0) {
+
+    } else if (strcmp(cmd, "translate") == 0) {
+        char const *silis; shift(silis);
+        printf("silis=%s\n", silis);
+        char const *dir_in; shift(dir_in);
+        printf("dir_in=%s\n", dir_in);
+        char const *test; shift(test);
+        printf("test=%s\n", test);
+        char const *dir_out = dir_in;
+        char const *target = "c";
+        run_or_exit(silis, dir_out, dir_in, test, target);
+    } else if (strcmp(cmd, "assemble") == 0) {
+        char const *target; shift(target);
+        printf("target=%s\n", target);
+        char const *dir_in; shift(dir_in);
+        printf("dir_in=%s\n", dir_in);
+        char const *test; shift(test);
+        printf("test=%s\n", test);
+        if (strcmp(target, "") == 0) {
+
+        } else if (strcmp(target, "c") == 0) {
+            char const *CC = getenv("CC");
+            printf("CC=%s\n", CC);
+            char const *exe = va(TARGET_OS == OS_WINDOWS ? "%s\\%s.exe" : "%s/%s.exe", dir_in, test);
 #if TARGET_OS == OS_WINDOWS
-    run_or_exit(CC, "/nologo", va("%s\\%s.c", dir_out, test), "/Fe:", exe);
+            run_or_exit(CC, "/nologo", va("%s\\%s.c", dir_in, test), "/Fe:", exe);
 #else
-    run_or_exit(CC, va("%s/%s.c", dir_out, test), "-o", exe);
+            run_or_exit(CC, va("%s/%s.c", dir_in, test), "-o", exe);
 #endif
-    run_or_exit(exe);
+        }
+    } else if (strcmp(cmd, "run") == 0) {
+        char const *target; shift(target);
+        printf("target=%s\n", target);
+        char const *dir_in; shift(dir_in);
+        printf("dir_in=%s\n", dir_in);
+        char const *test; shift(test);
+        printf("test=%s\n", test);
+        if (strcmp(target, "") == 0) {
+
+        } else if (strcmp(target, "c") == 0) {
+            char const *exe = va(TARGET_OS == OS_WINDOWS ? "%s\\%s.exe" : "%s/%s.exe", dir_in, test);
+            run_or_exit(exe);
+        }
+    }
     return EXIT_SUCCESS;
 }
 

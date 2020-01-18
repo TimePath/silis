@@ -196,13 +196,34 @@ function(silisc_test file)
     set(pwd "${CMAKE_CURRENT_SOURCE_DIR}/tests")
     get_filename_component(name ${file} NAME)
     set(name test-${name})
+    set(label ${name})
     add_test(
-            NAME ${name}
+            NAME translate-${name}
             WORKING_DIRECTORY ${pwd}
-            COMMAND ${ENV}
-            CC=${CMAKE_C_COMPILER}
-            $<TARGET_FILE:silisc-test> $<TARGET_FILE:silisc> ${pwd} ${pwd} ${file}
+            COMMAND
+            $<TARGET_FILE:silisc-test> translate $<TARGET_FILE:silisc> ${pwd} ${file}
     )
+    set_property(TEST translate-${name} PROPERTY LABELS ${label})
+    foreach (target c)
+        add_test(
+                NAME assemble-${target}-${name}
+                WORKING_DIRECTORY ${pwd}
+                COMMAND ${ENV}
+                CC=${CMAKE_C_COMPILER}
+                $<TARGET_FILE:silisc-test> assemble ${target} ${pwd} ${file}
+        )
+        set_property(TEST assemble-${target}-${name} PROPERTY LABELS ${label})
+        set_property(TEST assemble-${target}-${name} APPEND PROPERTY DEPENDS translate-${name})
+
+        add_test(
+                NAME run-${target}-${name}
+                WORKING_DIRECTORY ${pwd}
+                COMMAND
+                $<TARGET_FILE:silisc-test> run ${target} ${pwd} ${file}
+        )
+        set_property(TEST run-${target}-${name} PROPERTY LABELS ${label})
+        set_property(TEST run-${target}-${name} APPEND PROPERTY DEPENDS assemble-${target}-${name})
+    endforeach ()
     list(APPEND silisc_tests ${pwd}/${file})
     set(silisc_tests ${silisc_tests} PARENT_SCOPE)
 endfunction()

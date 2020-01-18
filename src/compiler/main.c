@@ -51,7 +51,7 @@ size_t main(Env env)
     Slice(String) args = env.args;
     #define arg(name) 1
     #define opt(name) 0
-    assert(Slice_size(&args) >= arg(self) + arg(target) + arg(dir_in) + arg(dir_out) + arg(main));
+    assert(Slice_size(&args) >= arg(self) + arg(dir_in) + arg(dir_out) + arg(main) + arg(target));
     #undef opt
     #undef arg
     struct {
@@ -72,12 +72,12 @@ size_t main(Env env)
     };
 
     File *stdout = env.stdout;
-    String targetName = *Slice_at(&args, 1);
+    FileSystem _fs_out, *fs_out = &_fs_out;
+    FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 1), allocator), fs_out);
     FileSystem _fs_in, *fs_in = &_fs_in;
     FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 2), allocator), fs_in);
-    FileSystem _fs_out, *fs_out = &_fs_out;
-    FileSystem_newroot(env.fs, FilePath_from_native(*Slice_at(&args, 3), allocator), fs_out);
-    FilePath inputFilePath = FilePath_from_native(*Slice_at(&args, 4), allocator);
+    FilePath inputFilePath = FilePath_from_native(*Slice_at(&args, 3), allocator);
+    String targetName = *Slice_at(&args, 4);
 
     Types _types, *types = &_types;
     Types_new(types, allocator);
