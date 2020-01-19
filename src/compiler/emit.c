@@ -110,8 +110,8 @@ emit_output do_emit(emit_input in)
         assert(file);
         const String ident = String_fromSlice(e->key, ENCODING_DEFAULT);
         const Ref(Type) type = it->type;
-        if (it->value.flags.native) {
-            fprintf_s(file->out, STR("extern ")); // FIXME
+        if (it->value.flags.expect) {
+            fprintf_s(file->out, STR("/* expect: "));
         }
         if (Types_lookup(ctx->interpreter->types, type)->kind.val == Type_Function) {
             Target_func_forward(ctx->target, ctx->interpreter, file, type, ident);
@@ -119,19 +119,26 @@ emit_output do_emit(emit_input in)
             Target_var_begin(ctx->target, ctx->interpreter, file, type);
             fprintf_s(file->out, ident);
             Target_var_end(ctx->target, ctx->interpreter, file, type);
-            if (!it->value.flags.native) {
-                fprintf_s(file->out, STR(" = "));
-                emit_value(ctx, file, &it->value);
-            }
+            fprintf_s(file->out, STR(" = "));
+            emit_value(ctx, file, &it->value);
             SEMI();
         }
+        if (it->value.flags.expect) {
+            fprintf_s(file->out, STR(" */"));
+        }
         LINE();
+        if (it->value.flags.expect) {
+            String code = Interpreter_expectation_get(ctx->interpreter, it->value.u.Integral, ctx->target->id);
+            fprintf_s(file->out, code);
+            SEMI();
+            LINE();
+        }
     }
     // second pass: emit functions
     Vector_loop(TrieEntry(Symbol), &globals->t.entries, i) {
         const TrieEntry(Symbol) *e = Vector_at(&globals->t.entries, i);
         const Symbol _it = e->value, *it = &_it;
-        if (it->value.flags.intrinsic || it->value.flags.native) {
+        if (it->value.flags.intrinsic || it->value.flags.expect) {
             continue;
         }
         assert(Ref_toBool(it->file));

@@ -44,6 +44,21 @@ Slice_instantiate(InterpreterFilePtr);
 Vector_instantiate(InterpreterFilePtr);
 
 typedef struct {
+    String key;
+    String value;
+} StringPair;
+Slice_instantiate(StringPair);
+Vector_instantiate(StringPair);
+
+typedef struct {
+    Vector(StringPair) pairs;
+} StringPairs;
+Slice_instantiate(StringPairs);
+Vector_instantiate(StringPairs);
+
+void StringPairs_delete(StringPairs *self);
+
+typedef struct {
     Allocator *allocator;
     FileSystem *fs_in;
     struct {
@@ -59,6 +74,7 @@ typedef struct {
     } compilation;
     Types *types;
     struct Symbols *symbols;
+    Vector(StringPairs) expectations;
     // todo: bind to intrinsic instances
     File *out;
 } Interpreter;
@@ -76,3 +92,9 @@ Ref(InterpreterFilePtr) Interpreter_load(Interpreter *self, FileSystem *fs, File
 Ref(InterpreterFilePtr) Interpreter_read(Interpreter *self, String file, FilePath path);
 
 void Interpreter_eval(Interpreter *self, Ref(InterpreterFilePtr) file);
+
+size_t Interpreter_expectation_alloc(Interpreter *self);
+
+String Interpreter_expectation_get(Interpreter *self, size_t id, String key);
+
+void Interpreter_expectation_set(Interpreter *self, size_t id, String key, String value);

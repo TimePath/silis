@@ -2,4 +2,4 @@
 
 #include <interpreter/intrinsic.h>
 
-INTRINSIC(extern);
+INTRINSIC(expect);

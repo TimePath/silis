@@ -1,8 +1,10 @@
+(#expect puts (#types/func [#types/string #types/int]))
+(#actual puts "c" "extern int puts(char const *)")
+(#actual puts "js" "const puts = (s) => console.log(s)")
+
 (#define Int.dec (#func [(#types/int self) (#types/int)] {
     (#untyped "self - 1")
 }))
-
-(#extern puts (#types/func [#types/string #types/int]))
 
 (#define main (#func [() (#types/int)] (#do {
     (#define x 10)

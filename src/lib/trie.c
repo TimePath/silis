@@ -14,6 +14,14 @@ typedef TrieEntry(TriePlaceholder) TrieEntry;
 
 bool Trie_get(Trie *self, Slice(uint8_t) key, void *value)
 {
+    void *it = NULL;
+    if (!Trie_get_mut(self, key, &it)) return false;
+    libsystem_memcpy(value, it, self->_sizeofT);
+    return true;
+}
+
+bool Trie_get_mut(Trie *self, Slice(uint8_t) key, void **value)
+{
     TrieNode *it = Trie_node(self, 0);
     Slice_loop(&key, i) {
         const uint8_t b = *Slice_at(&key, i);
@@ -28,7 +36,7 @@ bool Trie_get(Trie *self, Slice(uint8_t) key, void *value)
         return false;
     }
     TrieEntry *e = Trie_entry(self, Ref_toIndex(it->entry));
-    libsystem_memcpy(value, Trie_entryvalue(e), self->_sizeofT);
+    *value = Trie_entryvalue(e);
     return true;
 }
 

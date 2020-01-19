@@ -13,11 +13,12 @@
 #include <compiler/intrinsics/debug/puti.h>
 #include <compiler/intrinsics/debug/puts.h>
 #include <compiler/intrinsics/types/func.h>
+#include <compiler/intrinsics/actual.h>
 #include <compiler/intrinsics/cond.h>
 #include <compiler/intrinsics/define.h>
 #include <compiler/intrinsics/do.h>
 #include <compiler/intrinsics/emit.h>
-#include <compiler/intrinsics/extern.h>
+#include <compiler/intrinsics/expect.h>
 #include <compiler/intrinsics/func.h>
 #include <compiler/intrinsics/if.h>
 #include <compiler/intrinsics/include.h>
@@ -34,7 +35,11 @@
 
 static Target *target(String targetName)
 {
-#define X(id) MACRO_BEGIN if (String_equals(targetName, STR(#id))) return &target_##id; MACRO_END
+#define X(x) MACRO_BEGIN if (String_equals(targetName, STR(#x))) { \
+    Target *ret = &target_##x; \
+    ret->id = targetName; \
+    return ret; \
+} MACRO_END
     X(c);
     X(js);
 #undef X
@@ -95,15 +100,16 @@ size_t main(Env env)
                     .flags = { .intrinsic = true, }
             }},
     })),
-    Slice_of(SymbolInitializer_intrin, ((Array(SymbolInitializer_intrin, 16)) {
+    Slice_of(SymbolInitializer_intrin, ((Array(SymbolInitializer_intrin, 17)) {
             {.id = STR("#puti"), .value = &intrin_debug_puti},
             {.id = STR("#puts"), .value = &intrin_debug_puts},
             {.id = STR("#types/func"), .value = &intrin_types_func},
+            {.id = STR("#actual"), .value = &intrin_actual},
             {.id = STR("#cond"), .value = &intrin_cond},
             {.id = STR("#define"), .value = &intrin_define},
             {.id = STR("#do"), .value = &intrin_do},
             {.id = STR("#emit"), .value = &intrin_emit},
-            {.id = STR("#extern"), .value = &intrin_extern},
+            {.id = STR("#expect"), .value = &intrin_expect},
             {.id = STR("#func"), .value = &intrin_func},
             {.id = STR("#if"), .value = &intrin_if},
             {.id = STR("#include"), .value = &intrin_include},
@@ -131,6 +137,7 @@ size_t main(Env env)
             },
             .types = types,
             .symbols = symbols,
+            .expectations = Vector_new(StringPairs, allocator),
             .out = stdout,
     };
     Interpreter *interpreter = &_interpreter;
@@ -170,6 +177,7 @@ size_t main(Env env)
     Vector_delete(InterpreterFilePtr, &interpreter->compilation.files);
     Vector_delete(Type, &interpreter->types->all);
     Vector_delete(SymbolScope, &interpreter->symbols->scopes);
+    Vector_delete(StringPairs, &interpreter->expectations);
     FileSystem_delete(fs_out);
     FileSystem_delete(fs_in);
     return 0;

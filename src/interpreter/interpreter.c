@@ -20,6 +20,11 @@ void InterpreterFile_delete(InterpreterFile *self)
     free(self);
 }
 
+void StringPairs_delete(StringPairs *self)
+{
+    _Vector_delete(&self->pairs);
+}
+
 const InterpreterFile *Interpreter_lookup_file(const Interpreter *self, Ref(InterpreterFilePtr) ref)
 {
     assert(Ref_toBool(ref) && "file exists");
@@ -138,4 +143,33 @@ void Interpreter_eval(Interpreter *self, Ref(InterpreterFilePtr) file)
     }
 
     fs_popd(state);
+}
+
+size_t Interpreter_expectation_alloc(Interpreter *self)
+{
+    Allocator *allocator = self->allocator;
+    Vector_push(&self->expectations, (StringPairs) {.pairs = Vector_new(StringPair, allocator)});
+    return Vector_size(&self->expectations);
+}
+
+String Interpreter_expectation_get(Interpreter *self, size_t id, String key)
+{
+    assert(id);
+    id -= 1;
+    Vector(StringPair) *pairs = &Vector_at(&self->expectations, id)->pairs;
+    Vector_loop(StringPair, pairs, i) {
+        StringPair *it = Vector_at(pairs, i);
+        if (String_equals(it->key, key)) {
+            return it->value;
+        }
+    }
+    return STR("");
+}
+
+void Interpreter_expectation_set(Interpreter *self, size_t id, String key, String value)
+{
+    assert(id);
+    id -= 1;
+    Vector(StringPair) *pairs = &Vector_at(&self->expectations, id)->pairs;
+    Vector_push(pairs, ((StringPair) { .key = key, .value = value }));
 }

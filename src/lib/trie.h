@@ -52,4 +52,6 @@ typedef Trie(TriePlaceholder) Trie;
 
 bool Trie_get(Trie *self, Slice(uint8_t) key, void *value);
 
+bool Trie_get_mut(Trie *self, Slice(uint8_t) key, void **value);
+
 void Trie_set(Trie *self, Slice(uint8_t) key, void *value);

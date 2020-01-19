@@ -3,8 +3,6 @@
 (#actual puts "js" "const puts = (s) => console.log(s)")
 
 (#define main (#func [() (#types/int)] (#do {
-    (#if 1 (#do {
-        (puts "TEST")
-    }))
+    (puts "TEST")
     0
 })))

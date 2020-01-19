@@ -1,6 +1,0 @@
-(#extern puts (#types/func [#types/string #types/int]))
-
-(#define main (#func [() (#types/int)] (#do {
-    (puts "TEST")
-    0
-})))

@@ -55,9 +55,9 @@ static SymbolScope SymbolScope_new(Ref(SymbolScope) parent, Allocator *allocator
     return ret;
 }
 
-static bool SymbolScope_get(SymbolScope *self, String ident, Symbol *out)
+static bool SymbolScope_get_mut(SymbolScope *self, String ident, Symbol **out)
 {
-    return Trie_get((void *) &self->t, ident.bytes, out);
+    return Trie_get_mut((void *) &self->t, ident.bytes, (void **) out);
 }
 
 static void SymbolScope_set(SymbolScope *self, String ident, Symbol val)
@@ -82,10 +82,18 @@ void Symbols_pop(Symbols *symbols)
 
 bool Symbols_lookup(const Symbols *symbols, String ident, Symbol *out)
 {
+    Symbol *it = NULL;
+    if (!Symbols_lookup_mut(symbols, ident, &it)) return false;
+    *out = *it;
+    return true;
+}
+
+bool Symbols_lookup_mut(const Symbols *symbols, String ident, Symbol **out)
+{
     Ref(SymbolScope) scope = Vector_ref(&symbols->scopes, Vector_size(&symbols->scopes) - 1);
     for (;;) {
         SymbolScope *it = Vector_at(&symbols->scopes, Ref_toIndex(scope));
-        if (SymbolScope_get(it, ident, out)) {
+        if (SymbolScope_get_mut(it, ident, out)) {
             return true;
         }
         const Ref(SymbolScope) next = it->parent;

@@ -48,4 +48,6 @@ void Symbols_pop(Symbols *symbols);
 
 bool Symbols_lookup(const Symbols *symbols, String ident, Symbol *out);
 
+bool Symbols_lookup_mut(const Symbols *symbols, String ident, Symbol **out);
+
 void Symbols_define(Symbols *symbols, String ident, Symbol sym);

@@ -1,8 +1,0 @@
-(#extern puts (#types/func [#types/string #types/int]))
-
-(#define GREETING "Hello, world\n")
-
-(#define main (#func [() (#types/int)] (#do [
-    (puts GREETING)
-    0
-])))
