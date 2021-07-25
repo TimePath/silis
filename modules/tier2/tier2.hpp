@@ -139,3 +139,40 @@ namespace tier2 {
         }
     };
 }
+
+// iteration
+namespace tier2 {
+    template<typename List, typename T>
+    struct ListRef {
+        List *list;
+        Int idx;
+    };
+
+    template<typename List, typename T>
+    inline Native<Boolean> operator==(ListRef<List, T> &self, ListRef<List, T> &other) {
+        return self.list == other.list;
+    }
+
+    template<typename List, typename T>
+    inline void operator++(ListRef<List, T> &self) {
+        self.idx = self.idx + 1;
+        if (self.idx >= self.list->size()) {
+            self.list = nullptr;
+        }
+    }
+
+    template<typename List, typename T>
+    inline T &operator*(ListRef<List, T> &self) { return self.list->get(self.idx); }
+
+    template<typename T>
+    inline ListRef<const List<T>, const T> begin(const List<T> &self) { return {&self, 0}; }
+
+    template<typename T>
+    inline ListRef<List<T>, T> begin(List<T> &self) { return {&self, 0}; }
+
+    template<typename T>
+    inline ListRef<const List<T>, const T> end(const List<T> &self) { return {}; }
+
+    template<typename T>
+    inline ListRef<List<T>, T> end(List<T> &self) { return {}; }
+}
