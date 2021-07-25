@@ -93,7 +93,7 @@ namespace tier1 {
         explicit String(Array<Char> chars) : chars(move(chars)) {}
 
         template<Native<Int> N>
-        implicit String(Native<Char> const (&chars)[N]) : String(Array<Char>((Native<Int>) (N), [=](Int i) {
+        implicit String(const Native<Char> (&chars)[N]) : String(Array<Char>((Native<Int>) (N), [=](Int i) {
             return chars[i];
         })) {}
 
@@ -106,7 +106,7 @@ namespace tier1 {
         String copy() const { return String(chars.copy()); }
     };
 
-    inline String operator ""_s(Native<Char> const *chars, size_t N) {
+    inline String operator ""_s(const Native<Char> *chars, size_t N) {
         return String(Array<Char>((Native<Int>) (N + 1), [=](Int i) {
             return (decltype(N)) i < N ? chars[i] : '\0';
         }));

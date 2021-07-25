@@ -119,6 +119,13 @@ namespace tier2 {
             return memory.get(index).get();
         }
 
+        mut_ref<T> get(Int index) {
+            if (!(index >= 0 && index < size())) {
+                throw nullptr;
+            }
+            return memory.get(index).get();
+        }
+
         void set(Int index, T value) {
             memory.set(index, detail::Unmanaged<T>(move(value)));
         }
