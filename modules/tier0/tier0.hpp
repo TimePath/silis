@@ -78,7 +78,7 @@ namespace tier0 {
     METAFUNC_TYPE_IMPL(remove_const, (), ((T, typename)), T)
 
     namespace pack {
-        // METAFUNC_TYPE(get, ((I, size_t), (types, typename...)))
+        // METAFUNC_TYPE(get, ((I, Native<Size>), (types, typename...)))
 
         template<long unsigned int I, typename... types>
         struct get_s;
@@ -93,11 +93,12 @@ namespace tier0 {
 
     template<typename T, long unsigned int N>
     struct SizedArray {
-        T data[N];
+        using arrayType = T[N];
+        arrayType data;
 
         SizedArray() : data() {}
 
-        implicit SizedArray(T (&data)[N]) : data(data) {}
+        implicit SizedArray(arrayType &data) : data(data) {}
     };
 }
 
@@ -106,13 +107,16 @@ namespace tier0 {
     using cstring = const char *;
 
     template<typename T>
-    using ptr = T *;
+    using ptr = const T *;
 
     template<typename T>
-    using mut_ref = T &;
+    using mut_ptr = T *;
 
     template<typename T>
     using ref = const T &;
+
+    template<typename T>
+    using mut_ref = T &;
 
     template<typename T>
     using movable = T &&;
@@ -143,8 +147,7 @@ namespace tier0 {
         concept is_word = WordTraits<T>::isWord;
 
         template<typename T>
-        class Word {
-        public:
+        struct Word {
             T value;
 
             constexpr ~Word() noexcept {}
@@ -158,7 +161,7 @@ namespace tier0 {
 
             /** Inexact primitive match */
             template<typename U>
-            requires (!is_same < T, U > && is_arithmetic < U >)
+            requires (!is_same < T, U > and is_arithmetic < U >)
             explicit constexpr Word(U value) noexcept : value((T) value) {}
 
             /** Copy */
@@ -167,7 +170,6 @@ namespace tier0 {
             }
 
             constexpr mut_ref<Word> operator=(ref<Word> other) noexcept {
-                if (&other == this) return *this;
                 value = other.value;
                 return *this;
             }
@@ -179,6 +181,10 @@ namespace tier0 {
 
             /** Cast to */
             implicit constexpr operator T() const noexcept { return value; }
+
+            // operators
+
+            constexpr bool operator==(ref<Word> other) { return (*this).value == other.value; }
         };
 
         template<typename T>
@@ -209,6 +215,7 @@ namespace tier0 {
     using Float = WORD(float);
     using Double = WORD(double);
 #undef WORD
+    using Size = ULong;
 
 #pragma GCC poison signed
 #pragma GCC poison unsigned
@@ -230,16 +237,15 @@ namespace tier0 {
         }
 
         struct TypeNameFormat {
-            using size_t = decltype(sizeof 0);
-            size_t leading;
-            size_t trailing;
+            Size leading;
+            Size trailing;
 
-            static constexpr Native<Boolean> calculate(ptr<TypeNameFormat> ret) {
+            static constexpr Boolean calculate(mut_ptr<TypeNameFormat> ret) {
                 using int_t = decltype(0);
                 auto &needle = "int";
                 auto &haystack = TypeNameRaw<int_t>();
-                for (auto i = 0;; ++i) {
-                    if (haystack[i] == needle[0] && haystack[i + 1] == needle[1] && haystack[i + 2] == needle[2]) {
+                for (Size i = Size(0);; i = i + 1) {
+                    if (haystack[i] == needle[0] and haystack[i + 1] == needle[1] and haystack[i + 2] == needle[2]) {
                         if (ret) {
                             ret->leading = i;
                             ret->trailing = (sizeof(haystack) - 1) - i - (sizeof(needle) - 1);
@@ -283,37 +289,42 @@ namespace tier0 {
 
 // https://en.cppreference.com/w/cpp/named_req
 namespace tier0 {
-    class DisableDefaultConstructible {
+    struct DisableDefaultConstructible {
+    private:
         DisableDefaultConstructible() = delete;
 
     protected:
         DisableDefaultConstructible(Unit) {}
     };
 
-    class DisableDestructible {
+    struct DisableDestructible {
     protected:
         ~DisableDestructible() = delete;
     };
 
-    class DisableCopyConstructible {
+    struct DisableCopyConstructible {
+    private:
         DisableCopyConstructible(const DisableCopyConstructible &) = delete;
 
     protected:
         DisableCopyConstructible(Unit) {}
     };
 
-    class DisableCopyAssignable {
+    struct DisableCopyAssignable {
+    private:
         DisableCopyAssignable &operator=(const DisableCopyAssignable &) = delete;
     };
 
-    class DisableMoveConstructible {
+    struct DisableMoveConstructible {
+    private:
         DisableMoveConstructible(DisableMoveConstructible &&) = delete;
 
     protected:
         DisableMoveConstructible(Unit) {}
     };
 
-    class DisableMoveAssignable {
+    struct DisableMoveAssignable {
+    private:
         DisableMoveAssignable &operator=(DisableMoveAssignable &&) = delete;
     };
 }
@@ -322,16 +333,16 @@ namespace tier0 {
 namespace tier0 {
     template<typename ... elements>
     struct tuple_elements {
-        static constexpr Native<ULong> size = sizeof...(elements);
+        static constexpr Size size = sizeof...(elements);
 
-        template<Native<ULong> I>
+        template<Size I>
         using type = typename pack::get<I, elements...>::type;
 
-        template<Native<ULong> I, typename T>
-        static type<I> &value(T &self) { return pack::get<I, elements...>::value(self); }
+        template<Size I, typename T>
+        static ref<type<I>> value(ref<T> self) { return pack::get<I, elements...>::value(self); }
 
-        template<Native<ULong> I, typename T>
-        static type<I> const &value(T const &self) { return pack::get<I, elements...>::value(self); }
+        template<Size I, typename T>
+        static mut_ref<type<I>> value(mut_ref<T> self) { return pack::get<I, elements...>::value(self); }
     };
 
     namespace {
@@ -342,9 +353,9 @@ namespace tier0 {
         struct mptr_info<R T::*, v> {
             using type = R;
 
-            static type &value(T &self) { return self.*v; }
+            static ref<type> value(ref<T> self) { return self.*v; }
 
-            static type const &value(T const &self) { return self.*v; }
+            static mut_ref<type> value(mut_ref<T> self) { return self.*v; }
         };
     }
 
@@ -365,29 +376,29 @@ namespace tier0 {
     struct tuple_traits_s {
         using delegate = typename T::elements;
 
-        static constexpr Native<ULong> size = delegate::size;
+        static constexpr Size size = delegate::size;
 
-        template<Native<ULong> I>
+        template<Size I>
         using type = typename delegate::template type<I>;
 
-        template<Native<ULong> I>
-        static type<I> &value(T &self) { return delegate::template value<I, T>(self); }
+        template<Size I>
+        static ref<type<I>> value(ref<T> self) { return delegate::template value<I, T>(self); }
 
-        template<Native<ULong> I>
-        static type<I> const &value(T const &self) { return delegate::template value<I, T>(self); }
+        template<Size I>
+        static mut_ref<type<I>> value(mut_ref<T> self) { return delegate::template value<I, T>(self); }
     };
 
     template<typename T>
     struct tuple_traits_s<const T> {
         using delegate = tuple_traits<remove_const < T>>;
 
-        static constexpr Native<ULong> size = delegate::size;
+        static constexpr Size size = delegate::size;
 
-        template<Native<ULong> I>
+        template<Size I>
         using type = add_const<typename delegate::template type<I>>;
 
-        template<Native<ULong> I>
-        static type<I> &value(T const &self) { return delegate::template value<I>(self); }
+        template<Size I>
+        static ref<type<I>> value(ref<T> self) { return delegate::template value<I>(self); }
     };
 }
 
@@ -395,21 +406,26 @@ namespace std {
     template<typename T>
     struct tuple_size;
 
-    template<Native<ULong> I, typename T>
+    template<Native<Size> I, typename T>
     struct tuple_element;
 }
 
 template<typename T>
 struct std::tuple_size {
-    static constexpr Native<ULong> value = tuple_traits<T>::size;
+    static constexpr Native<Size> value = tuple_traits<T>::size;
 };
 
-template<Native<ULong> I, typename T>
+template<Native<Size> I, typename T>
 struct std::tuple_element {
     using type = typename tuple_traits<T>::template type<I>;
 };
 
-template<Native<ULong> I, typename T>
-typename std::tuple_element<I, T>::type &get(T &self) {
+template<Native<Size> I, typename T>
+ref<typename std::tuple_element<I, T>::type> get(ref<T> self) {
+    return tuple_traits<T>::template value<I>(self);
+}
+
+template<Native<Size> I, typename T>
+mut_ref<typename std::tuple_element<I, T>::type> get(mut_ref<T> self) {
     return tuple_traits<T>::template value<I>(self);
 }

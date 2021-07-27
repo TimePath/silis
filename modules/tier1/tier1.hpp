@@ -9,32 +9,29 @@ using namespace tier1;
 namespace tier1 {
     struct AllocInfo {
         cstring name;
-        ULong elementSize;
-        ULong size;
+        Size elementSize;
+        Size size;
 
         template<typename T>
         static AllocInfo of() { return {TypeName<T>(), sizeof(T)}; }
     };
 }
 
-namespace {
-    using size_t = decltype(sizeof 0);
-};
+mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> ptr) noexcept;
 
-ptr<void> operator new(size_t count, ptr<void> ptr) noexcept;
+mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> ptr) noexcept;
 
-ptr<void> operator new[](size_t count, ptr<void> ptr) noexcept;
+mut_ptr<void> operator new(Native<Size> count, AllocInfo info);
 
-ptr<void> operator new(size_t count, AllocInfo info);
-
-ptr<void> operator new[](size_t count, AllocInfo info);
+mut_ptr<void> operator new[](Native<Size> count, AllocInfo info);
 
 // arrays
 namespace tier1 {
     template<typename T>
-    class Array : private DisableCopyConstructible {
+    struct Array : private DisableCopyConstructible {
+    private:
         Int _size;
-        ptr<T> memory;
+        mut_ptr<T> memory;
     public:
         ~Array() {
             delete[] memory;
@@ -85,15 +82,16 @@ namespace tier1 {
 
 // string
 namespace tier1 {
-    class String {
+    struct String {
+    private:
         Array<Char> chars;
     public:
         String() : String(Array<Char>(0)) {}
 
         explicit String(Array<Char> chars) : chars(move(chars)) {}
 
-        template<Native<Int> N>
-        implicit String(const Native<Char> (&chars)[N]) : String(Array<Char>((Native<Int>) (N), [=](Int i) {
+        template<Native<Size> N>
+        implicit String(ref<Native<Char>[N]> chars) : String(Array<Char>(Native < Int > (N), [=](Int i) {
             return chars[i];
         })) {}
 
@@ -104,9 +102,11 @@ namespace tier1 {
         Int size() const { return chars.size() - 1; }
 
         String copy() const { return String(chars.copy()); }
+
+        explicit operator cstring() const { return reinterpret_cast<cstring>(&chars.get(0)); }
     };
 
-    inline String operator ""_s(const Native<Char> *chars, size_t N) {
+    inline String operator ""_s(cstring chars, Native<Size> N) {
         return String(Array<Char>((Native<Int>) (N + 1), [=](Int i) {
             return (decltype(N)) i < N ? chars[i] : '\0';
         }));

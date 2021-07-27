@@ -6,11 +6,11 @@
 #define IMPLEMENTS_NEW 1
 
 namespace {
-    class MemoryBlock {
+    struct MemoryBlock {
     private:
-        inline static ULong ids = ULong(0);
+        inline static Size ids = Size(0);
     public:
-        ULong id;
+        Size id;
         IntrusiveLinks<MemoryBlock> links;
         AllocInfo info;
 
@@ -21,18 +21,18 @@ namespace {
 
     IntrusiveList<MemoryBlock, &MemoryBlock::links> blocks;
 
-    ptr<Native<Byte>> alloc_ctor(ptr<Native<Byte>> memory, ULong size, AllocInfo info) {
+    mut_ptr<Byte> alloc_ctor(mut_ptr<Byte> memory, Size size, AllocInfo info) {
         let ptr = memory + sizeof(MemoryBlock);
         info.size = size;
         var &block = *new(memory) MemoryBlock(info);
-        blocks.add(&block);
+        blocks.add(block);
         return ptr;
     }
 
-    ptr<Native<Byte>> alloc_dtor(ptr<Native<Byte>> ptr) {
+    mut_ptr<Byte> alloc_dtor(mut_ptr<Byte> ptr) {
         let memory = ptr - sizeof(MemoryBlock);
-        var &block = *(::ptr<MemoryBlock>) memory;
-        blocks.remove(&block);
+        var &block = *(mut_ptr<MemoryBlock>) memory;
+        blocks.remove(block);
         block.~MemoryBlock();
         return memory;
     }
@@ -49,63 +49,67 @@ namespace {
 // https://en.cppreference.com/w/cpp/memory/new/operator_new
 
 #if IMPLEMENTS_NEW
-ptr<void> operator new(size_t count, ptr<void> ptr) noexcept { return ptr; }
 
-ptr<void> operator new[](size_t count, ptr<void> ptr) noexcept { return ptr; }
+mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> ptr) noexcept { return ptr; }
+
+mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> ptr) noexcept { return ptr; }
+
 #endif
 
-ptr<void> operator new(size_t count, AllocInfo info) {
+mut_ptr<void> operator new(Native<Size> count, AllocInfo info) {
     if (RUNNING_ON_VALGRIND) {
         return ::operator new(count);
     }
-    let memory = (ptr<Native<tier0::Byte>>) ::malloc(sizeof(MemoryBlock) + count);
+    let memory = (mut_ptr<Byte>) ::malloc(sizeof(MemoryBlock) + count);
     return alloc_ctor(memory, count, info);
 }
 
-ptr<void> operator new[](size_t count, AllocInfo info) {
+mut_ptr<void> operator new[](Native<Size> count, AllocInfo info) {
     if (RUNNING_ON_VALGRIND) {
         return ::operator new[](count);
     }
-    let memory = (ptr<Native<tier0::Byte>>) ::malloc(sizeof(MemoryBlock) + count);
+    let memory = (mut_ptr<Byte>) ::malloc(sizeof(MemoryBlock) + count);
     return alloc_ctor(memory, count, info);
 }
 
 // https://en.cppreference.com/w/cpp/memory/new/operator_delete
 
-void operator delete(ptr<void> ptr) noexcept {
+void operator delete(mut_ptr<void> ptr) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete(ptr);
     }
-    let memory = (::ptr<Native<tier0::Byte>>) ptr;
+    let memory = (mut_ptr<Byte>) ptr;
     ::free(alloc_dtor(memory));
 }
 
-void operator delete[](ptr<void> ptr) noexcept {
+void operator delete[](mut_ptr<void> ptr) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete[](ptr);
     }
-    let memory = (::ptr<Native<tier0::Byte>>) ptr;
+    let memory = (mut_ptr<Byte>) ptr;
     ::free(alloc_dtor(memory));
 }
 
-void operator delete(ptr<void> ptr, size_t sz) noexcept {
+void operator delete(mut_ptr<void> ptr, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete(ptr, sz);
     }
-    let memory = (::ptr<Native<tier0::Byte>>) ptr;
+    let memory = (mut_ptr<Byte>) ptr;
     ::free(alloc_dtor(memory));
 }
 
-void operator delete[](ptr<void> ptr, size_t sz) noexcept {
+void operator delete[](mut_ptr<void> ptr, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete[](ptr, sz);
     }
-    let memory = (::ptr<Native<tier0::Byte>>) ptr;
+    let memory = (mut_ptr<Byte>) ptr;
     ::free(alloc_dtor(memory));
 }
 
 #if IMPLEMENTS_NEW
-void operator delete(ptr<void> ptr, ::ptr<void> place) noexcept {}
 
-void operator delete[](ptr<void> ptr, ::ptr<void> place) noexcept {}
+void operator delete(mut_ptr<void> ptr, mut_ptr<void> place) noexcept {}
+
+void operator delete[](mut_ptr<void> ptr, mut_ptr<void> place) noexcept {}
+
 #endif

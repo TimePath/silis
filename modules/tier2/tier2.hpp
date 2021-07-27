@@ -9,28 +9,29 @@ using namespace tier2;
 namespace tier2 {
     template<typename T>
     struct IntrusiveLinks {
-        ptr<T> prev;
-        ptr<T> next;
+        mut_ptr<T> prev;
+        mut_ptr<T> next;
     };
 
     template<typename T, IntrusiveLinks<T> T::*links>
-    class IntrusiveList {
-        ptr<T> head;
-        ptr<T> tail;
+    struct IntrusiveList {
+    private:
+        mut_ptr<T> head;
+        mut_ptr<T> tail;
     public:
-        void add(ptr<T> value) {
-            let lValue = &(value->*links);
+        void add(mut_ref<T> value) {
+            let lValue = &(value.*links);
             let prev = lValue->prev = tail;
             if (let lPrev = !prev ? nullptr : &(prev->*links)) {
-                lPrev->next = value;
+                lPrev->next = &value;
             } else {
-                head = value;
+                head = &value;
             }
-            tail = value;
+            tail = &value;
         }
 
-        void remove(ptr<T> value) {
-            let lValue = &(value->*links);
+        void remove(mut_ref<T> value) {
+            let lValue = &(value.*links);
             let prev = lValue->prev;
             let next = lValue->next;
             if (let lPrev = !prev ? nullptr : &(prev->*links)) {
@@ -39,10 +40,10 @@ namespace tier2 {
             if (let lNext = !next ? nullptr : &(next->*links)) {
                 lNext->prev = prev;
             }
-            if (value == head) {
+            if (&value == head) {
                 head = next;
             }
-            if (value == tail) {
+            if (&value == tail) {
                 tail = prev;
             }
         }
@@ -55,7 +56,7 @@ namespace tier2 {
         template<typename T>
         union Unmanaged {
         private:
-            alignas(T) Native<Byte> bytes[sizeof(T)];
+            alignas(T) Byte bytes[sizeof(T)];
             T value;
         public:
             ~Unmanaged() {}
@@ -72,14 +73,15 @@ namespace tier2 {
                 *this = move(other);
             }
 
-            void operator=(movable<Unmanaged> other) {
-                if (&other == this) return;
+            mut_ref<Unmanaged> operator=(movable<Unmanaged> other) {
+                if (&other == this) return *this;
                 destroy();
                 value = move(other.value);
                 let fill = Byte(0);
-                for (var i = 0; i < (Native<Int>) sizeof(T); ++i) {
+                for (var i = Size(0); i < sizeof(T); i = i + 1) {
                     other.bytes[i] = fill;
                 }
+                return *this;
             };
 
             ref<T> get() const { return value; }
@@ -88,7 +90,8 @@ namespace tier2 {
         };
     }
     template<typename T>
-    class List {
+    struct List {
+    private:
         Int _size;
         Array<detail::Unmanaged<T>> memory;
 
@@ -113,14 +116,14 @@ namespace tier2 {
         Int size() const { return _size; }
 
         ref<T> get(Int index) const {
-            if (!(index >= 0 && index < size())) {
+            if (!(index >= 0 and index < size())) {
                 throw nullptr;
             }
             return memory.get(index).get();
         }
 
         mut_ref<T> get(Int index) {
-            if (!(index >= 0 && index < size())) {
+            if (!(index >= 0 and index < size())) {
                 throw nullptr;
             }
             return memory.get(index).get();
@@ -149,12 +152,12 @@ namespace tier2 {
     };
 
     template<typename List, typename T>
-    inline Native<Boolean> operator==(ListRef<List, T> &self, ListRef<List, T> &other) {
-        return self.list == other.list;
+    inline Boolean operator!=(ref<ListRef<List, T>> self, ref<ListRef<List, T>> other) {
+        return self.list != other.list;
     }
 
     template<typename List, typename T>
-    inline void operator++(ListRef<List, T> &self) {
+    inline void operator++(mut_ref<ListRef<List, T>> self) {
         self.idx = self.idx + 1;
         if (self.idx >= self.list->size()) {
             self.list = nullptr;
@@ -162,17 +165,17 @@ namespace tier2 {
     }
 
     template<typename List, typename T>
-    inline T &operator*(ListRef<List, T> &self) { return self.list->get(self.idx); }
+    inline ref<T> operator*(ref<ListRef<List, T>> self) { return self.list->get(self.idx); }
 
     template<typename T>
-    inline ListRef<const List<T>, const T> begin(const List<T> &self) { return {&self, 0}; }
+    inline ListRef<const List<T>, const T> begin(ref<List<T>> self) { return {&self, 0}; }
 
     template<typename T>
-    inline ListRef<List<T>, T> begin(List<T> &self) { return {&self, 0}; }
+    inline ListRef<List<T>, T> begin(mut_ref<List<T>> self) { return {&self, 0}; }
 
     template<typename T>
-    inline ListRef<const List<T>, const T> end(const List<T> &self) { return {}; }
+    inline ListRef<const List<T>, const T> end(ref<List<T>> self) { return {}; }
 
     template<typename T>
-    inline ListRef<List<T>, T> end(List<T> &self) { return {}; }
+    inline ListRef<List<T>, T> end(mut_ref<List<T>> self) { return {}; }
 }
