@@ -90,16 +90,6 @@ namespace tier0 {
         METAFUNC_TYPE_IMPL(get, (I, T, types...), ((I, long unsigned int), (T, typename),(types, typename...)),
                            get<I - 1 METAFUNC_IMPL_DELIMITER_COMMA() types...>)
     }
-
-    template<typename T, long unsigned int N>
-    struct SizedArray {
-        using arrayType = T[N];
-        arrayType data;
-
-        SizedArray() : data() {}
-
-        implicit SizedArray(arrayType &data) : data(data) {}
-    };
 }
 
 // memory model
@@ -122,8 +112,8 @@ namespace tier0 {
     using movable = T &&;
 
     template<typename T>
-    constexpr movable<typename remove_reference_s<T>::type> move(movable<T> value) noexcept {
-        return static_cast<movable<typename remove_reference_s<T>::type>>(value);
+    constexpr movable<remove_reference<T>> move(movable<T> value) {
+        return static_cast<movable<remove_reference<T>>>(value);
     }
 }
 
@@ -134,9 +124,13 @@ namespace tier0 {
 
         template<typename T>
         struct is_arithmetic_s {
-            static constexpr auto value = is_same < bool, T> || is_same<char, T>
-            || is_same<short, T> || is_same<int, T> || is_same<long, T>
-            || is_same<float, T> || is_same<double, T>;
+            static constexpr auto value = is_same < bool, T>
+            || is_same<char, T> || is_same<unsigned char, T> || is_same<signed char, T>
+            || is_same<short int, T> || is_same<short unsigned int, T> || is_same<short signed int, T>
+            || is_same<int, T> || is_same<unsigned int, T> || is_same<signed int, T>
+            || is_same<long int, T> || is_same<long unsigned int, T> || is_same<long signed int, T>
+            || is_same<float, T>
+            || is_same<double, T>;
         };
 
         template<typename T>
@@ -146,45 +140,45 @@ namespace tier0 {
         template<typename T>
         concept is_word = WordTraits<T>::isWord;
 
-        template<typename T>
+        template<typename T> requires is_arithmetic<T>
         struct Word {
-            T value;
+            T wordValue;
 
-            constexpr ~Word() noexcept {}
+            constexpr ~Word() {}
 
-            constexpr Word() noexcept: Word(0) {}
+            explicit constexpr Word() : Word(0) {}
 
             /** Exact primitive match */
             template<typename T2>
             requires is_same<T, T2>
-            implicit constexpr Word(T2 value) noexcept : value(value) {}
+            implicit constexpr Word(T2 value) : wordValue(value) {}
 
             /** Inexact primitive match */
             template<typename U>
             requires (!is_same < T, U > and is_arithmetic < U >)
-            explicit constexpr Word(U value) noexcept : value((T) value) {}
+            explicit constexpr Word(U value) : wordValue((T) value) {}
 
             /** Copy */
-            implicit constexpr Word(ref<Word> other) noexcept {
+            implicit constexpr Word(ref<Word> other) {
                 *this = other;
             }
 
-            constexpr mut_ref<Word> operator=(ref<Word> other) noexcept {
-                value = other.value;
+            constexpr mut_ref<Word> operator=(ref<Word> other) {
+                wordValue = other.wordValue;
                 return *this;
             }
 
             /** Cast from */
             template<typename Other>
             requires is_word<Other>
-            explicit Word(Other word) noexcept : Word((typename WordTraits<Other>::native) word) {}
+            explicit Word(Other word) : Word((typename WordTraits<Other>::native) word) {}
 
             /** Cast to */
-            implicit constexpr operator T() const noexcept { return value; }
+            implicit constexpr operator T() const { return wordValue; }
 
             // operators
 
-            constexpr bool operator==(ref<Word> other) { return (*this).value == other.value; }
+            constexpr bool operator==(ref<Word> other) { return (*this).wordValue == other.wordValue; }
         };
 
         template<typename T>
@@ -201,20 +195,18 @@ namespace tier0 {
         explicit Unit() = default;
     };
 
-#define WORD(native) detail::Word<native>
-    using Boolean = WORD(bool);
-    using Char = WORD(char);
-    using Byte = WORD(signed char);
-    using UByte = WORD(unsigned char);
-    using Short = WORD(short signed int);
-    using UShort = WORD(short unsigned int);
-    using Int = WORD(signed int);
-    using UInt = WORD(unsigned int);
-    using Long = WORD(long signed int);
-    using ULong = WORD(long unsigned int);
-    using Float = WORD(float);
-    using Double = WORD(double);
-#undef WORD
+    using Boolean = detail::Word<bool>;
+    using Char = detail::Word<char>;
+    using Byte = detail::Word<signed char>;
+    using UByte = detail::Word<unsigned char>;
+    using Short = detail::Word<short signed int>;
+    using UShort = detail::Word<short unsigned int>;
+    using Int = detail::Word<signed int>;
+    using UInt = detail::Word<unsigned int>;
+    using Long = detail::Word<long signed int>;
+    using ULong = detail::Word<long unsigned int>;
+    using Float = detail::Word<float>;
+    using Double = detail::Word<double>;
     using Size = ULong;
 
 #pragma GCC poison signed
@@ -228,22 +220,35 @@ namespace tier0 {
 #pragma GCC poison double
 }
 
+// array
+namespace tier0 {
+    template<typename T, Size N>
+    struct SizedArray {
+        using array_type = T[N];
+        array_type data;
+
+        implicit constexpr SizedArray() : data() {}
+
+        implicit constexpr SizedArray(ref<array_type> data) : data(data) {}
+    };
+}
+
 // typename
 namespace tier0 {
     namespace detail {
         template<typename T>
-        constexpr auto &TypeNameRaw() {
+        consteval auto &RawTypeName() {
             return __PRETTY_FUNCTION__;
         }
 
         struct TypeNameFormat {
             Size leading;
             Size trailing;
-
-            static constexpr Boolean calculate(mut_ptr<TypeNameFormat> ret) {
+        private:
+            static consteval Boolean calculate(mut_ptr<TypeNameFormat> ret) {
                 using int_t = decltype(0);
                 auto &needle = "int";
-                auto &haystack = TypeNameRaw<int_t>();
+                auto &haystack = RawTypeName<int_t>();
                 for (Size i = Size(0);; i = i + 1) {
                     if (haystack[i] == needle[0] and haystack[i + 1] == needle[1] and haystack[i + 2] == needle[2]) {
                         if (ret) {
@@ -256,25 +261,23 @@ namespace tier0 {
                 return false;
             }
 
-            static constexpr TypeNameFormat calculate() {
+        public:
+            static consteval TypeNameFormat get() {
+                static_assert(TypeNameFormat::calculate(nullptr), "Unable to generate type name");
                 auto ret = TypeNameFormat();
-                calculate(&ret);
+                TypeNameFormat::calculate(&ret);
                 return ret;
-            }
+            };
         };
 
-        constexpr auto typeNameFormat = [] {
-            static_assert(TypeNameFormat::calculate(nullptr), "Unable to generate type name");
-            return TypeNameFormat::calculate();
-        }();
-
         template<typename T>
-        constexpr auto TypeName() {
-            auto &raw = TypeNameRaw<T>();
-            const auto n = (sizeof(raw) - 1) - (typeNameFormat.leading + typeNameFormat.trailing);
+        consteval auto TypeName() {
+            constexpr auto format = TypeNameFormat::get();
+            auto &raw = RawTypeName<T>();
+            const auto n = (sizeof(raw) - 1) - (format.leading + format.trailing);
             auto ret = SizedArray<Native<Char>, n + 1>{};
             for (auto i = (decltype(n)) 0; i < n; ++i) {
-                ret.data[i] = raw[i + typeNameFormat.leading];
+                ret.data[i] = raw[i + format.leading];
             }
             return ret;
         }
@@ -282,7 +285,7 @@ namespace tier0 {
 
     template<typename T>
     cstring TypeName() {
-        static auto name = detail::TypeName<T>();
+        static constinit auto name = detail::TypeName<T>();
         return name.data;
     }
 }
@@ -304,7 +307,7 @@ namespace tier0 {
 
     struct DisableCopyConstructible {
     private:
-        DisableCopyConstructible(const DisableCopyConstructible &) = delete;
+        DisableCopyConstructible(ref<DisableCopyConstructible>) = delete;
 
     protected:
         DisableCopyConstructible(Unit) {}
@@ -312,12 +315,12 @@ namespace tier0 {
 
     struct DisableCopyAssignable {
     private:
-        DisableCopyAssignable &operator=(const DisableCopyAssignable &) = delete;
+        mut_ref<DisableCopyAssignable> operator=(ref<DisableCopyAssignable>) = delete;
     };
 
     struct DisableMoveConstructible {
     private:
-        DisableMoveConstructible(DisableMoveConstructible &&) = delete;
+        DisableMoveConstructible(movable<DisableMoveConstructible>) = delete;
 
     protected:
         DisableMoveConstructible(Unit) {}
@@ -325,12 +328,26 @@ namespace tier0 {
 
     struct DisableMoveAssignable {
     private:
-        DisableMoveAssignable &operator=(DisableMoveAssignable &&) = delete;
+        mut_ref<DisableMoveAssignable> operator=(movable<DisableMoveAssignable>) = delete;
     };
 }
 
 // structured binding
 namespace tier0 {
+    namespace detail {
+        template<typename T, T v>
+        struct property;
+
+        template<typename T, typename R, R T::*v>
+        struct property<R T::*, v> {
+            using type = R;
+
+            static ref<type> get(ref<T> self) { return self.*v; }
+
+            static mut_ref<type> get(mut_ref<T> self) { return self.*v; }
+        };
+    }
+
     template<typename ... elements>
     struct tuple_elements {
         static constexpr Size size = sizeof...(elements);
@@ -339,30 +356,16 @@ namespace tier0 {
         using type = typename pack::get<I, elements...>::type;
 
         template<Size I, typename T>
-        static ref<type<I>> value(ref<T> self) { return pack::get<I, elements...>::value(self); }
+        static ref<type<I>> get(ref<T> self) { return pack::get<I, elements...>::get(self); }
 
         template<Size I, typename T>
-        static mut_ref<type<I>> value(mut_ref<T> self) { return pack::get<I, elements...>::value(self); }
+        static mut_ref<type<I>> get(mut_ref<T> self) { return pack::get<I, elements...>::get(self); }
     };
-
-    namespace {
-        template<typename T, T v>
-        struct mptr_info;
-
-        template<typename T, typename R, R T::*v>
-        struct mptr_info<R T::*, v> {
-            using type = R;
-
-            static ref<type> value(ref<T> self) { return self.*v; }
-
-            static mut_ref<type> value(mut_ref<T> self) { return self.*v; }
-        };
-    }
 
     template<typename... types>
     struct tuple_elements_builder {
         template<auto mptr>
-        using add = tuple_elements_builder<types..., mptr_info<decltype(mptr), mptr>>;
+        using add = tuple_elements_builder<types..., detail::property<decltype(mptr), mptr>>;
 
         using build = tuple_elements<types...>;
     };
@@ -382,10 +385,10 @@ namespace tier0 {
         using type = typename delegate::template type<I>;
 
         template<Size I>
-        static ref<type<I>> value(ref<T> self) { return delegate::template value<I, T>(self); }
+        static ref<type<I>> get(ref<T> self) { return delegate::template get<I, T>(self); }
 
         template<Size I>
-        static mut_ref<type<I>> value(mut_ref<T> self) { return delegate::template value<I, T>(self); }
+        static mut_ref<type<I>> get(mut_ref<T> self) { return delegate::template get<I, T>(self); }
     };
 
     template<typename T>
@@ -398,7 +401,7 @@ namespace tier0 {
         using type = add_const<typename delegate::template type<I>>;
 
         template<Size I>
-        static ref<type<I>> value(ref<T> self) { return delegate::template value<I>(self); }
+        static ref<type<I>> get(ref<T> self) { return delegate::template get<I>(self); }
     };
 }
 
@@ -408,24 +411,24 @@ namespace std {
 
     template<Native<Size> I, typename T>
     struct tuple_element;
+
+    template<typename T>
+    struct tuple_size {
+        static constexpr Native<Size> value = tuple_traits<T>::size;
+    };
+
+    template<Native<Size> I, typename T>
+    struct tuple_element {
+        using type = typename tuple_traits<T>::template type<I>;
+    };
 }
-
-template<typename T>
-struct std::tuple_size {
-    static constexpr Native<Size> value = tuple_traits<T>::size;
-};
-
-template<Native<Size> I, typename T>
-struct std::tuple_element {
-    using type = typename tuple_traits<T>::template type<I>;
-};
 
 template<Native<Size> I, typename T>
 ref<typename std::tuple_element<I, T>::type> get(ref<T> self) {
-    return tuple_traits<T>::template value<I>(self);
+    return tuple_traits<T>::template get<I>(self);
 }
 
 template<Native<Size> I, typename T>
 mut_ref<typename std::tuple_element<I, T>::type> get(mut_ref<T> self) {
-    return tuple_traits<T>::template value<I>(self);
+    return tuple_traits<T>::template get<I>(self);
 }

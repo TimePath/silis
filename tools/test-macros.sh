@@ -7,9 +7,10 @@ main() {
   local input=$1
 
   popen proc_pid proc_stdin proc_stdout "cc -E -DTEST_MACROS $input"
-  fopen expect_expect "$input" r
-  fopen expect_actual "$input" r
-  fopen actual_expect "$input" r
+  fopen fd "$input" r
+  dup expect_expect "$fd"
+  dup expect_actual "$fd"
+  dup actual_expect "$fd"
   actual_actual=$proc_stdout
   diff() {
     command diff -u \
@@ -64,6 +65,16 @@ debug() {
 die() {
   echo "$@"
   return 1
+}
+
+dup() {
+  debug "dup(): $*"
+  local __ret=$1
+  local fd=$2
+
+  exec {fd2}<>"/dev/fd/$fd"
+
+  eval "$__ret=$fd2"
 }
 
 fopen() {

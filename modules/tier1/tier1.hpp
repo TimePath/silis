@@ -13,7 +13,7 @@ namespace tier1 {
         Size size;
 
         template<typename T>
-        static AllocInfo of() { return {TypeName<T>(), sizeof(T)}; }
+        static AllocInfo of() { return {TypeName<T>(), sizeof(T), Size(0)}; }
     };
 }
 
@@ -25,7 +25,7 @@ mut_ptr<void> operator new(Native<Size> count, AllocInfo info);
 
 mut_ptr<void> operator new[](Native<Size> count, AllocInfo info);
 
-// arrays
+// array
 namespace tier1 {
     template<typename T>
     struct Array : private DisableCopyConstructible {
@@ -33,48 +33,51 @@ namespace tier1 {
         Int _size;
         mut_ptr<T> memory;
     public:
-        ~Array() {
+        constexpr ~Array() {
             delete[] memory;
         }
 
         explicit Array(Int size) : DisableCopyConstructible(Unit()),
                                    _size(size), memory(!size ? nullptr : new(AllocInfo::of<T>()) T[size]) {}
 
-        implicit Array(movable<Array> other) : Array(0) {
-            *this = move(other);
+        implicit constexpr Array(movable<Array> other) : DisableCopyConstructible(Unit()),
+                                                         _size(other._size), memory(other.memory) {
+            other._size = 0;
+            other.memory = nullptr;
         }
 
-        void operator=(movable<Array> other) {
-            if (&other == this) return;
+        constexpr mut_ref<Array> operator=(movable<Array> other) {
+            if (&other == this) return *this;
             this->~Array();
             _size = other._size;
             other._size = 0;
             memory = other.memory;
             other.memory = nullptr;
+            return *this;
         };
 
         template<typename F>
-        Array(Int size, F f) : Array(size) {
+        __attribute__((always_inline)) constexpr Array(Int size, F f) : Array(size) {
             for (var i = 0; i < size; ++i) {
                 set(i, f(i));
             }
         }
 
-        Int size() const { return _size; }
+        constexpr Int size() const { return _size; }
 
-        Array copy() const {
+        constexpr Array copy() const {
             return Array(_size, [this](Int i) { return get(i); });
         }
 
-        ref<T> get(Int index) const {
+        constexpr ref<T> get(Int index) const {
             return memory[index];
         }
 
-        mut_ref<T> get(Int index) {
+        constexpr mut_ref<T> get(Int index) {
             return memory[index];
         }
 
-        void set(Int index, T value) {
+        constexpr void set(Int index, T value) {
             memory[index] = move(value);
         }
     };
@@ -86,12 +89,12 @@ namespace tier1 {
     private:
         Array<Char> chars;
     public:
-        String() : String(Array<Char>(0)) {}
+        explicit String() : String(Array<Char>(0)) {}
 
         explicit String(Array<Char> chars) : chars(move(chars)) {}
 
         template<Native<Size> N>
-        implicit String(ref<Native<Char>[N]> chars) : String(Array<Char>(Native < Int > (N), [=](Int i) {
+        implicit constexpr String(ref<Native<Char>[N]> chars) : String(Array<Char>(Native<Int>(N), [=](Int i) {
             return chars[i];
         })) {}
 
@@ -99,7 +102,7 @@ namespace tier1 {
             return i < bytes.size() ? (Native<Char>) bytes.get(i) : '\0';
         })) {}
 
-        Int size() const { return chars.size() - 1; }
+        constexpr Int size() const { return chars.size() - 1; }
 
         String copy() const { return String(chars.copy()); }
 

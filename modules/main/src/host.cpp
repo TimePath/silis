@@ -37,7 +37,7 @@ namespace {
         return memory;
     }
 
-    let RUNNING_ON_VALGRIND = Boolean([]() noexcept {
+    let RUNNING_ON_VALGRIND = Boolean([]() {
         let p = getenv("LD_PRELOAD");
         if (!p) {
             return false;
@@ -50,9 +50,15 @@ namespace {
 
 #if IMPLEMENTS_NEW
 
-mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> ptr) noexcept { return ptr; }
+mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> ptr) noexcept {
+    (void) count;
+    return ptr;
+}
 
-mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> ptr) noexcept { return ptr; }
+mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> ptr) noexcept {
+    (void) count;
+    return ptr;
+}
 
 #endif
 
@@ -108,8 +114,14 @@ void operator delete[](mut_ptr<void> ptr, Native<Size> sz) noexcept {
 
 #if IMPLEMENTS_NEW
 
-void operator delete(mut_ptr<void> ptr, mut_ptr<void> place) noexcept {}
+void operator delete(mut_ptr<void> ptr, mut_ptr<void> place) noexcept {
+    (void) ptr;
+    (void) place;
+}
 
-void operator delete[](mut_ptr<void> ptr, mut_ptr<void> place) noexcept {}
+void operator delete[](mut_ptr<void> ptr, mut_ptr<void> place) noexcept {
+    (void) ptr;
+    (void) place;
+}
 
 #endif

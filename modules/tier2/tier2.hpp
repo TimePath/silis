@@ -65,22 +65,18 @@ namespace tier2 {
                 value.~T();
             }
 
-            Unmanaged() : bytes() {}
+            explicit Unmanaged() : bytes() {}
 
             explicit Unmanaged(T value) : value(move(value)) {}
 
-            implicit Unmanaged(movable<Unmanaged> other) : Unmanaged() {
+            explicit Unmanaged(movable<Unmanaged> other) : Unmanaged() {
                 *this = move(other);
             }
 
             mut_ref<Unmanaged> operator=(movable<Unmanaged> other) {
                 if (&other == this) return *this;
                 destroy();
-                value = move(other.value);
-                let fill = Byte(0);
-                for (var i = Size(0); i < sizeof(T); i = i + 1) {
-                    other.bytes[i] = fill;
-                }
+                new(&value) T(move(other.value));
                 return *this;
             };
 
@@ -111,20 +107,20 @@ namespace tier2 {
             }
         }
 
-        List() : _size(0), memory(0) {}
+        explicit List() : _size(0), memory(0) {}
 
         Int size() const { return _size; }
 
         ref<T> get(Int index) const {
             if (!(index >= 0 and index < size())) {
-                throw nullptr;
+                return *(ptr<T>) nullptr;
             }
             return memory.get(index).get();
         }
 
         mut_ref<T> get(Int index) {
             if (!(index >= 0 and index < size())) {
-                throw nullptr;
+                return *(ptr<T>) nullptr;
             }
             return memory.get(index).get();
         }
@@ -174,8 +170,14 @@ namespace tier2 {
     inline ListRef<List<T>, T> begin(mut_ref<List<T>> self) { return {&self, 0}; }
 
     template<typename T>
-    inline ListRef<const List<T>, const T> end(ref<List<T>> self) { return {}; }
+    inline ListRef<const List<T>, const T> end(ref<List<T>> self) {
+        (void) self;
+        return {nullptr, 0};
+    }
 
     template<typename T>
-    inline ListRef<List<T>, T> end(mut_ref<List<T>> self) { return {}; }
+    inline ListRef<List<T>, T> end(mut_ref<List<T>> self) {
+        (void) self;
+        return {nullptr, 0};
+    }
 }
