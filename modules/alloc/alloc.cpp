@@ -1,7 +1,8 @@
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-#include "../../tier2/tier2.hpp"
+#include "../tier2/tier2.hpp"
 
 #define IMPLEMENTS_NEW 1
 
@@ -21,9 +22,20 @@ namespace {
 
     IntrusiveList<MemoryBlock, &MemoryBlock::links> blocks;
 
+    let DEBUG = Boolean([]() {
+        let p = getenv("DEBUG_ALLOC");
+        if (!p) {
+            return false;
+        }
+        return p[0] != '0';
+    }());
+
     mut_ptr<Byte> alloc_ctor(mut_ptr<Byte> memory, Size size, AllocInfo info) {
         let ptr = memory + sizeof(MemoryBlock);
         info.size = size;
+        if (DEBUG) {
+            fprintf(stderr, "alloc %lu %s\n", info.size.wordValue, info.name);
+        }
         var &block = *new(memory) MemoryBlock(info);
         blocks.add(block);
         return ptr;

@@ -91,7 +91,6 @@ endif ()
 # main
 
 add_executable(mop
-        modules/main/src/host.cpp
         modules/main/src/main.cpp
         )
 target_link_libraries(mop INTERFACE tier2)
@@ -104,6 +103,14 @@ target_sources(libtest
         modules/test/test.cpp
         )
 
+# liballoc
+
+add_library(liballoc)
+target_sources(liballoc
+        PRIVATE
+        modules/alloc/alloc.cpp
+        )
+
 # libtier0
 
 add_library(libtier0 INTERFACE)
@@ -113,11 +120,11 @@ target_sources(libtier0
         )
 
 add_executable(libtier0-tests)
-target_link_libraries(libtier0-tests INTERFACE libtier0)
+target_link_libraries(libtier0-tests PRIVATE libtest liballoc INTERFACE libtier0)
 target_discover_tests(libtier0-tests)
 target_sources(libtier0-tests
         PRIVATE
-        modules/test/test.cpp
+        modules/tier0/tests.cpp
         )
 
 # libtier1
@@ -130,11 +137,11 @@ target_sources(libtier1
         )
 
 add_executable(libtier1-tests)
-target_link_libraries(libtier1-tests INTERFACE libtier1)
+target_link_libraries(libtier1-tests PRIVATE libtest liballoc INTERFACE libtier1)
 target_discover_tests(libtier1-tests)
 target_sources(libtier1-tests
         PRIVATE
-        modules/test/test.cpp
+        modules/tier1/tests.cpp
         )
 
 # libtier2
@@ -147,9 +154,9 @@ target_link_libraries(libtier2
         )
 
 add_executable(libtier2-tests)
-target_link_libraries(libtier2-tests INTERFACE libtier2)
+target_link_libraries(libtier2-tests PRIVATE libtest liballoc INTERFACE libtier2)
 target_discover_tests(libtier2-tests)
 target_sources(libtier2-tests
         PRIVATE
-        modules/test/test.cpp
+        modules/tier2/tests.cpp
         )

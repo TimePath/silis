@@ -1,0 +1,38 @@
+#pragma once
+
+namespace test {
+    namespace {
+        using int_t = decltype(0);
+        using cstring_t = decltype(&""[0]);
+        using runnable_t = void (*)();
+    }
+
+    struct Test {
+        Test const *next;
+        cstring_t name;
+        runnable_t run;
+
+        Test(cstring_t name, runnable_t run) noexcept;
+    };
+
+    void main(int_t argc, cstring_t *argv);
+
+    int_t strcmp(cstring_t a, cstring_t b);
+
+    inline int_t strequal(cstring_t a, cstring_t b) { return strcmp(a, b) == 0; }
+
+    __attribute__((format(printf, 1, 2)))
+    void printf(cstring_t format, ...);
+
+    __attribute__((__noreturn__))
+    void abort();
+}
+
+using namespace test;
+
+#define TEST(name) TEST_1(name, __COUNTER__)
+#define TEST_1(name, id) TEST_2(name, id)
+#define TEST_2(name, id) \
+    static void test##id##_run(); \
+    static Test test##id(name, test##id##_run); \
+    void test##id##_run()
