@@ -9,6 +9,14 @@
 namespace tier0 {}
 using namespace tier0;
 
+namespace tier0 {
+    __attribute__((__noreturn__))
+    inline void die() {
+        (void) *(char *) nullptr;
+        __builtin_unreachable();
+    }
+}
+
 // meta
 namespace tier0 {
 
@@ -222,7 +230,7 @@ namespace tier0 {
 
 // array
 namespace tier0 {
-    template<typename T, Size N>
+    template<typename T, Native<Size> N>
     struct SizedArray {
         using array_type = T[N];
         array_type data;
@@ -352,13 +360,13 @@ namespace tier0 {
     struct tuple_elements {
         static constexpr Size size = sizeof...(elements);
 
-        template<Size I>
+        template<Native<Size> I>
         using type = typename pack::get<I, elements...>::type;
 
-        template<Size I, typename T>
+        template<Native<Size> I, typename T>
         static ref<type<I>> get(ref<T> self) { return pack::get<I, elements...>::get(self); }
 
-        template<Size I, typename T>
+        template<Native<Size> I, typename T>
         static mut_ref<type<I>> get(mut_ref<T> self) { return pack::get<I, elements...>::get(self); }
     };
 
@@ -381,13 +389,13 @@ namespace tier0 {
 
         static constexpr Size size = delegate::size;
 
-        template<Size I>
+        template<Native<Size> I>
         using type = typename delegate::template type<I>;
 
-        template<Size I>
+        template<Native<Size> I>
         static ref<type<I>> get(ref<T> self) { return delegate::template get<I, T>(self); }
 
-        template<Size I>
+        template<Native<Size> I>
         static mut_ref<type<I>> get(mut_ref<T> self) { return delegate::template get<I, T>(self); }
     };
 
@@ -397,10 +405,10 @@ namespace tier0 {
 
         static constexpr Size size = delegate::size;
 
-        template<Size I>
+        template<Native<Size> I>
         using type = add_const<typename delegate::template type<I>>;
 
-        template<Size I>
+        template<Native<Size> I>
         static ref<type<I>> get(ref<T> self) { return delegate::template get<I>(self); }
     };
 }

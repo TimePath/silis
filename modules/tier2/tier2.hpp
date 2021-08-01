@@ -113,14 +113,14 @@ namespace tier2 {
 
         ref<T> get(Int index) const {
             if (!(index >= 0 and index < size())) {
-                return *(ptr<T>) nullptr;
+                die();
             }
             return memory.get(index).get();
         }
 
         mut_ref<T> get(Int index) {
             if (!(index >= 0 and index < size())) {
-                return *(ptr<T>) nullptr;
+                die();
             }
             return memory.get(index).get();
         }
@@ -149,7 +149,8 @@ namespace tier2 {
 
     template<typename List, typename T>
     inline Boolean operator!=(ref<ListRef<List, T>> self, ref<ListRef<List, T>> other) {
-        return self.list != other.list;
+        (void) other;
+        return self.list != nullptr;
     }
 
     template<typename List, typename T>
