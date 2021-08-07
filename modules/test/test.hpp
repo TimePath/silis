@@ -21,10 +21,10 @@ namespace test {
 
     inline int_t strequal(cstring_t a, cstring_t b) { return strcmp(a, b) == 0; }
 
-    __attribute__((format(printf, 1, 2)))
+    [[gnu::format(printf, 1, 2)]]
     void printf(cstring_t format, ...);
 
-    __attribute__((__noreturn__))
+    [[noreturn]]
     void abort();
 }
 

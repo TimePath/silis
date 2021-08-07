@@ -10,7 +10,7 @@ namespace tier0 {}
 using namespace tier0;
 
 namespace tier0 {
-    __attribute__((__noreturn__))
+    [[noreturn]]
     inline void die() {
         (void) *(char *) nullptr;
         __builtin_unreachable();

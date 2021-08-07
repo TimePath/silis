@@ -57,7 +57,7 @@ namespace tier1 {
         };
 
         template<typename F>
-        __attribute__((always_inline)) constexpr Array(Int size, F f) : Array(size) {
+        [[gnu::always_inline]] constexpr Array(Int size, F f) : Array(size) {
             for (var i = 0; i < size; ++i) {
                 set(i, f(i));
             }
