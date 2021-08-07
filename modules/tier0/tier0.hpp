@@ -37,7 +37,7 @@ namespace tier0 {
     template <MAP(METAFUNC_IMPL_DECLARE_ARGS, METAFUNC_IMPL_DELIMITER_COMMA, args)> \
     struct name##_s; \
     template <MAP(METAFUNC_IMPL_DECLARE_ARGS, METAFUNC_IMPL_DELIMITER_COMMA, args)> \
-    constexpr auto name = name##_s<MAP(METAFUNC_IMPL_DECLARE_FORWARD, METAFUNC_IMPL_DELIMITER_COMMA, args)>::value;
+    concept name = name##_s<MAP(METAFUNC_IMPL_DECLARE_FORWARD, METAFUNC_IMPL_DELIMITER_COMMA, args)>::value;
 #define METAFUNC_VALUE_IMPL(name, spec, args, val) \
     template <MAP(METAFUNC_IMPL_DECLARE_ARGS, METAFUNC_IMPL_DELIMITER_COMMA, args)> \
     struct name##_s IF_EMPTY(spec, METAFUNC_IMPL_SPECIALIZE_0, METAFUNC_IMPL_SPECIALIZE_1)(spec) { \
@@ -84,6 +84,21 @@ namespace tier0 {
     METAFUNC_TYPE(remove_const, ((T, typename)))
     METAFUNC_TYPE_IMPL(remove_const, (const T), ((T, typename)), T)
     METAFUNC_TYPE_IMPL(remove_const, (), ((T, typename)), T)
+
+    namespace detail {
+        using _false = char[1];
+        using _true = char[2];
+
+        template<typename T>
+        static _true *test(T *) { return nullptr; }
+
+        template<typename>
+        static _false *test(void *) { return nullptr; }
+    }
+
+    METAFUNC_VALUE(is_base_of, ((Super, typename), (Self, typename)))
+    METAFUNC_VALUE_IMPL(is_base_of, (), ((Super, typename), (Self, typename)),
+                        sizeof(*detail::test<Super>(static_cast<Self *>(nullptr))) == sizeof(detail::_true))
 
     namespace pack {
         // METAFUNC_TYPE(get, ((I, Native<Size>), (types, typename...)))
@@ -142,14 +157,13 @@ namespace tier0 {
         };
 
         template<typename T>
-        struct WordTraits {
+        struct WordTraits;
+
+        struct WordTag {
         };
 
-        template<typename T>
-        concept is_word = WordTraits<T>::isWord;
-
         template<typename T> requires is_arithmetic<T>
-        struct Word {
+        struct Word : WordTag {
             T wordValue;
 
             constexpr ~Word() {}
@@ -178,7 +192,7 @@ namespace tier0 {
 
             /** Cast from */
             template<typename Other>
-            requires is_word<Other>
+            requires WordTraits<Other>::isWord
             explicit Word(Other word) : Word((typename WordTraits<Other>::native) word) {}
 
             /** Cast to */
@@ -189,32 +203,56 @@ namespace tier0 {
             constexpr bool operator==(ref<Word> other) { return (*this).wordValue == other.wordValue; }
         };
 
-        template<typename T>
-        struct WordTraits<Word<T>> {
+        template<typename T> requires is_base_of<WordTag, T>
+        struct WordTraits<T> {
             static const bool isWord = true;
-            using native = T;
+            using native = decltype(static_cast<T *>(nullptr)->wordValue);
         };
     }
 
-    template<typename T> requires detail::is_word<T>
+    template<typename T> requires detail::WordTraits<T>::isWord
     using Native = typename detail::WordTraits<T>::native;
 
     struct Unit {
         explicit Unit() = default;
     };
 
-    using Boolean = detail::Word<bool>;
-    using Char = detail::Word<char>;
-    using Byte = detail::Word<signed char>;
-    using UByte = detail::Word<unsigned char>;
-    using Short = detail::Word<short signed int>;
-    using UShort = detail::Word<short unsigned int>;
-    using Int = detail::Word<signed int>;
-    using UInt = detail::Word<unsigned int>;
-    using Long = detail::Word<long signed int>;
-    using ULong = detail::Word<long unsigned int>;
-    using Float = detail::Word<float>;
-    using Double = detail::Word<double>;
+    struct Boolean : detail::Word<bool> {
+        using Word::Word;
+    };
+    struct Char : detail::Word<char> {
+        using Word::Word;
+    };
+    struct Byte : detail::Word<signed char> {
+        using Word::Word;
+    };
+    struct UByte : detail::Word<unsigned char> {
+        using Word::Word;
+    };
+    struct Short : detail::Word<short signed int> {
+        using Word::Word;
+    };
+    struct UShort : detail::Word<short unsigned int> {
+        using Word::Word;
+    };
+    struct Int : detail::Word<signed int> {
+        using Word::Word;
+    };
+    struct UInt : detail::Word<unsigned int> {
+        using Word::Word;
+    };
+    struct Long : detail::Word<long signed int> {
+        using Word::Word;
+    };
+    struct ULong : detail::Word<long unsigned int> {
+        using Word::Word;
+    };
+    struct Float : detail::Word<float> {
+        using Word::Word;
+    };
+    struct Double : detail::Word<double> {
+        using Word::Word;
+    };
     using Size = ULong;
 
 #pragma GCC poison signed

@@ -5,7 +5,7 @@ function(target_discover_tests target)
             # options
             ""
             # oneValueArgs
-            "TEST_PREFIX"
+            "TEST_PREFIX;TEST_SOURCE_DIR"
             # multiValueArgs
             ""
             ${ARGN}
@@ -13,6 +13,12 @@ function(target_discover_tests target)
 
     if (NOT DISCOVER_TESTS_TEST_PREFIX)
         set(DISCOVER_TESTS_TEST_PREFIX "${target}::")
+    endif ()
+    if (NOT DISCOVER_TESTS_TEST_SOURCE_DIR)
+        set(DISCOVER_TESTS_TEST_SOURCE_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+    endif ()
+    if (NOT IS_ABSOLUTE ${DISCOVER_TESTS_TEST_SOURCE_DIR})
+        set(DISCOVER_TESTS_TEST_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/${DISCOVER_TESTS_TEST_SOURCE_DIR}")
     endif ()
 
     set(DISCOVER_TESTS_WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
@@ -64,8 +70,10 @@ function(target_discover_tests target)
             "    discover_tests(" "\n"
             "            TEST_PREFIX" " [[" "${DISCOVER_TESTS_TEST_PREFIX}" "]]" "\n"
             "            CTEST_FILE" " [[" "${ctest_tests_file}" "]]" "\n"
+            "            TEST_SOURCE_DIR" " [[" "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "]]" "\n"
             "            TEST_WORKING_DIR" " [[" "${DISCOVER_TESTS_WORKING_DIRECTORY}" "]]" "\n"
-            "            TEST_EXECUTOR" " [[" "${DISCOVER_TESTS_CROSSCOMPILING_EMULATOR}" "]]" "\n"
+            "            TEST_EXECUTOR" " [[" "${CMAKE_CURRENT_LIST_DIR}/cmake/testrunner.sh" "]]" "\n"
+            "            TEST_EMULATOR" " [[" "${DISCOVER_TESTS_CROSSCOMPILING_EMULATOR}" "]]" "\n"
             "            TEST_EXECUTABLE" " [[" "$<TARGET_FILE:${target}>" "]]" "\n"
             "            TEST_DISCOVERY_TIMEOUT" " [[" "${DISCOVER_TESTS_DISCOVERY_TIMEOUT}" "]]" "\n"
             "            TEST_LIST" " [[" "${DISCOVER_TESTS_TEST_LIST}" "]]" "\n"
@@ -92,7 +100,7 @@ function(discover_tests)
             # options
             ""
             # oneValueArgs
-            "TEST_PREFIX;CTEST_FILE;TEST_WORKING_DIR;TEST_EXECUTOR;TEST_EXECUTABLE;TEST_DISCOVERY_TIMEOUT;TEST_LIST"
+            "TEST_PREFIX;CTEST_FILE;TEST_SOURCE_DIR;TEST_WORKING_DIR;TEST_EXECUTOR;TEST_EMULATOR;TEST_EXECUTABLE;TEST_DISCOVERY_TIMEOUT;TEST_LIST"
             # multiValueArgs
             ""
             ${ARGN}
@@ -106,7 +114,7 @@ function(discover_tests)
     endif ()
 
     execute_process(
-            COMMAND ${DISCOVER_TESTS_TEST_EXECUTOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}"
+            COMMAND ${DISCOVER_TESTS_TEST_EMULATOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}"
             WORKING_DIRECTORY "${DISCOVER_TESTS_TEST_WORKING_DIR}"
             TIMEOUT ${DISCOVER_TESTS_TEST_DISCOVERY_TIMEOUT}
             RESULT_VARIABLE result
@@ -178,7 +186,11 @@ function(discover_tests)
 
         set(testname "${DISCOVER_TESTS_TEST_PREFIX}${testid}")
 
-        script_append(add_test "${testname}" ${DISCOVER_TESTS_TEST_EXECUTOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}" "${testid}")
+        script_append(add_test "${testname}"
+                ${DISCOVER_TESTS_TEST_EXECUTOR} "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "${testid}"
+                --
+                ${DISCOVER_TESTS_TEST_EMULATOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}" "${testid}"
+                )
         if (testid MATCHES "^DISABLED_")
             script_append(set_tests_properties "${testname}" PROPERTIES DISABLED TRUE)
         endif ()

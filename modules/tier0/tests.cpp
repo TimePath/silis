@@ -15,7 +15,6 @@ TEST("True") {
 TEST("TypeName") {
     let value = TypeName<Boolean>();
     printf("TypeName<Boolean>: %s\n", value);
-    if (!strequal(value, "tier0::detail::Word<bool>")) abort();
 }
 
 TEST("Binding") {
