@@ -1,0 +1,1 @@
+'/* /modules/tier0/tests.cpp */ insert into table(id, name) values (?, ?)' -- '1', 'name'

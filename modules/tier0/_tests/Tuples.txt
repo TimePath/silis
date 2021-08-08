@@ -1,0 +1,1 @@
+testVar: tier0::Tuple<tier0::Int, tier0::Short, tier0::Byte>: 1, 2, 3

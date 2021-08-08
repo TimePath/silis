@@ -33,6 +33,6 @@ using namespace test;
 #define TEST(name) TEST_1(name, __COUNTER__)
 #define TEST_1(name, id) TEST_2(name, id)
 #define TEST_2(name, id) \
-    static void test##id##_run(); \
-    static Test test##id(name, test##id##_run); \
-    void test##id##_run()
+    static void test##id(); \
+    static Test test##id##_global(name, test##id); \
+    void test##id()

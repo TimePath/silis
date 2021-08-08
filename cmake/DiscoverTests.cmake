@@ -178,6 +178,7 @@ function(discover_tests)
 
     string(REPLACE [[;]] [[\;]] output "${output}")
     string(REPLACE "\n" [[;]] output "${output}")
+    list(SORT output)
     foreach (line ${output})
         string(REGEX REPLACE " +" "" testid "${line}")
         string(REPLACE [[\]] [[\\]] testid "${testid}")

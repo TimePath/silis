@@ -99,20 +99,6 @@ namespace tier0 {
     METAFUNC_VALUE(is_base_of, ((Super, typename), (Self, typename)))
     METAFUNC_VALUE_IMPL(is_base_of, (), ((Super, typename), (Self, typename)),
                         sizeof(*detail::test<Super>(static_cast<Self *>(nullptr))) == sizeof(detail::_true))
-
-    namespace pack {
-        // METAFUNC_TYPE(get, ((I, Native<Size>), (types, typename...)))
-
-        template<long unsigned int I, typename... types>
-        struct get_s;
-
-        template<long unsigned int I, typename... types>
-        using get = typename get_s<I, types...>::type;
-
-        METAFUNC_TYPE_IMPL(get, (0, T, types...), ((T, typename),(types, typename...)), T)
-        METAFUNC_TYPE_IMPL(get, (I, T, types...), ((I, long unsigned int), (T, typename),(types, typename...)),
-                           get<I - 1 METAFUNC_IMPL_DELIMITER_COMMA() types...>)
-    }
 }
 
 // memory model
@@ -266,6 +252,272 @@ namespace tier0 {
 #pragma GCC poison double
 }
 
+// https://en.cppreference.com/w/cpp/named_req
+namespace tier0 {
+    struct DisableDefaultConstructible {
+    private:
+        DisableDefaultConstructible() = delete;
+
+    protected:
+        DisableDefaultConstructible(Unit) {}
+    };
+
+    struct DisableDestructible {
+    protected:
+        ~DisableDestructible() = delete;
+    };
+
+    struct DisableCopyConstructible {
+    private:
+        DisableCopyConstructible(ref<DisableCopyConstructible>) = delete;
+
+    protected:
+        DisableCopyConstructible(Unit) {}
+    };
+
+    struct DisableCopyAssignable {
+    private:
+        mut_ref<DisableCopyAssignable> operator=(ref<DisableCopyAssignable>) = delete;
+    };
+
+    struct DisableMoveConstructible {
+    private:
+        DisableMoveConstructible(movable<DisableMoveConstructible>) = delete;
+
+    protected:
+        DisableMoveConstructible(Unit) {}
+    };
+
+    struct DisableMoveAssignable {
+    private:
+        mut_ref<DisableMoveAssignable> operator=(movable<DisableMoveAssignable>) = delete;
+    };
+}
+
+// meta
+namespace tier0 {
+    namespace detail {
+        // METAFUNC_TYPE(get, ((I, Native<Size>), (Ts, typename...)))
+
+        template<Native<Size> I, typename... Ts>
+        struct get_s;
+
+        template<Native<Size> I, typename... Ts>
+        using get = typename get_s<I, Ts...>::type;
+
+        METAFUNC_TYPE_IMPL(get, (0, T, Ts...), ((T, typename),(Ts, typename...)), T)
+        METAFUNC_TYPE_IMPL(get, (I, T, Ts...), ((I, Native<Size>), (T, typename),(Ts, typename...)),
+                           get<I - 1 METAFUNC_IMPL_DELIMITER_COMMA() Ts...>)
+    }
+
+    template<typename... Ts>
+    struct TypeList {
+        template<Size I>
+        using get = detail::get<I, Ts...>;
+
+        METAFUNC_TYPE(concat, ((U, typename)))
+        METAFUNC_TYPE_IMPL(concat, (TypeList<Us...>), ((Us, typename...)),
+                           TypeList<Ts... METAFUNC_IMPL_DELIMITER_COMMA() Us...>)
+
+        template<template<typename> typename F>
+        using map = TypeList<F<Ts>...>;
+    };
+
+    METAFUNC_TYPE(collect2, ((hasNext, Boolean), (T, typename)))
+    template<typename Node> using collect = collect2<Node::hasNext, Node>;
+    METAFUNC_TYPE_IMPL(collect2, (true, T), ((T, typename)),
+                       typename TypeList<T>::template concat<collect<typename T::next>>)
+    METAFUNC_TYPE_IMPL(collect2, (false, T), ((T, typename)), TypeList<T>)
+
+#define apply_func template<typename...> typename
+    METAFUNC_TYPE(apply, ((F, apply_func), (T, typename)))
+    METAFUNC_TYPE_IMPL(apply, (F, TypeList<Ts...>), ((F, apply_func),(Ts, typename...)), F < Ts...>)
+#undef apply_func
+
+    template<Size i = Size(0)>
+    struct CounterIterator {
+        constexpr static auto hasNext = true;
+        using next = CounterIterator<i + 1>;
+
+        constexpr static auto value = i;
+    };
+
+    template<typename... Ts>
+    struct PackIterator;
+
+    template<typename T, typename... Rest>
+    struct PackIterator<T, Rest...> {
+        constexpr static auto hasNext = sizeof...(Rest) != 0;
+        using next = PackIterator<Rest...>;
+
+        using type = T;
+    };
+
+    template<typename First, typename Second>
+    struct ZipIterator {
+        constexpr static auto hasNext = First::hasNext && Second::hasNext;
+        using next = ZipIterator<typename First::next, typename Second::next>;
+
+        using first = First;
+        using second = Second;
+    };
+}
+
+// structured binding
+namespace tier0 {
+    namespace detail {
+        template<typename T, T v>
+        struct property;
+
+        template<typename T, typename R, R T::*v>
+        struct property<R T::*, v> {
+            using type = R;
+
+            static ref<type> get(ref<T> self) { return self.*v; }
+
+            static mut_ref<type> get(mut_ref<T> self) { return self.*v; }
+        };
+    }
+
+    template<typename... elements>
+    struct tuple_elements {
+        static constexpr Size size = sizeof...(elements);
+
+        using types = TypeList<elements...>;
+
+        template<Native<Size> I>
+        using type = typename types::template get<I>::type;
+
+        template<Native<Size> I, typename T>
+        static ref<type<I>> get(ref<T> self) { return types::template get<I>::get(self); }
+
+        template<Native<Size> I, typename T>
+        static mut_ref<type<I>> get(mut_ref<T> self) { return types::template get<I>::get(self); }
+    };
+
+    template<typename... types>
+    struct tuple_elements_builder {
+        template<auto mptr>
+        using add = tuple_elements_builder<types..., detail::property<decltype(mptr), mptr>>;
+
+        using build = tuple_elements<types...>;
+    };
+
+    template<typename T>
+    struct tuple_traits_s;
+    template<typename T>
+    using tuple_traits = tuple_traits_s<remove_reference<T>>;
+
+    template<typename T>
+    struct tuple_traits_s {
+        using delegate = typename T::elements;
+
+        static constexpr Size size = delegate::size;
+
+        template<Native<Size> I>
+        using type = typename delegate::template type<I>;
+
+        template<Native<Size> I>
+        static ref<type<I>> get(ref<T> self) { return delegate::template get<I, T>(self); }
+
+        template<Native<Size> I>
+        static mut_ref<type<I>> get(mut_ref<T> self) { return delegate::template get<I, T>(self); }
+    };
+
+    template<typename T>
+    struct tuple_traits_s<const T> {
+        using delegate = tuple_traits<remove_const < T>>;
+
+        static constexpr Size size = delegate::size;
+
+        template<Native<Size> I>
+        using type = add_const<typename delegate::template type<I>>;
+
+        template<Native<Size> I>
+        static ref<type<I>> get(ref<T> self) { return delegate::template get<I>(self); }
+    };
+
+#define USING_STRUCTURED_BINDING \
+    template<Native<Size> i, typename T> \
+    constexpr ref<typename tuple_traits<T>::template type<i>> get(ref<T> self) { \
+        return tuple_traits<T>::template get<i>(self); \
+    } \
+    template<Native<Size> i, typename T> \
+    constexpr mut_ref<typename tuple_traits<T>::template type<i>> get(mut_ref<T> self) { \
+        return tuple_traits<T>::template get<i>(self); \
+    } \
+    /**/
+
+#define ENABLE_STRUCTURED_BINDING(T) \
+    template<Native<Size> i> \
+    constexpr ref<typename tuple_traits<T>::template type<i>> get() const { \
+        return tuple_traits<T>::template get<i>(*this); \
+    } \
+    template<Native<Size> i> \
+    constexpr mut_ref<typename tuple_traits<T>::template type<i>> get() { \
+        return tuple_traits<T>::template get<i>(*this); \
+    } \
+    /**/
+}
+
+// structured binding
+namespace std {
+    template<typename T>
+    struct tuple_size;
+
+    template<Native<Size> i, typename T>
+    struct tuple_element;
+
+    template<typename T>
+    struct tuple_size {
+        static constexpr Native<Size> value = tuple_traits<T>::size;
+    };
+
+    template<Native<Size> i, typename T>
+    struct tuple_element {
+        using type = typename tuple_traits<T>::template type<i>;
+    };
+}
+
+// tuple
+namespace tier0 {
+    template<Size i, typename T>
+    struct TupleLeaf {
+        T value;
+    };
+
+    template<typename... Ts>
+    struct TupleStorage : Ts ... {
+    };
+
+    template<typename T>
+    using ToTupleLeaf = TupleLeaf<T::first::value, typename T::second::type>;
+
+    template<typename... Ts>
+    struct Tuple {
+    private:
+        apply<TupleStorage, typename collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>::template map<ToTupleLeaf>> data;
+    public:
+        implicit Tuple(Ts... args) : data{{args}...} {
+        }
+
+        struct [[maybe_unused]] elements {
+            static constexpr Size size = sizeof...(Ts);
+
+            template<Size I>
+            using type = typename TypeList<Ts...>::template get<I>;
+
+            template<Size I, typename T>
+            static ref<type<I>> get(ref<T> self) { return self.data.TupleLeaf<I, type<I>>::value; }
+
+            template<Size I, typename T>
+            static mut_ref<type<I>> get(mut_ref<T> self) { return self.data.TupleLeaf<I, type<I>>::value; }
+        };
+
+        ENABLE_STRUCTURED_BINDING(Tuple)
+    };
+}
+
 // array
 namespace tier0 {
     template<typename T, Native<Size> N>
@@ -273,9 +525,95 @@ namespace tier0 {
         using array_type = T[N];
         array_type data;
 
+        [[nodiscard]]
+        constexpr Size size() const { return N; }
+
         implicit constexpr SizedArray() : data() {}
 
-        implicit constexpr SizedArray(ref<array_type> data) : data(data) {}
+        implicit constexpr SizedArray(ref<array_type> data) {
+            for (var i = Size(0); i < N; i = i + 1) {
+                this->data[i] = data[i];
+            }
+        }
+
+        template<Native<Size> N2>
+        constexpr SizedArray<T, N + N2> concat(ref<SizedArray<T, N2>> other) {
+            let self = *this;
+            var ret = SizedArray<T, N + N2>();
+            for (var i = Size(0); i < N; i = i + 1) { ret.data[i] = self.data[i]; }
+            for (var i = Size(0); i < N2; i = i + 1) { ret.data[N + i] = other.data[i]; }
+            return ret;
+        }
+    };
+}
+
+// literal string
+namespace tier0 {
+    template<Native<Size> N>
+    struct LiteralString {
+        using array_type = Native<Char>[N];
+        array_type data;
+
+        [[nodiscard]]
+        constexpr Size size() const { return N - 1; }
+
+        explicit consteval LiteralString() : data() {
+            var n = size();
+            for (var i = Size(0); i < n; i = i + 1) {
+                data[i] = 0;
+            }
+            data[n] = 0;
+        }
+
+        implicit consteval LiteralString(ref<Native<Char>[N]> str) : data() {
+            var n = size();
+            for (var i = Size(0); i < n; i = i + 1) {
+                data[i] = str[i];
+            }
+            data[n] = 0;
+        }
+
+        template<Size begin = Size(0), Size end = N>
+        [[nodiscard]]
+        consteval LiteralString<end - begin + 1> slice() const {
+            const var n = end - begin;
+            var ret = LiteralString<n + 1>();
+            for (var i = Size(0); i < n; i = i + 1) {
+                ret.data[i] = data[begin + i];
+            }
+            ret.data[n] = 0;
+            return ret;
+        }
+    };
+
+    template<LiteralString str>
+    cstring global() {
+        static constinit auto value = str;
+        return value.data;
+    }
+}
+
+// source location
+namespace tier0 {
+    struct SourceLocation {
+        const cstring file;
+        const cstring function;
+        const Int line;
+
+        static SourceLocation current(
+                cstring file = __builtin_FILE(),
+                cstring function = __builtin_FUNCTION(),
+                Int line = Native<Int>(__builtin_LINE())
+        ) {
+            return {
+                    file + sizeof(PROJECT_SOURCE_DIR) - 1,
+                    function,
+                    line,
+            };
+        }
+
+    private:
+        SourceLocation(cstring file, cstring function, Int line) : file(file), function(function), line(line) {};
     };
 }
 
@@ -336,145 +674,81 @@ namespace tier0 {
     }
 }
 
-// https://en.cppreference.com/w/cpp/named_req
-namespace tier0 {
-    struct DisableDefaultConstructible {
-    private:
-        DisableDefaultConstructible() = delete;
-
-    protected:
-        DisableDefaultConstructible(Unit) {}
+// constexpr strtok
+namespace tier0::strtok {
+    struct Range {
+        Size begin;
+        Size end;
     };
 
-    struct DisableDestructible {
-    protected:
-        ~DisableDestructible() = delete;
-    };
+    template<LiteralString str>
+    consteval Size count();
 
-    struct DisableCopyConstructible {
-    private:
-        DisableCopyConstructible(ref<DisableCopyConstructible>) = delete;
-
-    protected:
-        DisableCopyConstructible(Unit) {}
-    };
-
-    struct DisableCopyAssignable {
-    private:
-        mut_ref<DisableCopyAssignable> operator=(ref<DisableCopyAssignable>) = delete;
-    };
-
-    struct DisableMoveConstructible {
-    private:
-        DisableMoveConstructible(movable<DisableMoveConstructible>) = delete;
-
-    protected:
-        DisableMoveConstructible(Unit) {}
-    };
-
-    struct DisableMoveAssignable {
-    private:
-        mut_ref<DisableMoveAssignable> operator=(movable<DisableMoveAssignable>) = delete;
-    };
-}
-
-// structured binding
-namespace tier0 {
     namespace detail {
-        template<typename T, T v>
-        struct property;
+        template<LiteralString str>
+        consteval Native<Size> countPlaceholders() {
+            var ret = Native<Size>(0);
+            for (var i = Size(0); i < str.size();) {
+                if (str.data[i] == '{' && str.data[i + 1] == '}') {
+                    ret = ret + 1;
+                    i = i + 2;
+                } else {
+                    i = i + 1;
+                }
+            }
+            return ret;
+        }
 
-        template<typename T, typename R, R T::*v>
-        struct property<R T::*, v> {
-            using type = R;
+        template<LiteralString str>
+        consteval Native<Size> countCharactersUntilPlaceholder() {
+            var i = Size(0);
+            for (; i < str.size();) {
+                if (str.data[i] == '{' && str.data[i + 1] == '}') {
+                    break;
+                } else {
+                    i = i + 1;
+                }
+            }
+            return i;
+        }
 
-            static ref<type> get(ref<T> self) { return self.*v; }
+        template<LiteralString str, typename T, Size n, typename F, Size offset>
+        constexpr SizedArray<T, n> forEachRange(F f) {
+            const var size = countCharactersUntilPlaceholder<str.template slice<offset>()>();
+            var ret = SizedArray<T, 1>();
+            ret.data[0] = f.template operator()<Range{offset + 0, offset + size}>();
+            if constexpr (n > 1) {
+                var next = forEachRange<str, T, n - 1, F, offset + size + 2>(f);
+                return ret.template concat(next);
+            } else {
+                return ret;
+            }
+        }
 
-            static mut_ref<type> get(mut_ref<T> self) { return self.*v; }
-        };
+        template<LiteralString str, typename F>
+        constexpr auto forEachRange(F f) {
+            const var n = Native<Size>(count<str>());
+            return forEachRange<str, decltype(f.template operator()<Range{}>()), n, F, Size(0)>(f);
+        }
     }
 
-    template<typename ... elements>
-    struct tuple_elements {
-        static constexpr Size size = sizeof...(elements);
+    template<LiteralString str>
+    consteval Size count() { return 1 + detail::countPlaceholders<str>(); }
 
-        template<Native<Size> I>
-        using type = typename pack::get<I, elements...>::type;
-
-        template<Native<Size> I, typename T>
-        static ref<type<I>> get(ref<T> self) { return pack::get<I, elements...>::get(self); }
-
-        template<Native<Size> I, typename T>
-        static mut_ref<type<I>> get(mut_ref<T> self) { return pack::get<I, elements...>::get(self); }
-    };
-
-    template<typename... types>
-    struct tuple_elements_builder {
-        template<auto mptr>
-        using add = tuple_elements_builder<types..., detail::property<decltype(mptr), mptr>>;
-
-        using build = tuple_elements<types...>;
-    };
-
-    template<typename T>
-    struct tuple_traits_s;
-    template<typename T>
-    using tuple_traits = tuple_traits_s<remove_reference<T>>;
-
-    template<typename T>
-    struct tuple_traits_s {
-        using delegate = typename T::elements;
-
-        static constexpr Size size = delegate::size;
-
-        template<Native<Size> I>
-        using type = typename delegate::template type<I>;
-
-        template<Native<Size> I>
-        static ref<type<I>> get(ref<T> self) { return delegate::template get<I, T>(self); }
-
-        template<Native<Size> I>
-        static mut_ref<type<I>> get(mut_ref<T> self) { return delegate::template get<I, T>(self); }
-    };
-
-    template<typename T>
-    struct tuple_traits_s<const T> {
-        using delegate = tuple_traits<remove_const < T>>;
-
-        static constexpr Size size = delegate::size;
-
-        template<Native<Size> I>
-        using type = add_const<typename delegate::template type<I>>;
-
-        template<Native<Size> I>
-        static ref<type<I>> get(ref<T> self) { return delegate::template get<I>(self); }
-    };
+    template<LiteralString str>
+    constexpr SizedArray<cstring, count<str>()> collect() {
+        return detail::forEachRange<str>([]<Range r>() constexpr {
+            return global<str.template slice<r.begin, r.end>()>();
+        });
+    }
 }
 
-namespace std {
-    template<typename T>
-    struct tuple_size;
-
-    template<Native<Size> I, typename T>
-    struct tuple_element;
-
-    template<typename T>
-    struct tuple_size {
-        static constexpr Native<Size> value = tuple_traits<T>::size;
-    };
-
-    template<Native<Size> I, typename T>
-    struct tuple_element {
-        using type = typename tuple_traits<T>::template type<I>;
-    };
-}
-
-template<Native<Size> I, typename T>
-ref<typename std::tuple_element<I, T>::type> get(ref<T> self) {
-    return tuple_traits<T>::template get<I>(self);
-}
-
-template<Native<Size> I, typename T>
-mut_ref<typename std::tuple_element<I, T>::type> get(mut_ref<T> self) {
-    return tuple_traits<T>::template get<I>(self);
+namespace tier0 {
+    template<Size i = Size(0), typename T, Size n = tuple_traits<T>::size, typename F, typename A>
+    constexpr void forEach(ref<T> tuple, F f, A acc) {
+        if constexpr (i < n) {
+            acc = f(acc, tuple.template get<i>());
+            forEach<i + 1, T, n, F>(tuple, f, acc);
+        }
+    }
 }

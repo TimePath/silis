@@ -88,6 +88,8 @@ if (LINT)
     endif ()
 endif ()
 
+add_compile_definitions(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
 # main
 
 add_executable(mop

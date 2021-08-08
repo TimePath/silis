@@ -13,7 +13,7 @@ int main(int argc, char const **argv) {
 namespace test {
     Test const *head = nullptr;
 
-    Test::Test(cstring_t name, runnable_t run) noexcept : next(head), name(name), run(run) {
+    Test::Test(cstring_t name, runnable_t run) noexcept: next(head), name(name), run(run) {
         head = this;
     }
 
