@@ -52,51 +52,18 @@ namespace tier2 {
 
 // list
 namespace tier2 {
-    namespace detail {
-        template<typename T>
-        union Unmanaged {
-        private:
-            alignas(T) Byte bytes[sizeof(T)];
-            T value;
-        public:
-            ~Unmanaged() {}
-
-            void destroy() {
-                value.~T();
-            }
-
-            explicit Unmanaged() : bytes() {}
-
-            explicit Unmanaged(T value) : value(move(value)) {}
-
-            explicit Unmanaged(movable<Unmanaged> other) : Unmanaged() {
-                *this = move(other);
-            }
-
-            mut_ref<Unmanaged> operator=(movable<Unmanaged> other) {
-                if (&other == this) return *this;
-                destroy();
-                new(&value) T(move(other.value));
-                return *this;
-            };
-
-            ref<T> get() const { return value; }
-
-            mut_ref<T> get() { return value; }
-        };
-    }
     template<typename T>
     struct List {
     private:
         Int _size;
-        Array<detail::Unmanaged<T>> memory;
+        Array<Unmanaged<T>> memory;
 
         void realloc(Int capacity) {
             if (memory.size() >= capacity) {
                 return;
             }
-            memory = Array<detail::Unmanaged<T>>(capacity * 2, [&](Int i) {
-                return (i < _size) ? detail::Unmanaged<T>(move(memory.get(i))) : detail::Unmanaged<T>();
+            memory = Array<Unmanaged<T>>(capacity * 2, [&](Int i) {
+                return (i < _size) ? Unmanaged<T>(move(memory.get(i))) : Unmanaged<T>();
             });
         }
 
@@ -126,14 +93,15 @@ namespace tier2 {
         }
 
         void set(Int index, T value) {
-            memory.set(index, detail::Unmanaged<T>(move(value)));
+            memory.get(index).destroy();
+            memory.set(index, Unmanaged<T>(move(value)));
         }
 
         void add(T value) {
             let index = _size;
             let nextSize = index + 1;
             realloc(nextSize);
-            memory.set(index, detail::Unmanaged<T>(move(value)));
+            memory.set(index, Unmanaged<T>(move(value)));
             _size = nextSize;
         }
     };

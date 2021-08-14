@@ -144,3 +144,79 @@ TEST("StrTok") {
     stmt();
     printf("\n");
 }
+
+template<typename T>
+struct Traced {
+    Boolean live = true;
+    T value;
+
+    ~Traced() {
+        if (!live) return;
+        printf("%s: dtor()\n", TypeName<Traced>());
+    }
+
+    explicit Traced(T value) : value(move(value)) {
+        printf("%s: ctor(%s)\n", TypeName<Traced>(), TypeName<T>());
+    }
+
+    explicit Traced(movable<Traced> other) : value(move(other.value)) {
+        other.live = false;
+        printf("%s: ctor(%s &&)\n", TypeName<Traced>(), TypeName<T>());
+    }
+};
+
+TEST("Optional") {
+    {
+        var o1 = Optional<Traced<Int>>::of(Traced(Int(1)));
+        if (!o1.hasValue()) {
+            printf("O1: Empty\n");
+            return;
+        }
+        printf("O1: Value: %d\n", Native<Int>(o1.value().value));
+    }
+    {
+        var o2 = Optional<Traced<Int>>::empty();
+        if (!o2.hasValue()) {
+            printf("O2: Empty\n");
+            return;
+        }
+        printf("O2: Value: %d\n", Native<Int>(o2.value().value));
+    }
+}
+
+enum struct ErrorCode {
+    Ok,
+    BadNumber,
+};
+
+TEST("Result") {
+    {
+        var r1 = Result<Traced<Int>, Traced<ErrorCode>>::value(Traced(Int(1)));
+        if (r1.isError()) {
+            printf("R1: Error: %d\n", Native<Int>(r1.error().value));
+            return;
+        }
+        printf("R1: Value: %d\n", Native<Int>(r1.value().value));
+    }
+    {
+        var r2 = Result<Traced<Int>, Traced<ErrorCode>>::error(Traced(ErrorCode::BadNumber));
+        if (r2.isError()) {
+            printf("R2: Error: %d\n", Native<Int>(r2.error().value));
+            return;
+        }
+        printf("R2: Value: %d\n", Native<Int>(r2.value().value));
+    }
+}
+
+TEST("Variant") {
+    using V = Variant<Traced<Short>, Traced<Int>, Traced<Long>>;
+    {
+        var v1 = V::of<1>(Traced(Int(1)));
+        printf("V1: Value: %d\n", Native<Int>(v1.template get<1>().value));
+    }
+    {
+        var v2 = V::of<0>(Traced(Short(1)));
+        v2.set<1>(Traced(Int(2)));
+        printf("V2: Value: %d\n", Native<Int>(v2.template get<1>().value));
+    }
+}

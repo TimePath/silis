@@ -1,7 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 pkgs.mkShell {
   buildInputs = with pkgs; [
-    clang_11
+    clang_12
     gcc10
 
     ccache

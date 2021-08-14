@@ -1,0 +1,11 @@
+Traced<tier0::Int>: ctor(tier0::Int)
+Traced<tier0::Int>: ctor(tier0::Int &&)
+V1: Value: 1
+Traced<tier0::Int>: dtor()
+Traced<tier0::Short>: ctor(tier0::Short)
+Traced<tier0::Short>: ctor(tier0::Short &&)
+Traced<tier0::Int>: ctor(tier0::Int)
+Traced<tier0::Short>: dtor()
+Traced<tier0::Int>: ctor(tier0::Int &&)
+V2: Value: 2
+Traced<tier0::Int>: dtor()

@@ -4,8 +4,6 @@
 
 #include "../tier2/tier2.hpp"
 
-#define IMPLEMENTS_NEW 1
-
 namespace {
     struct MemoryBlock {
     private:
@@ -60,20 +58,6 @@ namespace {
 
 // https://en.cppreference.com/w/cpp/memory/new/operator_new
 
-#if IMPLEMENTS_NEW
-
-mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> ptr) noexcept {
-    (void) count;
-    return ptr;
-}
-
-mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> ptr) noexcept {
-    (void) count;
-    return ptr;
-}
-
-#endif
-
 mut_ptr<void> operator new(Native<Size> count, AllocInfo info) {
     if (RUNNING_ON_VALGRIND) {
         return ::operator new(count);
@@ -123,17 +107,3 @@ void operator delete[](mut_ptr<void> ptr, Native<Size> sz) noexcept {
     let memory = (mut_ptr<Byte>) ptr;
     ::free(alloc_dtor(memory));
 }
-
-#if IMPLEMENTS_NEW
-
-void operator delete(mut_ptr<void> ptr, mut_ptr<void> place) noexcept {
-    (void) ptr;
-    (void) place;
-}
-
-void operator delete[](mut_ptr<void> ptr, mut_ptr<void> place) noexcept {
-    (void) ptr;
-    (void) place;
-}
-
-#endif

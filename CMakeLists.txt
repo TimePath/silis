@@ -40,6 +40,8 @@ if (LINT)
             "-pedantic"
     )
     add_compile_options(
+            "$<$<CXX_COMPILER_ID:Clang>:-Wconsumed>"
+
             "$<$<CXX_COMPILER_ID:GNU>:-Wno-unknown-pragmas>"
             "$<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
             "$<$<CXX_COMPILER_ID:Clang>:-Wno-unknown-warning-option>"

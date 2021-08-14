@@ -1,0 +1,8 @@
+Traced<tier0::Int>: ctor(tier0::Int)
+Traced<tier0::Int>: ctor(tier0::Int &&)
+R1: Value: 1
+Traced<tier0::Int>: dtor()
+Traced<ErrorCode>: ctor(ErrorCode)
+Traced<ErrorCode>: ctor(ErrorCode &&)
+R2: Error: 1
+Traced<ErrorCode>: dtor()

@@ -6,6 +6,29 @@
 
 #define implicit
 
+#if 0
+#elif defined(__clang__)
+#define COMPILER_IS_CLANG 1
+#define COMPILER_IS_GCC 0
+#elif defined(__GNUG__)
+#define COMPILER_IS_CLANG 0
+#define COMPILER_IS_GCC 1
+#else
+#error "Unknown compiler"
+#endif
+
+#if COMPILER_IS_CLANG
+#define ATTR_TYPESTATE_TYPE [[clang::consumable(unknown)]]
+#define ATTR_TYPESTATE_CTOR(state) [[clang::return_typestate(state)]]
+#define ATTR_TYPESTATE_PRECONDITION(state) [[clang::callable_when(state)]]
+#define ATTR_TYPESTATE_ASSERTS(state) [[clang::test_typestate(state)]]
+#else
+#define ATTR_TYPESTATE_TYPE
+#define ATTR_TYPESTATE_CTOR(state)
+#define ATTR_TYPESTATE_PRECONDITION(state)
+#define ATTR_TYPESTATE_ASSERTS(state)
+#endif
+
 namespace tier0 {}
 using namespace tier0;
 
@@ -186,7 +209,7 @@ namespace tier0 {
 
             // operators
 
-            constexpr bool operator==(ref<Word> other) { return (*this).wordValue == other.wordValue; }
+            constexpr bool operator==(ref<Word> other) const { return (*this).wordValue == other.wordValue; }
         };
 
         template<typename T> requires is_base_of<WordTag, T>
@@ -251,6 +274,42 @@ namespace tier0 {
 #pragma GCC poison float
 #pragma GCC poison double
 }
+
+// placement new
+
+mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> place) noexcept;
+
+mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> place) noexcept;
+
+void operator delete(mut_ptr<void> ptr, mut_ptr<void> place) noexcept;
+
+void operator delete[](mut_ptr<void> ptr, mut_ptr<void> place) noexcept;
+
+#define IMPLEMENTS_PLACEMENT 1
+
+#if IMPLEMENTS_PLACEMENT
+
+inline mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> place) noexcept {
+    (void) count;
+    return place;
+}
+
+inline mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> place) noexcept {
+    (void) count;
+    return place;
+}
+
+inline void operator delete(mut_ptr<void> ptr, mut_ptr<void> place) noexcept {
+    (void) ptr;
+    (void) place;
+}
+
+inline void operator delete[](mut_ptr<void> ptr, mut_ptr<void> place) noexcept {
+    (void) ptr;
+    (void) place;
+}
+
+#endif
 
 // https://en.cppreference.com/w/cpp/named_req
 namespace tier0 {
@@ -543,6 +602,258 @@ namespace tier0 {
             for (var i = Size(0); i < N; i = i + 1) { ret.data[i] = self.data[i]; }
             for (var i = Size(0); i < N2; i = i + 1) { ret.data[N + i] = other.data[i]; }
             return ret;
+        }
+    };
+}
+
+// union
+namespace tier0 {
+    namespace detail {
+        template<Native<Size> n>
+        constexpr Native<Size> max(SizedArray<Native<Size>, n> values) {
+            var ret = Native<Size>(0);
+            for (var i = Size(0); i < values.size(); i = i + 1) {
+                var it = values.data[i];
+                ret = it > ret ? it : ret;
+            }
+            return ret;
+        }
+    }
+
+    template<Size size, Native<Size> align>
+    struct AlignedStorage {
+        alignas(align) SizedArray<Byte, size> bytes;
+    };
+
+    template<typename... Ts>
+    struct AlignedUnionStorage : AlignedStorage<
+            detail::max(SizedArray<Native<Size>, sizeof...(Ts)>({sizeof(Ts)...})),
+            detail::max(SizedArray<Native<Size>, sizeof...(Ts)>({alignof(Ts)...}))
+    > {
+    };
+
+    template<typename... Ts>
+    struct Union {
+    private:
+        AlignedUnionStorage<Ts...> u;
+        using types = TypeList<Ts...>;
+    public:
+        ~Union() {}
+
+        template<Native<Size> i>
+        void destroy() {
+            using T = typename types::template get<i>;
+            get<i>().~T();
+        }
+
+        explicit Union() {}
+
+        template<Native<Size> i>
+        ref<typename types::template get<i>> get() const {
+            using T = typename types::template get<i>;
+            return *reinterpret_cast<ptr<T>>(&u.bytes);
+        }
+
+        template<Native<Size> i>
+        mut_ref<typename types::template get<i>> get() {
+            using T = typename types::template get<i>;
+            return *reinterpret_cast<mut_ptr<T>>(&u.bytes);
+        }
+
+        template<Native<Size> i>
+        void set(movable<typename types::template get<i>> value) {
+            using T = typename types::template get<i>;
+            new(&get<i>()) T(move(value));
+        }
+    };
+}
+
+// unmanaged
+namespace tier0 {
+    template<typename T>
+    struct Unmanaged {
+    private:
+        Union<T> u;
+    public:
+        ~Unmanaged() {}
+
+        void destroy() { get().~T(); }
+
+        explicit Unmanaged() {}
+
+        explicit Unmanaged(T value) {
+            new(&get()) T(move(value));
+        }
+
+        explicit Unmanaged(movable<Unmanaged> other) {
+            new(&get()) T(move(other.get()));
+        }
+
+        ref<T> get() const { return u.template get<0>(); }
+
+        mut_ref<T> get() { return u.template get<0>(); }
+    };
+}
+
+// optional
+namespace tier0 {
+    template<typename T>
+    class [[nodiscard]] ATTR_TYPESTATE_TYPE Optional {
+    private:
+        Union<T> u;
+        Boolean valueBit;
+
+        ATTR_TYPESTATE_CTOR(unknown)
+
+        explicit Optional() {}
+
+    public:
+        ~Optional() {
+            if (valueBit) {
+                u.template destroy<0>();
+            }
+        }
+
+        // ATTR_TYPESTATE_CTOR(unconsumed)
+        static Optional of(T value) {
+            var ret = Optional();
+            ret.u.template set<0>(move(value));
+            ret.valueBit = true;
+            return ret;
+        }
+
+        ATTR_TYPESTATE_PRECONDITION(unknown)
+        ATTR_TYPESTATE_ASSERTS(unconsumed)
+
+        Native<Boolean> hasValue() const { return valueBit == Boolean(true); }
+
+        ATTR_TYPESTATE_PRECONDITION(unconsumed)
+
+        ref<T> value() const { return u.template get<0>(); }
+
+        // ATTR_TYPESTATE_CTOR(consumed)
+        static Optional empty() {
+            var ret = Optional();
+            ret.valueBit = false;
+            return ret;
+        }
+    };
+}
+
+// result
+namespace tier0 {
+    template<typename T, typename E>
+    struct [[nodiscard]] ATTR_TYPESTATE_TYPE Result {
+    private:
+        Union<T, E> u;
+        Boolean errorBit;
+
+        ATTR_TYPESTATE_CTOR(unknown)
+
+        explicit Result() {}
+
+    public:
+        ~Result() {
+            if (!errorBit) {
+                u.template destroy<0>();
+            } else {
+                u.template destroy<1>();
+            }
+        }
+
+        // ATTR_TYPESTATE_CTOR(unconsumed)
+        static Result value(T value) {
+            var ret = Result();
+            ret.u.template set<0>(move(value));
+            ret.errorBit = false;
+            return ret;
+        }
+
+        ATTR_TYPESTATE_PRECONDITION(unknown)
+        ATTR_TYPESTATE_ASSERTS(unconsumed)
+
+        Native<Boolean> isValue() const { return errorBit == Boolean(false); }
+
+        ATTR_TYPESTATE_PRECONDITION(unconsumed)
+
+        ref<T> value() const { return u.template get<0>(); }
+
+        // ATTR_TYPESTATE_CTOR(consumed)
+        static Result error(E error) {
+            var ret = Result();
+            ret.u.template set<1>(move(error));
+            ret.errorBit = true;
+            return ret;
+        }
+
+        ATTR_TYPESTATE_PRECONDITION(unknown)
+        ATTR_TYPESTATE_ASSERTS(consumed)
+
+        Native<Boolean> isError() const { return errorBit == Boolean(true); }
+
+        ATTR_TYPESTATE_PRECONDITION(consumed)
+
+        ref<E> error() const { return u.template get<1>(); }
+    };
+}
+
+// variant
+namespace tier0 {
+    template<typename... Ts>
+    struct Variant {
+        static_assert(sizeof...(Ts) <= 255 - 1);
+    private:
+        Union<Ts...> u;
+        UByte active;
+        using types = TypeList<Ts...>;
+
+        template<typename... Us>
+        struct destructors {
+            using U = decltype(u);
+
+            template<typename T, typename R>
+            using mptr = R T::*;
+
+            static constexpr mptr<U, void()> funcs[] = {&U::template destroy<Us::first::value>...};
+
+            static constexpr void invoke(mut_ref<Variant> self) { (self.u.*funcs[self.active - 1])(); }
+        };
+
+        void destroy() {
+            if (active == 0) {
+                return;
+            }
+            apply<destructors, collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>>::invoke(*this);
+        }
+
+        explicit Variant() {}
+
+    public:
+        ~Variant() { destroy(); }
+
+        template<Native<Size> i>
+        static Variant of(typename types::template get<i> value) {
+            var ret = Variant();
+            ret.template set<i>(move(value));
+            return ret;
+        }
+
+        template<Native<Size> i>
+        ref<typename types::template get<i>> get() const {
+            return u.template get<i>();
+        }
+
+        template<Native<Size> i>
+        mut_ref<typename types::template get<i>> get() {
+            return u.template get<i>();
+        }
+
+        template<Native<Size> i>
+        void set(movable<typename types::template get<i>> value) {
+            using T = typename types::template get<i>;
+            destroy();
+            new(&get<i>()) T(move(value));
+            active = UByte(1 + i);
         }
     };
 }

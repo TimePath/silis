@@ -17,10 +17,6 @@ namespace tier1 {
     };
 }
 
-mut_ptr<void> operator new(Native<Size> count, mut_ptr<void> ptr) noexcept;
-
-mut_ptr<void> operator new[](Native<Size> count, mut_ptr<void> ptr) noexcept;
-
 mut_ptr<void> operator new(Native<Size> count, AllocInfo info);
 
 mut_ptr<void> operator new[](Native<Size> count, AllocInfo info);
@@ -78,7 +74,7 @@ namespace tier1 {
         }
 
         constexpr void set(Int index, T value) {
-            memory[index] = move(value);
+            new(&memory[index]) T(move(value));
         }
     };
 }
