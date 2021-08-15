@@ -54,7 +54,7 @@ namespace tier1 {
 
         template<typename F>
         [[gnu::always_inline]] constexpr Array(Int size, F f) : Array(size) {
-            for (var i = 0; i < size; ++i) {
+            for (var i : Range<Int>::until(0, size)) {
                 set(i, f(i));
             }
         }

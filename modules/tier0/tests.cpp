@@ -220,3 +220,13 @@ TEST("Variant") {
         printf("V2: Value: %d\n", Native<Int>(v2.template get<1>().value));
     }
 }
+
+TEST("Range") {
+    for (var it : Range<Int>::until(Int(0), Int(5))) {
+        printf("%d", Native<Int>(it));
+    }
+    for (var it : Range<Int>::until(Int(5), Int(10))) {
+        printf("%d", Native<Int>(it));
+    }
+    printf("\n");
+}

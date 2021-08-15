@@ -577,6 +577,67 @@ namespace tier0 {
     };
 }
 
+// iterable
+
+#define ENABLE_FOREACH_ITERABLE(T) \
+    constexpr mut_ptr<void> end() const { return nullptr; } \
+    constexpr auto begin() const { return iterator(); } \
+    constexpr auto begin() { return iterator(); } \
+    /**/
+
+#define ENABLE_FOREACH_ITERATOR(T) \
+    constexpr mut_ptr<void> end() const { return nullptr; } \
+    constexpr ref<T> begin() const { return *this; } \
+    constexpr mut_ref<T> begin() { return *this; } \
+    /**/
+
+// iterator
+
+template<typename Iterator>
+inline constexpr Boolean operator!=(ref<Iterator> self, mut_ptr<void>) { return self.hasNext(); }
+
+template<typename Iterator>
+inline constexpr auto &operator*(ref<Iterator> self) { return self.get(); }
+
+template<typename Iterator>
+inline constexpr void operator++(mut_ref<Iterator> self) { self.next(); }
+
+// range
+namespace tier0 {
+    template<typename T>
+    struct Range {
+    private:
+        T _begin;
+        T _end;
+
+        constexpr Range(T begin, T end) : _begin(begin), _end(end) {}
+
+    public:
+        static constexpr Range until(T begin, T end) { return {begin, end}; }
+
+        constexpr Boolean contains(T i) { return (i >= _begin and i < _end); }
+
+        template<typename E>
+        struct Iterator {
+            Range self;
+
+            constexpr Boolean hasNext() const { return self._begin < self._end; }
+
+            constexpr ref<E> get() const { return self._begin; }
+
+            constexpr void next() { self._begin = self._begin + 1; }
+
+            ENABLE_FOREACH_ITERATOR(Iterator)
+        };
+
+        constexpr Iterator<const T> iterator() const { return {*this}; }
+
+        constexpr Iterator<T> iterator() { return {*this}; }
+
+        ENABLE_FOREACH_ITERABLE(Range)
+    };
+}
+
 // array
 namespace tier0 {
     template<typename T, Native<Size> N>
@@ -590,7 +651,7 @@ namespace tier0 {
         implicit constexpr SizedArray() : data() {}
 
         implicit constexpr SizedArray(ref<array_type> data) {
-            for (var i = Size(0); i < N; i = i + 1) {
+            for (var i : Range<Size>::until(Size(0), N)) {
                 this->data[i] = data[i];
             }
         }
@@ -599,10 +660,30 @@ namespace tier0 {
         constexpr SizedArray<T, N + N2> concat(ref<SizedArray<T, N2>> other) {
             let self = *this;
             var ret = SizedArray<T, N + N2>();
-            for (var i = Size(0); i < N; i = i + 1) { ret.data[i] = self.data[i]; }
-            for (var i = Size(0); i < N2; i = i + 1) { ret.data[N + i] = other.data[i]; }
+            for (var i : Range<Size>::until(Size(0), N)) { ret.data[i] = self.data[i]; }
+            for (var i : Range<Size>::until(Size(0), N2)) { ret.data[N + i] = other.data[i]; }
             return ret;
         }
+
+        template<typename E>
+        struct Iterator {
+            ptr<SizedArray> self;
+            Size idx;
+
+            constexpr Boolean hasNext() const { return idx < self->size(); }
+
+            constexpr ref<E> get() const { return self->data[idx]; }
+
+            constexpr void next() { idx = idx + 1; }
+
+            ENABLE_FOREACH_ITERATOR(Iterator)
+        };
+
+        constexpr Iterator<const T> iterator() const { return {this, Size(0)}; }
+
+        constexpr Iterator<T> iterator() { return {this, Size(0)}; }
+
+        ENABLE_FOREACH_ITERABLE(SizedArray)
     };
 }
 
@@ -612,8 +693,7 @@ namespace tier0 {
         template<Native<Size> n>
         constexpr Native<Size> max(SizedArray<Native<Size>, n> values) {
             var ret = Native<Size>(0);
-            for (var i = Size(0); i < values.size(); i = i + 1) {
-                var it = values.data[i];
+            for (var it : values) {
                 ret = it > ret ? it : ret;
             }
             return ret;
@@ -870,7 +950,7 @@ namespace tier0 {
 
         explicit consteval LiteralString() : data() {
             var n = size();
-            for (var i = Size(0); i < n; i = i + 1) {
+            for (var i : Range<Size>::until(Size(0), n)) {
                 data[i] = 0;
             }
             data[n] = 0;
@@ -878,7 +958,7 @@ namespace tier0 {
 
         implicit consteval LiteralString(ref<Native<Char>[N]> str) : data() {
             var n = size();
-            for (var i = Size(0); i < n; i = i + 1) {
+            for (var i : Range<Size>::until(Size(0), n)) {
                 data[i] = str[i];
             }
             data[n] = 0;
@@ -889,7 +969,7 @@ namespace tier0 {
         consteval LiteralString<end - begin + 1> slice() const {
             const var n = end - begin;
             var ret = LiteralString<n + 1>();
-            for (var i = Size(0); i < n; i = i + 1) {
+            for (var i : Range<Size>::until(Size(0), n)) {
                 ret.data[i] = data[begin + i];
             }
             ret.data[n] = 0;
@@ -971,7 +1051,7 @@ namespace tier0 {
             auto &raw = RawTypeName<T>();
             const auto n = (sizeof(raw) - 1) - (format.leading + format.trailing);
             auto ret = SizedArray<Native<Char>, n + 1>{};
-            for (auto i = (decltype(n)) 0; i < n; ++i) {
+            for (auto i : Range<remove_const < decltype(n)>>::until(0, n)) {
                 ret.data[i] = raw[i + format.leading];
             }
             return ret;

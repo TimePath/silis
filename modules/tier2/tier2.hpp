@@ -69,7 +69,7 @@ namespace tier2 {
 
     public:
         ~List() {
-            for (var i = 0; i < size(); ++i) {
+            for (var i : Range<Int>::until(0, size())) {
                 memory.get(i).destroy();
             }
         }
@@ -79,14 +79,14 @@ namespace tier2 {
         Int size() const { return _size; }
 
         ref<T> get(Int index) const {
-            if (!(index >= 0 and index < size())) {
+            if (!Range<Int>::until(0, size()).contains(index)) {
                 die();
             }
             return memory.get(index).get();
         }
 
         mut_ref<T> get(Int index) {
-            if (!(index >= 0 and index < size())) {
+            if (!Range<Int>::until(0, size()).contains(index)) {
                 die();
             }
             return memory.get(index).get();
@@ -104,49 +104,25 @@ namespace tier2 {
             memory.set(index, Unmanaged<T>(move(value)));
             _size = nextSize;
         }
+
+        template<typename E>
+        struct Iterator {
+            ptr<List> self;
+            Int idx;
+
+            constexpr Boolean hasNext() const { return idx < self->size(); }
+
+            constexpr ref<E> get() const { return self->get(idx); }
+
+            constexpr void next() { idx = idx + 1; }
+
+            ENABLE_FOREACH_ITERATOR(Iterator)
+        };
+
+        constexpr Iterator<const T> iterator() const { return {this, 0}; }
+
+        constexpr Iterator<T> iterator() { return {this, 0}; }
+
+        ENABLE_FOREACH_ITERABLE(List)
     };
-}
-
-// iteration
-namespace tier2 {
-    template<typename List, typename T>
-    struct ListRef {
-        List *list;
-        Int idx;
-    };
-
-    template<typename List, typename T>
-    inline Boolean operator!=(ref<ListRef<List, T>> self, ref<ListRef<List, T>> other) {
-        (void) other;
-        return self.list != nullptr;
-    }
-
-    template<typename List, typename T>
-    inline void operator++(mut_ref<ListRef<List, T>> self) {
-        self.idx = self.idx + 1;
-        if (self.idx >= self.list->size()) {
-            self.list = nullptr;
-        }
-    }
-
-    template<typename List, typename T>
-    inline ref<T> operator*(ref<ListRef<List, T>> self) { return self.list->get(self.idx); }
-
-    template<typename T>
-    inline ListRef<const List<T>, const T> begin(ref<List<T>> self) { return {&self, 0}; }
-
-    template<typename T>
-    inline ListRef<List<T>, T> begin(mut_ref<List<T>> self) { return {&self, 0}; }
-
-    template<typename T>
-    inline ListRef<const List<T>, const T> end(ref<List<T>> self) {
-        (void) self;
-        return {nullptr, 0};
-    }
-
-    template<typename T>
-    inline ListRef<List<T>, T> end(mut_ref<List<T>> self) {
-        (void) self;
-        return {nullptr, 0};
-    }
 }
