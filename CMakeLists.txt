@@ -42,9 +42,26 @@ if (LINT)
     add_compile_options(
             "$<$<CXX_COMPILER_ID:Clang>:-Wconsumed>"
 
-            "$<$<CXX_COMPILER_ID:GNU>:-Wno-unknown-pragmas>"
+            "$<$<CXX_COMPILER_ID:Clang>:-Weverything>"
+            "$<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat-pedantic>"
+            "$<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat-pedantic>"
             "$<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-unknown-warning-option>"
+            "$<$<CXX_COMPILER_ID:Clang>:-Wno-padded>"
+            "$<$<CXX_COMPILER_ID:Clang>:-Wno-global-constructors>"
+            "$<$<CXX_COMPILER_ID:Clang>:-Wno-exit-time-destructors>"
+
+            "$<$<CXX_COMPILER_ID:GNU>:-pedantic-errors>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wcast-align=strict>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wmissing-declarations>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wno-unknown-pragmas>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wredundant-decls>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wshadow>"
+            "$<$<CXX_COMPILER_ID:GNU>:-fstrict-aliasing>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wstrict-aliasing=3>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wstrict-overflow=5>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wtrampolines>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wuninitialized>"
+            "$<$<CXX_COMPILER_ID:GNU>:-Wunused>"
     )
 
     set(CMAKE_LINK_WHAT_YOU_USE OFF)

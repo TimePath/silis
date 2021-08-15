@@ -2,8 +2,9 @@
 
 #include "../tier0/tier0.hpp"
 
-namespace tier1 {}
-using namespace tier1;
+namespace tier1 {
+    using namespace tier0;
+}
 
 // memory
 namespace tier1 {
@@ -17,9 +18,9 @@ namespace tier1 {
     };
 }
 
-mut_ptr<void> operator new(Native<Size> count, AllocInfo info);
+tier0::mut_ptr<void> operator new(tier0::Native<tier0::Size> count, tier1::AllocInfo info);
 
-mut_ptr<void> operator new[](Native<Size> count, AllocInfo info);
+tier0::mut_ptr<void> operator new[](tier0::Native<tier0::Size> count, tier1::AllocInfo info);
 
 // array
 namespace tier1 {
@@ -34,7 +35,7 @@ namespace tier1 {
         }
 
         explicit Array(Int size) : DisableCopyConstructible(Unit()),
-                                   _size(size), memory(!size ? nullptr : new(AllocInfo::of<T>()) T[size]) {}
+                                   _size(size), memory(!size ? nullptr : new(AllocInfo::of<T>()) T[Size(size)]) {}
 
         implicit constexpr Array(movable<Array> other) : DisableCopyConstructible(Unit()),
                                                          _size(other._size), memory(other.memory) {
@@ -50,7 +51,7 @@ namespace tier1 {
             memory = other.memory;
             other.memory = nullptr;
             return *this;
-        };
+        }
 
         template<typename F>
         [[gnu::always_inline]] constexpr Array(Int size, F f) : Array(size) {
@@ -83,11 +84,11 @@ namespace tier1 {
 namespace tier1 {
     struct String {
     private:
-        Array<Char> chars;
+        Array<Char> _chars;
     public:
         explicit String() : String(Array<Char>(0)) {}
 
-        explicit String(Array<Char> chars) : chars(move(chars)) {}
+        explicit String(Array<Char> chars) : _chars(move(chars)) {}
 
         template<Native<Size> N>
         implicit constexpr String(ref<Native<Char>[N]> chars) : String(Array<Char>(Native<Int>(N), [=](Int i) {
@@ -95,19 +96,19 @@ namespace tier1 {
         })) {}
 
         explicit String(Array<Byte> bytes) : String(Array<Char>(bytes.size() + 1, [&](Int i) {
-            return i < bytes.size() ? (Native<Char>) bytes.get(i) : '\0';
+            return i < bytes.size() ? Native<Char>(bytes.get(i)) : '\0';
         })) {}
 
-        constexpr Int size() const { return chars.size() - 1; }
+        constexpr Int size() const { return _chars.size() - 1; }
 
-        String copy() const { return String(chars.copy()); }
+        String copy() const { return String(_chars.copy()); }
 
-        explicit operator cstring() const { return reinterpret_cast<cstring>(&chars.get(0)); }
+        explicit operator cstring() const { return cstring(&_chars.get(0)); }
     };
 
     inline String operator ""_s(cstring chars, Native<Size> N) {
-        return String(Array<Char>((Native<Int>) (N + 1), [=](Int i) {
-            return (decltype(N)) i < N ? chars[i] : '\0';
+        return String(Array<Char>(Native<Int>(N + 1), [=](Int i) {
+            return Native<Size>(i) < N ? chars[i] : '\0';
         }));
-    };
+    }
 }

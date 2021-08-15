@@ -11,9 +11,9 @@ int main(int argc, char const **argv) {
 }
 
 namespace test {
-    Test const *head = nullptr;
+    static Test const *head = nullptr;
 
-    Test::Test(cstring_t name, runnable_t run) noexcept: next(head), name(name), run(run) {
+    Test::Test(cstring_t name, runnable_t run) noexcept: next(head), _name(name), _run(run) {
         head = this;
     }
 
@@ -21,7 +21,7 @@ namespace test {
         if (argc == 0) {
             auto count = 0;
             for (auto test = head; test; test = test->next) {
-                printf("%s\n", test->name);
+                printf("%s\n", test->_name);
                 ++count;
             }
             if (!count) {
@@ -31,9 +31,9 @@ namespace test {
         }
         auto target = argv[0];
         auto test = head;
-        for (; test && strcmp(test->name, target) != 0; test = test->next);
+        for (; test && strcmp(test->_name, target) != 0; test = test->next);
         if (test) {
-            test->run();
+            test->_run();
         }
     }
 

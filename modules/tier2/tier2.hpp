@@ -2,8 +2,9 @@
 
 #include "../tier1/tier1.hpp"
 
-namespace tier2 {}
-using namespace tier2;
+namespace tier2 {
+    using namespace tier1;
+}
 
 // intrusive
 namespace tier2 {

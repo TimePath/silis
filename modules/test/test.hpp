@@ -9,8 +9,8 @@ namespace test {
 
     struct Test {
         Test const *next;
-        cstring_t name;
-        runnable_t run;
+        cstring_t _name;
+        runnable_t _run;
 
         Test(cstring_t name, runnable_t run) noexcept;
     };
@@ -27,8 +27,6 @@ namespace test {
     [[noreturn]]
     void abort();
 }
-
-using namespace test;
 
 #define TEST(name) TEST_1(name, __COUNTER__)
 #define TEST_1(name, id) TEST_2(name, id)

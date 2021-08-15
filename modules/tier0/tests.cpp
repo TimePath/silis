@@ -2,6 +2,10 @@
 
 #include "../tier0/tier0.hpp"
 
+using namespace tier0;
+
+using namespace test;
+
 TEST("False") {
     let value = Boolean(false);
     printf("false: %d\n", value.wordValue);
@@ -108,11 +112,11 @@ struct Statement {
 
     constexpr void operator()(ref<SourceLocation> loc = SourceLocation::current()) const {
         printf("'");
-        printf("/* %s */ ", loc.file);
-        printf("%s", strings.data[0]);
+        printf("/* %s */ ", loc._file);
+        printf("%s", strings._data[0]);
         auto printIdentifier = [&]<typename U>(Size i, ref<U> it) -> Size {
             printer<U>::print(false, it, false);
-            printf("%s", strings.data[1 + i]);
+            printf("%s", strings._data[1 + i]);
             return i + 1;
         };
         forEach(values, printIdentifier, Size(0));
@@ -148,22 +152,29 @@ TEST("StrTok") {
 template<typename T>
 struct Traced {
     Boolean live = true;
-    T value;
+    T _value;
 
     ~Traced() {
         if (!live) return;
         printf("%s: dtor()\n", TypeName<Traced>());
     }
 
-    explicit Traced(T value) : value(move(value)) {
+    explicit Traced(T value) : _value(move(value)) {
         printf("%s: ctor(%s)\n", TypeName<Traced>(), TypeName<T>());
     }
 
-    explicit Traced(movable<Traced> other) : value(move(other.value)) {
+    explicit Traced(movable<Traced> other) : _value(move(other._value)) {
         other.live = false;
         printf("%s: ctor(%s &&)\n", TypeName<Traced>(), TypeName<T>());
     }
+
+    explicit Traced(ref<Traced> other) : _value(other._value) {
+        printf("%s: ctor(%s const &)\n", TypeName<Traced>(), TypeName<T>());
+    }
 };
+
+template<typename T>
+Traced(T value) -> Traced<T>;
 
 TEST("Optional") {
     {
@@ -172,7 +183,7 @@ TEST("Optional") {
             printf("O1: Empty\n");
             return;
         }
-        printf("O1: Value: %d\n", Native<Int>(o1.value().value));
+        printf("O1: Value: %d\n", Native<Int>(o1.value()._value));
     }
     {
         var o2 = Optional<Traced<Int>>::empty();
@@ -180,7 +191,7 @@ TEST("Optional") {
             printf("O2: Empty\n");
             return;
         }
-        printf("O2: Value: %d\n", Native<Int>(o2.value().value));
+        printf("O2: Value: %d\n", Native<Int>(o2.value()._value));
     }
 }
 
@@ -193,18 +204,18 @@ TEST("Result") {
     {
         var r1 = Result<Traced<Int>, Traced<ErrorCode>>::value(Traced(Int(1)));
         if (r1.isError()) {
-            printf("R1: Error: %d\n", Native<Int>(r1.error().value));
+            printf("R1: Error: %d\n", Native<Int>(r1.error()._value));
             return;
         }
-        printf("R1: Value: %d\n", Native<Int>(r1.value().value));
+        printf("R1: Value: %d\n", Native<Int>(r1.value()._value));
     }
     {
         var r2 = Result<Traced<Int>, Traced<ErrorCode>>::error(Traced(ErrorCode::BadNumber));
         if (r2.isError()) {
-            printf("R2: Error: %d\n", Native<Int>(r2.error().value));
+            printf("R2: Error: %d\n", Native<Int>(r2.error()._value));
             return;
         }
-        printf("R2: Value: %d\n", Native<Int>(r2.value().value));
+        printf("R2: Value: %d\n", Native<Int>(r2.value()._value));
     }
 }
 
@@ -212,12 +223,12 @@ TEST("Variant") {
     using V = Variant<Traced<Short>, Traced<Int>, Traced<Long>>;
     {
         var v1 = V::of<1>(Traced(Int(1)));
-        printf("V1: Value: %d\n", Native<Int>(v1.template get<1>().value));
+        printf("V1: Value: %d\n", Native<Int>(v1.template get<1>()._value));
     }
     {
         var v2 = V::of<0>(Traced(Short(1)));
         v2.set<1>(Traced(Int(2)));
-        printf("V2: Value: %d\n", Native<Int>(v2.template get<1>().value));
+        printf("V2: Value: %d\n", Native<Int>(v2.template get<1>()._value));
     }
 }
 
