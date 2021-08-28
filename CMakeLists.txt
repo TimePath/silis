@@ -9,7 +9,7 @@ endif ()
 
 include(cmake/DiscoverTests.cmake)
 
-project(mop
+project(silis
         LANGUAGES CXX
         )
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -111,10 +111,10 @@ add_compile_definitions(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 # main
 
-add_executable(mop
+add_executable(silis-dummy
         modules/main/src/main.cpp
         )
-target_link_libraries(mop INTERFACE tier2)
+target_link_libraries(silis-dummy INTERFACE tier2)
 
 # libtest
 
