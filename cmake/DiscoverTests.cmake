@@ -68,6 +68,7 @@ function(target_discover_tests target)
             "        OR NOT \"${ctest_tests_file}\" IS_NEWER_THAN \"${DISCOVER_TESTS_SCRIPT}\")" "\n"
             "    include(\"${DISCOVER_TESTS_SCRIPT}\")" "\n"
             "    discover_tests(" "\n"
+            "            TEST_TARGET" " [[" "${target}" "]]" "\n"
             "            TEST_PREFIX" " [[" "${DISCOVER_TESTS_TEST_PREFIX}" "]]" "\n"
             "            CTEST_FILE" " [[" "${ctest_tests_file}" "]]" "\n"
             "            TEST_SOURCE_DIR" " [[" "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "]]" "\n"
@@ -100,7 +101,7 @@ function(discover_tests)
             # options
             ""
             # oneValueArgs
-            "TEST_PREFIX;CTEST_FILE;TEST_SOURCE_DIR;TEST_WORKING_DIR;TEST_EXECUTOR;TEST_EMULATOR;TEST_EXECUTABLE;TEST_DISCOVERY_TIMEOUT;TEST_LIST"
+            "TEST_TARGET;TEST_PREFIX;CTEST_FILE;TEST_SOURCE_DIR;TEST_WORKING_DIR;TEST_EXECUTOR;TEST_EMULATOR;TEST_EXECUTABLE;TEST_DISCOVERY_TIMEOUT;TEST_LIST"
             # multiValueArgs
             ""
             ${ARGN}
@@ -176,29 +177,53 @@ function(discover_tests)
         set(tests_buffer "" PARENT_SCOPE)
     endmacro()
 
-    string(REPLACE [[;]] [[\;]] output "${output}")
+    string(REPLACE [[;]] [[\\;]] output "${output}")
     string(REPLACE "\n" [[;]] output "${output}")
     list(SORT output)
-    foreach (line ${output})
-        string(REGEX REPLACE " +" "" testid "${line}")
+    foreach (tuple ${output})
+        list(GET tuple 0 name)
+        list(GET tuple 1 mode)
+        list(GET tuple 2 file)
+        list(GET tuple 3 id)
+        string(REGEX REPLACE " +" "" testid "${name}")
         string(REPLACE [[\]] [[\\]] testid "${testid}")
         string(REPLACE [[;]] [[\;]] testid "${testid}")
         string(REPLACE [[$]] [[\$]] testid "${testid}")
 
-        set(testname "${DISCOVER_TESTS_TEST_PREFIX}${testid}")
+        set(testname "${DISCOVER_TESTS_TEST_PREFIX}${testid} (${mode}, ${id})")
 
-        script_append(add_test "${testname}"
-                ${DISCOVER_TESTS_TEST_EXECUTOR} "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "${testid}"
-                --
-                ${DISCOVER_TESTS_TEST_EMULATOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}" "${testid}"
-                )
-        if (testid MATCHES "^DISABLED_")
-            script_append(set_tests_properties "${testname}" PROPERTIES DISABLED TRUE)
+        if (mode MATCHES "^C$")
+            set(target "${DISCOVER_TESTS_TEST_TARGET}")
+            file(WRITE "${DISCOVER_TESTS_TEST_WORKING_DIR}/compiletests/${testid}/CMakeLists.txt" "cmake_minimum_required(VERSION 3.19)
+project(CompileTests)
+add_subdirectory(../../.. build)
+target_compile_definitions(${target} PRIVATE __TEST_COMPILE __TEST_${id}=1)
+")
+
+            set(dir compiletests/${testid})
+            script_append(add_test "${testname}"
+                    ctest --build-and-test ${dir} ${dir}
+                    --build-generator "Unix Makefiles"
+                    --build-target "${target}"
+                    --test-command true
+                    )
+            script_append(set_tests_properties "${testname}" PROPERTIES WILL_FAIL TRUE)
+
+            tests_append("${testname}")
+        elseif (mode MATCHES "^R$")
+            script_append(add_test "${testname}"
+                    ${DISCOVER_TESTS_TEST_EXECUTOR} "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "${testid}"
+                    --
+                    ${DISCOVER_TESTS_TEST_EMULATOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}" "${testid}"
+                    )
+            if (testid MATCHES "^DISABLED_")
+                script_append(set_tests_properties "${testname}" PROPERTIES DISABLED TRUE)
+            endif ()
+            script_append(set_tests_properties "${testname}" PROPERTIES WORKING_DIRECTORY "${DISCOVER_TESTS_TEST_WORKING_DIR}")
+            script_append(set_tests_properties "${testname}" PROPERTIES SKIP_REGULAR_EXPRESSION "\\\\[  SKIPPED \\\\]")
+
+            tests_append("${testname}")
         endif ()
-        script_append(set_tests_properties "${testname}" PROPERTIES WORKING_DIRECTORY "${DISCOVER_TESTS_TEST_WORKING_DIR}")
-        script_append(set_tests_properties "${testname}" PROPERTIES SKIP_REGULAR_EXPRESSION "\\\\[  SKIPPED \\\\]")
-
-        tests_append("${testname}")
     endforeach ()
 
     tests_flush()

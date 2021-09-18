@@ -149,6 +149,10 @@ TEST("StrTok") {
     printf("\n");
 }
 
+TEST_COMPILE("StrTok argcount", {
+    let stmt = sql<"Hello {}">();
+})
+
 template<typename T>
 struct Traced {
     Boolean live = true;
