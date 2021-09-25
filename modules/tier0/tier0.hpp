@@ -236,10 +236,7 @@ namespace tier0 {
     struct Char : detail::Word<char> {
         using Word::Word;
     };
-    struct Byte : detail::Word<signed char> {
-        using Word::Word;
-    };
-    struct UByte : detail::Word<unsigned char> {
+    struct Byte : detail::Word<unsigned char> {
         using Word::Word;
     };
     struct Short : detail::Word<short signed int> {
@@ -586,7 +583,7 @@ namespace tier0 {
 
 // iterable
 
-#define ENABLE_FOREACH_ITERABLE(T) \
+#define ENABLE_FOREACH_ITERABLE() \
     constexpr mut_ptr<void> end() const { return nullptr; } \
     constexpr auto begin() const { return iterator(); } \
     constexpr auto begin() { return iterator(); } \
@@ -641,56 +638,115 @@ namespace tier0 {
 
         constexpr Iterator<T> iterator() { return {*this}; }
 
-        ENABLE_FOREACH_ITERABLE(Range)
+        ENABLE_FOREACH_ITERABLE()
+    };
+}
+
+// contiguous iterator
+namespace tier0 {
+    template<typename T, typename E>
+    struct ContiguousIterator {
+        ptr<T> self;
+        Size idx;
+
+        [[nodiscard]]
+        constexpr Boolean hasNext() const { return idx < self->size(); }
+
+        constexpr ref<E> get() const { return self->_data[idx]; }
+
+        constexpr void next() { idx = idx + 1; }
+
+        ENABLE_FOREACH_ITERATOR(ContiguousIterator)
+    };
+}
+
+// span
+namespace tier0 {
+    namespace detail {
+        template<typename T, Native<Size> I>
+        using Arr = T[I];
+
+        template<typename T, Native<Size> N, Native<Size> M>
+        static ref<Arr<T, N>> array_cast(ref<Arr<T, M>> arr) {
+            return *ptr<Arr<T, N>>(ptr<void>(&arr));
+        }
+
+        template<typename T, Native<Size> N, Native<Size> M>
+        static mut_ref<Arr<T, N>> array_cast(mut_ref<Arr<T, M>> arr) {
+            return *mut_ptr<Arr<T, N>>(mut_ptr<void>(&arr));
+        }
+    }
+
+    template<typename T, Native<Size> N>
+    struct Span {
+        using array_type = T[N];
+        mut_ref<array_type> _data;
+
+        explicit Span(mut_ref<array_type> array) : _data(array) {}
+
+        explicit Span(mut_ptr<array_type> array) : _data(*array) {}
+
+        implicit Span(ref<Span<T, N>> span) : _data(span._data) {}
+
+        template<Native<Size> M>
+        requires (M >= N)
+        implicit Span(ref<Span<T, M>> span) : Span(detail::array_cast<T, N, M>(span._data)) {}
+
+        template<typename E>
+        using Iterator = ContiguousIterator<Span, E>;
+
+        constexpr Iterator<const T> iterator() const { return {this, Size(0)}; }
+
+        constexpr Iterator<T> iterator() { return {this, Size(0)}; }
+
+        ENABLE_FOREACH_ITERABLE()
+
+        template<Native<Size> I>
+        requires (I < N)
+        [[nodiscard]]
+        Span<T, N - I> offset() const { return Span{mut_ptr<array_type>(_data + I)}; }
     };
 }
 
 // array
 namespace tier0 {
     template<typename T, Native<Size> N>
-    struct SizedArray {
+    struct Array {
         using array_type = T[N];
         array_type _data;
 
         [[nodiscard]]
         constexpr Size size() const { return N; }
 
-        implicit constexpr SizedArray() : _data() {}
+        implicit constexpr Array() : _data() {}
 
-        implicit constexpr SizedArray(ref<array_type> data) {
+        implicit constexpr Array(ref<array_type> data) {
             for (var i : Range<Size>::until(Size(0), N)) {
                 this->_data[i] = data[i];
             }
         }
 
+        Span<const T, N> asSpan() const { return Span(this->_data); }
+
+        Span<T, N> asSpan() { return Span(this->_data); }
+
         template<Native<Size> N2>
-        constexpr SizedArray<T, N + N2> concat(ref<SizedArray<T, N2>> other) {
+        constexpr Array<T, N + N2> concat(ref<Array<T, N2>> other) {
             let self = *this;
-            var ret = SizedArray<T, N + N2>();
+            var ret = Array<T, N + N2>();
             for (var i : Range<Size>::until(Size(0), N)) { ret._data[i] = self._data[i]; }
             for (var i : Range<Size>::until(Size(0), N2)) { ret._data[N + i] = other._data[i]; }
             return ret;
         }
 
         template<typename E>
-        struct Iterator {
-            ptr<SizedArray> self;
-            Size idx;
-
-            constexpr Boolean hasNext() const { return idx < self->size(); }
-
-            constexpr ref<E> get() const { return self->_data[idx]; }
-
-            constexpr void next() { idx = idx + 1; }
-
-            ENABLE_FOREACH_ITERATOR(Iterator)
-        };
+        using Iterator = ContiguousIterator<Array, E>;
 
         constexpr Iterator<const T> iterator() const { return {this, Size(0)}; }
 
         constexpr Iterator<T> iterator() { return {this, Size(0)}; }
 
-        ENABLE_FOREACH_ITERABLE(SizedArray)
+        ENABLE_FOREACH_ITERABLE()
     };
 }
 
@@ -698,7 +754,7 @@ namespace tier0 {
 namespace tier0 {
     namespace detail {
         template<Native<Size> n>
-        constexpr Native<Size> max(SizedArray<Native<Size>, n> values) {
+        constexpr Native<Size> max(Array<Native<Size>, n> values) {
             var ret = Native<Size>(0);
             for (var it : values) {
                 ret = it > ret ? it : ret;
@@ -709,13 +765,13 @@ namespace tier0 {
 
     template<Size size, Native<Size> align>
     struct AlignedStorage {
-        alignas(align) SizedArray<Byte, size> bytes;
+        alignas(align) Array<Byte, size> bytes;
     };
 
     template<typename... Ts>
     struct AlignedUnionStorage : AlignedStorage<
-            detail::max(SizedArray<Native<Size>, sizeof...(Ts)>({sizeof(Ts)...})),
-            detail::max(SizedArray<Native<Size>, sizeof...(Ts)>({alignof(Ts)...}))
+            detail::max(Array<Native<Size>, sizeof...(Ts)>({sizeof(Ts)...})),
+            detail::max(Array<Native<Size>, sizeof...(Ts)>({alignof(Ts)...}))
     > {
     };
 
@@ -909,7 +965,7 @@ namespace tier0 {
         static_assert(sizeof...(Ts) <= 255 - 1);
     private:
         Union<Ts...> u;
-        UByte active;
+        Byte active;
         using types = TypeList<Ts...>;
 
         template<typename... Us>
@@ -962,7 +1018,7 @@ namespace tier0 {
             using T = typename types::template get<i>;
             destroy();
             new(&get<i>()) T(move(value));
-            active = UByte(1 + i);
+            active = Byte(1 + i);
         }
     };
 }
@@ -1082,7 +1138,7 @@ namespace tier0 {
             constexpr auto format = TypeNameFormat::get();
             auto &raw = RawTypeName<T>();
             const auto n = (sizeof(raw) - 1) - (format.leading + format.trailing);
-            auto ret = SizedArray<Native<Char>, n + 1>{};
+            auto ret = Array<Native<Char>, n + 1>();
             for (auto i : Range<remove_const < decltype(n)>>::until(0, n)) {
                 ret._data[i] = raw[i + format.leading];
             }
@@ -1136,9 +1192,9 @@ namespace tier0::strtok {
         }
 
         template<LiteralString str, typename T, Size n, typename F, Size offset>
-        constexpr SizedArray<T, n> forEachRange(F f) {
+        constexpr Array<T, n> forEachRange(F f) {
             const var size = countCharactersUntilPlaceholder<str.template slice<offset>()>();
-            var ret = SizedArray<T, 1>();
+            var ret = Array<T, 1>();
             ret._data[0] = f.template operator()<Range{offset + 0, offset + size}>();
             if constexpr (n > 1) {
                 var next = forEachRange<str, T, n - 1, F, offset + size + 2>(f);
@@ -1159,7 +1215,7 @@ namespace tier0::strtok {
     consteval Size count() { return 1 + detail::countPlaceholders<str>(); }
 
     template<LiteralString str>
-    constexpr SizedArray<cstring, count<str>()> collect() {
+    constexpr Array<cstring, count<str>()> collect() {
         return detail::forEachRange<str>([]<Range r>() constexpr {
             return global<str.template slice<r.begin, r.end>()>();
         });

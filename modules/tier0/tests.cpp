@@ -107,7 +107,7 @@ struct printer<Int> {
 
 template<Size n, typename... Ts>
 struct Statement {
-    const SizedArray<cstring, n> strings;
+    const Array<cstring, n> strings;
     const Tuple<Ts...> values;
 
     constexpr void operator()(ref<SourceLocation> loc = SourceLocation::current()) const {

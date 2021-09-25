@@ -57,13 +57,13 @@ namespace tier2 {
     struct List {
     private:
         Int _size;
-        Array<Unmanaged<T>> memory;
+        DynArray<Unmanaged<T>> memory;
 
         void realloc(Int capacity) {
             if (memory.size() >= capacity) {
                 return;
             }
-            memory = Array<Unmanaged<T>>(capacity * 2, [&](Int i) {
+            memory = DynArray<Unmanaged<T>>(capacity * 2, [&](Int i) {
                 return (i < _size) ? Unmanaged<T>(move(memory.get(i))) : Unmanaged<T>();
             });
         }
@@ -124,6 +124,6 @@ namespace tier2 {
 
         constexpr Iterator<T> iterator() { return {this, 0}; }
 
-        ENABLE_FOREACH_ITERABLE(List)
+        ENABLE_FOREACH_ITERABLE()
     };
 }

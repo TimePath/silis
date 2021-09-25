@@ -47,7 +47,12 @@ def register():
     return {
         "tier0::Byte": WordPrinter(),
         "tier0::Int": WordPrinter(),
-        "tier0::SizedArray": {
+        "tier0::Span": {
+            None: lambda T: {
+                None: lambda N: ArrayPrinter(T, N),
+            }
+        },
+        "tier0::Array": {
             None: lambda T: {
                 None: lambda N: ArrayPrinter(T, N),
             }

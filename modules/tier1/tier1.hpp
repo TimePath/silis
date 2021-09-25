@@ -25,27 +25,27 @@ tier0::mut_ptr<void> operator new[](tier0::Native<tier0::Size> count, tier1::All
 // array
 namespace tier1 {
     template<typename T>
-    struct Array : private DisableCopyConstructible {
+    struct DynArray : private DisableCopyConstructible {
     private:
         Int _size;
         mut_ptr<T> memory;
     public:
-        constexpr ~Array() {
+        constexpr ~DynArray() {
             delete[] memory;
         }
 
-        explicit Array(Int size) : DisableCopyConstructible(Unit()),
+        explicit DynArray(Int size) : DisableCopyConstructible(Unit()),
                                    _size(size), memory(!size ? nullptr : new(AllocInfo::of<T>()) T[Size(size)]) {}
 
-        implicit constexpr Array(movable<Array> other) : DisableCopyConstructible(Unit()),
+        implicit constexpr DynArray(movable<DynArray> other) : DisableCopyConstructible(Unit()),
                                                          _size(other._size), memory(other.memory) {
             other._size = 0;
             other.memory = nullptr;
         }
 
-        constexpr mut_ref<Array> operator=(movable<Array> other) {
+        constexpr mut_ref<DynArray> operator=(movable<DynArray> other) {
             if (&other == this) return *this;
-            this->~Array();
+            this->~DynArray();
             _size = other._size;
             other._size = 0;
             memory = other.memory;
@@ -54,7 +54,7 @@ namespace tier1 {
         }
 
         template<typename F>
-        [[gnu::always_inline]] constexpr Array(Int size, F f) : Array(size) {
+        [[gnu::always_inline]] constexpr DynArray(Int size, F f) : DynArray(size) {
             for (var i : Range<Int>::until(0, size)) {
                 set(i, f(i));
             }
@@ -62,8 +62,8 @@ namespace tier1 {
 
         constexpr Int size() const { return _size; }
 
-        constexpr Array copy() const {
-            return Array(_size, [this](Int i) { return get(i); });
+        constexpr DynArray copy() const {
+            return DynArray(_size, [this](Int i) { return get(i); });
         }
 
         constexpr ref<T> get(Int index) const {
@@ -84,18 +84,18 @@ namespace tier1 {
 namespace tier1 {
     struct String {
     private:
-        Array<Char> _chars;
+        DynArray<Char> _chars;
     public:
-        explicit String() : String(Array<Char>(0)) {}
+        explicit String() : String(DynArray<Char>(0)) {}
 
-        explicit String(Array<Char> chars) : _chars(move(chars)) {}
+        explicit String(DynArray<Char> chars) : _chars(move(chars)) {}
 
         template<Native<Size> N>
-        implicit constexpr String(ref<Native<Char>[N]> chars) : String(Array<Char>(Native<Int>(N), [=](Int i) {
+        implicit constexpr String(ref<Native<Char>[N]> chars) : String(DynArray<Char>(Native<Int>(N), [=](Int i) {
             return chars[i];
         })) {}
 
-        explicit String(Array<Byte> bytes) : String(Array<Char>(bytes.size() + 1, [&](Int i) {
+        explicit String(DynArray<Byte> bytes) : String(DynArray<Char>(bytes.size() + 1, [&](Int i) {
             return i < bytes.size() ? Native<Char>(bytes.get(i)) : '\0';
         })) {}
 
@@ -107,7 +107,7 @@ namespace tier1 {
     };
 
     inline String operator ""_s(cstring chars, Native<Size> N) {
-        return String(Array<Char>(Native<Int>(N + 1), [=](Int i) {
+        return String(DynArray<Char>(Native<Int>(N + 1), [=](Int i) {
             return Native<Size>(i) < N ? chars[i] : '\0';
         }));
     }
