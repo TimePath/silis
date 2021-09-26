@@ -35,10 +35,10 @@ namespace tier1 {
         }
 
         explicit DynArray(Int size) : DisableCopyConstructible(Unit()),
-                                   _size(size), memory(!size ? nullptr : new(AllocInfo::of<T>()) T[Size(size)]) {}
+                                      _size(size), memory(!size ? nullptr : new(AllocInfo::of<T>()) T[Size(size)]) {}
 
         implicit constexpr DynArray(movable<DynArray> other) : DisableCopyConstructible(Unit()),
-                                                         _size(other._size), memory(other.memory) {
+                                                               _size(other._size), memory(other.memory) {
             other._size = 0;
             other.memory = nullptr;
         }

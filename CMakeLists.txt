@@ -114,7 +114,7 @@ add_compile_definitions(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 add_executable(silis-dummy
         modules/main/src/main.cpp
         )
-target_link_libraries(silis-dummy INTERFACE tier2)
+target_link_libraries(silis-dummy INTERFACE libtier2)
 
 # libtest
 
@@ -169,7 +169,7 @@ target_sources(libtier1-tests
 
 add_library(libtier2 INTERFACE)
 target_link_libraries(libtier2 INTERFACE libtier1)
-target_link_libraries(libtier2
+target_sources(libtier2
         INTERFACE
         modules/tier2/tier2.hpp
         )
@@ -181,3 +181,39 @@ target_sources(libtier2-tests
         PRIVATE
         modules/tier2/tests.cpp
         )
+
+# kernel
+
+add_library(libkernel INTERFACE)
+target_link_libraries(libkernel INTERFACE libtier0)
+target_sources(libkernel
+        INTERFACE
+        modules/kernel/kernel.hpp
+        )
+
+# kernel linux impl
+
+add_library(libkernel-linux)
+target_link_libraries(libkernel-linux INTERFACE libtier2)
+target_sources(libkernel-linux
+        PRIVATE
+        modules/kernel-linux/kernel-linux.cpp
+        )
+
+# libnet
+
+add_library(libnet INTERFACE)
+target_link_libraries(libnet INTERFACE libtier0)
+target_sources(libnet
+        INTERFACE
+        modules/net/net.hpp
+        )
+
+# test-libnet
+
+add_executable(test-libnet
+        modules/test-net/main.cpp
+        )
+target_link_libraries(test-libnet INTERFACE libtier2)
+target_link_libraries(test-libnet INTERFACE libkernel)
+target_link_libraries(test-libnet PRIVATE libkernel-linux)

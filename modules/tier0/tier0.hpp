@@ -682,6 +682,9 @@ namespace tier0 {
         using array_type = T[N];
         mut_ref<array_type> _data;
 
+        [[nodiscard]]
+        constexpr Size size() const { return N; }
+
         explicit Span(mut_ref<array_type> array) : _data(array) {}
 
         explicit Span(mut_ptr<array_type> array) : _data(*array) {}
