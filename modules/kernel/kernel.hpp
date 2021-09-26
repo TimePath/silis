@@ -6,4 +6,4 @@ using namespace tier0;
 
 Int interface_open(cstring name);
 
-Int interface_read(Int handle, Span<Byte, 0xffff + 1> span);
+Int interface_read(Int handle, Span<Byte, Size(0xffff + 1)> span);

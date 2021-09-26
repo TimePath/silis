@@ -133,12 +133,6 @@ namespace tier0 {
     using cstring = const char *;
 
     template<typename T>
-    using ptr = const T *;
-
-    template<typename T>
-    using mut_ptr = T *;
-
-    template<typename T>
     using ref = const T &;
 
     template<typename T>
@@ -205,7 +199,7 @@ namespace tier0 {
 
             /** Cast from */
             template<typename Other>
-            requires WordTraits<Other>::isWord
+            requires (WordTraits<Other>::isWord && !is_same < Other, Word >)
             explicit Word(Other word) : Word(typename WordTraits<Other>::native(word)) {}
 
             /** Cast to */
@@ -219,7 +213,7 @@ namespace tier0 {
         template<typename T> requires is_base_of<WordTag, T>
         struct WordTraits<T> {
             static const bool isWord = true;
-            using native = decltype(ptr<T>(nullptr)->wordValue);
+            using native = decltype(static_cast<T *>(nullptr)->wordValue);
         };
     }
 
@@ -276,36 +270,128 @@ namespace tier0 {
 #pragma GCC poison double
 }
 
+// pointer
+namespace tier0 {
+    template<typename T>
+    using _ptr = T *;
+
+    template<typename T>
+    struct ptr;
+
+    template<typename Self, Boolean isVoid>
+    struct ptr_mixin_s;
+
+    template<typename Self>
+    struct ptr_mixin;
+
+    template<typename T>
+    struct ptr_mixin<ptr<T>> {
+        using type = ptr_mixin_s<ptr<T>, is_same < void, remove_const < T>>>;
+    };
+
+    template<typename T>
+    struct ptr : public ptr_mixin<ptr<T>>::type {
+        using base = typename ptr_mixin<ptr<T>>::type;
+        using native = _ptr<T>;
+        native _value;
+
+        constexpr ref<native> value() const {
+            assert();
+            return _value;
+        }
+
+        constexpr mut_ref<native> value() {
+            assert();
+            return _value;
+        }
+
+        constexpr void assert() const {
+            if (!_value) {
+                throw 0;
+            }
+        }
+
+        ptr() = delete;
+
+        implicit constexpr ptr(native value) : _value(value) {
+            assert();
+        }
+
+        using base::base;
+
+        template<typename U>
+        static constexpr ptr reinterpret(_ptr<U> value) {
+            return reinterpret_cast<native>(value);
+        }
+
+        implicit constexpr operator native() const { return value(); }
+
+        explicit constexpr operator Native<Boolean>() { return value(); }
+
+        constexpr native operator->() const { return value(); }
+    };
+
+    template<typename Self>
+    struct ptr_mixin_s<Self, true> {
+    };
+
+    template<typename T>
+    struct ptr_mixin_s<ptr<T>, false> {
+    private:
+        using Self = ptr<T>;
+        using native = _ptr<T>;
+
+        constexpr _ptr<const Self> super() const { return static_cast<_ptr<const Self>>(this); }
+
+        constexpr _ptr<Self> super() { return static_cast<_ptr<Self>>(this); }
+
+    public:
+        constexpr ptr_mixin_s() = default;
+
+        explicit constexpr ptr_mixin_s(ptr<void> p) { super()->_value = Self::reinterpret(p.operator->()); }
+
+        implicit constexpr operator ptr<void>() { return super()->value(); }
+
+        constexpr ref<T> operator[](Int index) const { return super()->value()[index]; }
+
+        constexpr ref<T> operator*() const { return *super()->value(); }
+
+        constexpr mut_ref<T> operator[](Int index) { return super()->value()[index]; }
+
+        constexpr mut_ref<T> operator*() { return *super()->value(); }
+    };
+}
+
 // placement new
 
-tier0::mut_ptr<void> operator new(tier0::Native<tier0::Size> count, tier0::mut_ptr<void> place) noexcept;
+constexpr tier0::ptr<void>::native operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
 
-tier0::mut_ptr<void> operator new[](tier0::Native<tier0::Size> count, tier0::mut_ptr<void> place) noexcept;
+constexpr tier0::ptr<void>::native operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
 
-void operator delete(tier0::mut_ptr<void> ptr, tier0::mut_ptr<void> place) noexcept;
+void operator delete(tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept;
 
-void operator delete[](tier0::mut_ptr<void> ptr, tier0::mut_ptr<void> place) noexcept;
+void operator delete[](tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept;
 
 #define IMPLEMENTS_PLACEMENT 1
 
 #if IMPLEMENTS_PLACEMENT
 
-inline tier0::mut_ptr<void> operator new(tier0::Native<tier0::Size> count, tier0::mut_ptr<void> place) noexcept {
+constexpr inline tier0::ptr<void>::native operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
     (void) count;
     return place;
 }
 
-inline tier0::mut_ptr<void> operator new[](tier0::Native<tier0::Size> count, tier0::mut_ptr<void> place) noexcept {
+constexpr inline tier0::ptr<void>::native operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
     (void) count;
     return place;
 }
 
-inline void operator delete(tier0::mut_ptr<void> ptr, tier0::mut_ptr<void> place) noexcept {
+inline void operator delete(tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept {
     (void) ptr;
     (void) place;
 }
 
-inline void operator delete[](tier0::mut_ptr<void> ptr, tier0::mut_ptr<void> place) noexcept {
+inline void operator delete[](tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept {
     (void) ptr;
     (void) place;
 }
@@ -357,16 +443,16 @@ namespace tier0 {
 // meta
 namespace tier0 {
     namespace detail {
-        // METAFUNC_TYPE(get, ((I, Native<Size>), (Ts, typename...)))
+        // METAFUNC_TYPE(get, ((I, Size), (Ts, typename...)))
 
-        template<Native<Size> I, typename... Ts>
+        template<Size I, typename... Ts>
         struct get_s;
 
-        template<Native<Size> I, typename... Ts>
+        template<Size I, typename... Ts>
         using get = typename get_s<I, Ts...>::type;
 
-        METAFUNC_TYPE_IMPL(get, (0, T, Ts...), ((T, typename),(Ts, typename...)), T)
-        METAFUNC_TYPE_IMPL(get, (I, T, Ts...), ((I, Native<Size>), (T, typename),(Ts, typename...)),
+        METAFUNC_TYPE_IMPL(get, (Size(0), T, Ts...), ((T, typename),(Ts, typename...)), T)
+        METAFUNC_TYPE_IMPL(get, (I, T, Ts...), ((I, Size), (T, typename),(Ts, typename...)),
                            get<I - 1 METAFUNC_IMPL_DELIMITER_COMMA() Ts...>)
     }
 
@@ -445,13 +531,13 @@ namespace tier0 {
 
         using types = TypeList<elements...>;
 
-        template<Native<Size> I>
+        template<Size I>
         using type = typename types::template get<I>::type;
 
-        template<Native<Size> I, typename T>
+        template<Size I, typename T>
         static ref<type<I>> get(ref<T> self) { return types::template get<I>::get(self); }
 
-        template<Native<Size> I, typename T>
+        template<Size I, typename T>
         static mut_ref<type<I>> get(mut_ref<T> self) { return types::template get<I>::get(self); }
     };
 
@@ -474,13 +560,13 @@ namespace tier0 {
 
         static constexpr Size size = delegate::size;
 
-        template<Native<Size> I>
+        template<Size I>
         using type = typename delegate::template type<I>;
 
-        template<Native<Size> I>
+        template<Size I>
         static ref<type<I>> get(ref<T> self) { return delegate::template get<I, T>(self); }
 
-        template<Native<Size> I>
+        template<Size I>
         static mut_ref<type<I>> get(mut_ref<T> self) { return delegate::template get<I, T>(self); }
     };
 
@@ -490,10 +576,10 @@ namespace tier0 {
 
         static constexpr Size size = delegate::size;
 
-        template<Native<Size> I>
+        template<Size I>
         using type = add_const<typename delegate::template type<I>>;
 
-        template<Native<Size> I>
+        template<Size I>
         static ref<type<I>> get(ref<T> self) { return delegate::template get<I>(self); }
     };
 
@@ -584,27 +670,39 @@ namespace tier0 {
 // iterable
 
 #define ENABLE_FOREACH_ITERABLE() \
-    constexpr mut_ptr<void> end() const { return nullptr; } \
+    constexpr _ptr<void> end() const { return nullptr; } \
     constexpr auto begin() const { return iterator(); } \
     constexpr auto begin() { return iterator(); } \
     /**/
 
 #define ENABLE_FOREACH_ITERATOR(T) \
-    constexpr mut_ptr<void> end() const { return nullptr; } \
+    constexpr _ptr<void> end() const { return nullptr; } \
     constexpr ref<T> begin() const { return *this; } \
     constexpr mut_ref<T> begin() { return *this; } \
     /**/
 
 // iterator
 
-template<typename Iterator>
-inline constexpr tier0::Boolean operator!=(tier0::ref<Iterator> self, tier0::mut_ptr<void>) { return self.hasNext(); }
+namespace tier0 {
+    template<typename T>
+    concept Iterator = requires(T it) {
+        requires is_same<decltype(it.hasNext()), Boolean>;
+        it.get();
+        it.next();
+    };
+}
 
-template<typename Iterator>
-inline constexpr auto &operator*(tier0::ref<Iterator> self) { return self.get(); }
+template<typename T>
+requires tier0::Iterator<T>
+inline constexpr tier0::Boolean operator!=(tier0::ref<T> self, tier0::_ptr<void>) { return self.hasNext(); }
 
-template<typename Iterator>
-inline constexpr void operator++(tier0::mut_ref<Iterator> self) { self.next(); }
+template<typename T>
+requires tier0::Iterator<T>
+inline constexpr auto &operator*(tier0::ref<T> self) { return self.get(); }
+
+template<typename T>
+requires tier0::Iterator<T>
+inline constexpr void operator++(tier0::mut_ref<T> self) { self.next(); }
 
 // range
 namespace tier0 {
@@ -646,7 +744,7 @@ namespace tier0 {
 namespace tier0 {
     template<typename T, typename E>
     struct ContiguousIterator {
-        ptr<T> self;
+        ptr<const T> self;
         Size idx;
 
         [[nodiscard]]
@@ -663,21 +761,17 @@ namespace tier0 {
 // span
 namespace tier0 {
     namespace detail {
-        template<typename T, Native<Size> I>
+        template<typename T, Size I>
         using Arr = T[I];
 
-        template<typename T, Native<Size> N, Native<Size> M>
-        static ref<Arr<T, N>> array_cast(ref<Arr<T, M>> arr) {
-            return *ptr<Arr<T, N>>(ptr<void>(&arr));
-        }
+        template<typename T, Size N, Size M>
+        static ref<Arr<T, N>> array_cast(ref<Arr<T, M>> arr) { return *ptr<const Arr<T, N>>(ptr<const void>(&arr)); }
 
-        template<typename T, Native<Size> N, Native<Size> M>
-        static mut_ref<Arr<T, N>> array_cast(mut_ref<Arr<T, M>> arr) {
-            return *mut_ptr<Arr<T, N>>(mut_ptr<void>(&arr));
-        }
+        template<typename T, Size N, Size M>
+        static mut_ref<Arr<T, N>> array_cast(mut_ref<Arr<T, M>> arr) { return *ptr<Arr<T, N>>(ptr<void>(&arr)); }
     }
 
-    template<typename T, Native<Size> N>
+    template<typename T, Size N>
     struct Span {
         using array_type = T[N];
         mut_ref<array_type> _data;
@@ -687,11 +781,11 @@ namespace tier0 {
 
         explicit Span(mut_ref<array_type> array) : _data(array) {}
 
-        explicit Span(mut_ptr<array_type> array) : _data(*array) {}
+        explicit Span(ptr<array_type> array) : _data(*array) {}
 
         implicit Span(ref<Span<T, N>> span) : _data(span._data) {}
 
-        template<Native<Size> M>
+        template<Size M>
         requires (M >= N)
         implicit Span(ref<Span<T, M>> span) : Span(detail::array_cast<T, N, M>(span._data)) {}
 
@@ -704,16 +798,16 @@ namespace tier0 {
 
         ENABLE_FOREACH_ITERABLE()
 
-        template<Native<Size> I>
+        template<Size I>
         requires (I < N)
         [[nodiscard]]
-        Span<T, N - I> offset() const { return Span{mut_ptr<array_type>(_data + I)}; }
+        Span<T, N - I> offset() const { return Span(ptr<array_type>(_data + I)); }
     };
 }
 
 // array
 namespace tier0 {
-    template<typename T, Native<Size> N>
+    template<typename T, Size N>
     struct Array {
         using array_type = T[N];
         array_type _data;
@@ -731,9 +825,9 @@ namespace tier0 {
 
         Span<const T, N> asSpan() const { return Span(this->_data); }
 
-        Span<T, N> asSpan() { return Span(this->_data); }
+        Span<T, N> asSpan() { return Span<T, N>(this->_data); }
 
-        template<Native<Size> N2>
+        template<Size N2>
         constexpr Array<T, N + N2> concat(ref<Array<T, N2>> other) {
             let self = *this;
             var ret = Array<T, N + N2>();
@@ -756,9 +850,9 @@ namespace tier0 {
 // union
 namespace tier0 {
     namespace detail {
-        template<Native<Size> n>
-        constexpr Native<Size> max(Array<Native<Size>, n> values) {
-            var ret = Native<Size>(0);
+        template<Size n>
+        constexpr Size max(Array<Size, n> values) {
+            var ret = Size(0);
             for (var it : values) {
                 ret = it > ret ? it : ret;
             }
@@ -766,16 +860,30 @@ namespace tier0 {
         }
     }
 
-    template<Size size, Native<Size> align>
+    template<Native<Size> size, Native<Size> align>
     struct AlignedStorage {
         alignas(align) Array<Byte, size> bytes;
     };
 
     template<typename... Ts>
     struct AlignedUnionStorage : AlignedStorage<
-            detail::max(Array<Native<Size>, sizeof...(Ts)>({sizeof(Ts)...})),
-            detail::max(Array<Native<Size>, sizeof...(Ts)>({alignof(Ts)...}))
+            detail::max(Array<Size, Size(sizeof...(Ts))>({sizeof(Ts)...})),
+            detail::max(Array<Size, Size(sizeof...(Ts))>({alignof(Ts)...}))
     > {
+        // fixme: constexpr
+        template<typename T>
+        constexpr ref<T> get() const {
+            _ptr<const T> out;
+            new(&out) _ptr<const void>(&this->bytes);
+            return *out;
+        }
+
+        template<typename T>
+        constexpr mut_ref<T> get() {
+            _ptr<T> out;
+            new(&out) _ptr<void>(&this->bytes);
+            return *out;
+        }
     };
 
     template<typename... Ts>
@@ -784,42 +892,32 @@ namespace tier0 {
         AlignedUnionStorage<Ts...> u;
         using types = TypeList<Ts...>;
     public:
-        ~Union() {}
+        constexpr ~Union() {}
 
-        template<Native<Size> i>
-        void destroy() {
+        template<Size i>
+        constexpr void destroy() {
             using T = typename types::template get<i>;
             get<i>().~T();
         }
 
-        explicit Union() {}
+        explicit constexpr Union() {}
 
-        implicit Union(movable<Union> other) : u(move(other.u)) {}
+        implicit constexpr Union(movable<Union> other) : u(move(other.u)) {}
 
-        template<Native<Size> i>
-        ref<typename types::template get<i>> get() const {
+        template<Size i>
+        constexpr ref<typename types::template get<i>> get() const {
             using T = typename types::template get<i>;
-            union {
-                ptr<void> in;
-                ptr<T> out;
-            } pun;
-            pun.in = &u.bytes;
-            return *pun.out;
+            return u.template get<T>();
         }
 
-        template<Native<Size> i>
-        mut_ref<typename types::template get<i>> get() {
+        template<Size i>
+        constexpr mut_ref<typename types::template get<i>> get() {
             using T = typename types::template get<i>;
-            union {
-                mut_ptr<void> in;
-                mut_ptr<T> out;
-            } pun;
-            pun.in = &u.bytes;
-            return *pun.out;
+            return u.template get<T>();
         }
 
-        template<Native<Size> i>
-        void set(movable<typename types::template get<i>> value) {
+        template<Size i>
+        constexpr void set(movable<typename types::template get<i>> value) {
             using T = typename types::template get<i>;
             new(&get<i>()) T(move(value));
         }
@@ -847,9 +945,9 @@ namespace tier0 {
             new(&get()) T(move(other.get()));
         }
 
-        ref<T> get() const { return u.template get<0>(); }
+        ref<T> get() const { return u.template get<Size(0)>(); }
 
-        mut_ref<T> get() { return u.template get<0>(); }
+        mut_ref<T> get() { return u.template get<Size(0)>(); }
     };
 }
 
@@ -861,24 +959,24 @@ namespace tier0 {
         Union<T> u;
         Boolean valueBit;
     public:
-        ~Optional() {
+        constexpr ~Optional() {
             if (valueBit) {
-                u.template destroy<0>();
+                u.template destroy<Size(0)>();
             }
         }
 
     private:
         ATTR_TYPESTATE_CTOR(unknown)
 
-        explicit Optional() {}
+        explicit constexpr Optional() {}
 
     public:
-        implicit Optional(movable<Optional> other) : u(move(other.u)), valueBit(move(other.valueBit)) {}
+        implicit constexpr Optional(movable<Optional> other) : u(move(other.u)), valueBit(move(other.valueBit)) {}
 
         // ATTR_TYPESTATE_CTOR(unconsumed)
-        static Optional of(T value) {
+        static constexpr Optional of(T value) {
             var ret = Optional();
-            ret.u.template set<0>(move(value));
+            ret.u.template set<Size(0)>(move(value));
             ret.valueBit = true;
             return ret;
         }
@@ -890,7 +988,7 @@ namespace tier0 {
 
         ATTR_TYPESTATE_PRECONDITION(unconsumed)
 
-        ref<T> value() const { return u.template get<0>(); }
+        ref<T> value() const { return u.template get<Size(0)>(); }
 
         // ATTR_TYPESTATE_CTOR(consumed)
         static Optional empty() {
@@ -911,9 +1009,9 @@ namespace tier0 {
     public:
         ~Result() {
             if (!errorBit) {
-                u.template destroy<0>();
+                u.template destroy<Size(0)>();
             } else {
-                u.template destroy<1>();
+                u.template destroy<Size(1)>();
             }
         }
 
@@ -928,7 +1026,7 @@ namespace tier0 {
         // ATTR_TYPESTATE_CTOR(unconsumed)
         static Result value(T value) {
             var ret = Result();
-            ret.u.template set<0>(move(value));
+            ret.u.template set<Size(0)>(move(value));
             ret.errorBit = false;
             return ret;
         }
@@ -940,12 +1038,12 @@ namespace tier0 {
 
         ATTR_TYPESTATE_PRECONDITION(unconsumed)
 
-        ref<T> value() const { return u.template get<0>(); }
+        ref<T> value() const { return u.template get<Size(0)>(); }
 
         // ATTR_TYPESTATE_CTOR(consumed)
         static Result error(E error) {
             var ret = Result();
-            ret.u.template set<1>(move(error));
+            ret.u.template set<Size(1)>(move(error));
             ret.errorBit = true;
             return ret;
         }
@@ -957,7 +1055,7 @@ namespace tier0 {
 
         ATTR_TYPESTATE_PRECONDITION(consumed)
 
-        ref<E> error() const { return u.template get<1>(); }
+        ref<E> error() const { return u.template get<Size(1)>(); }
     };
 }
 
@@ -999,24 +1097,24 @@ namespace tier0 {
     public:
         implicit Variant(movable<Variant> other) : u(move(other.u)), active(move(other.active)) {}
 
-        template<Native<Size> i>
+        template<Size i>
         static Variant of(typename types::template get<i> value) {
             var ret = Variant();
             ret.template set<i>(move(value));
             return ret;
         }
 
-        template<Native<Size> i>
+        template<Size i>
         ref<typename types::template get<i>> get() const {
             return u.template get<i>();
         }
 
-        template<Native<Size> i>
+        template<Size i>
         mut_ref<typename types::template get<i>> get() {
             return u.template get<i>();
         }
 
-        template<Native<Size> i>
+        template<Size i>
         void set(movable<typename types::template get<i>> value) {
             using T = typename types::template get<i>;
             destroy();
@@ -1028,7 +1126,7 @@ namespace tier0 {
 
 // literal string
 namespace tier0 {
-    template<Native<Size> N>
+    template<Size N>
     struct LiteralString {
         using array_type = Native<Char>[N];
         array_type data;
@@ -1052,7 +1150,7 @@ namespace tier0 {
             data[n] = 0;
         }
 
-        template<Size begin = Size(0), Size end = N>
+        template<Size begin, Size end = N>
         [[nodiscard]]
         consteval LiteralString<end - begin + 1> slice() const {
             const var n = end - begin;
@@ -1111,7 +1209,7 @@ namespace tier0 {
             Size leading;
             Size trailing;
         private:
-            static consteval Boolean calculate(mut_ptr<TypeNameFormat> ret) {
+            static consteval Boolean calculate(_ptr<TypeNameFormat> ret) {
                 using int_t = decltype(0);
                 auto &needle = "int";
                 auto &haystack = RawTypeName<int_t>();
@@ -1168,8 +1266,8 @@ namespace tier0::strtok {
 
     namespace detail {
         template<LiteralString str>
-        consteval Native<Size> countPlaceholders() {
-            var ret = Native<Size>(0);
+        consteval Size countPlaceholders() {
+            var ret = Size(0);
             for (var i = Size(0); i < str.size();) {
                 if (str.data[i] == '{' && str.data[i + 1] == '}') {
                     ret = ret + 1;
@@ -1182,7 +1280,7 @@ namespace tier0::strtok {
         }
 
         template<LiteralString str>
-        consteval Native<Size> countCharactersUntilPlaceholder() {
+        consteval Size countCharactersUntilPlaceholder() {
             var i = Size(0);
             for (; i < str.size();) {
                 if (str.data[i] == '{' && str.data[i + 1] == '}') {
@@ -1196,8 +1294,8 @@ namespace tier0::strtok {
 
         template<LiteralString str, typename T, Size n, typename F, Size offset>
         constexpr Array<T, n> forEachRange(F f) {
-            const var size = countCharactersUntilPlaceholder<str.template slice<offset>()>();
-            var ret = Array<T, 1>();
+            constexpr var size = countCharactersUntilPlaceholder<str.template slice<offset>()>();
+            var ret = Array<T, Size(1)>();
             ret._data[0] = f.template operator()<Range{offset + 0, offset + size}>();
             if constexpr (n > 1) {
                 var next = forEachRange<str, T, n - 1, F, offset + size + 2>(f);
@@ -1209,7 +1307,7 @@ namespace tier0::strtok {
 
         template<LiteralString str, typename F>
         constexpr auto forEachRange(F f) {
-            const var n = Native<Size>(count<str>());
+            constexpr var n = count<str>();
             return forEachRange<str, decltype(f.template operator()<Range{}>()), n, F, Size(0)>(f);
         }
     }

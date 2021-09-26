@@ -18,9 +18,9 @@ namespace tier1 {
     };
 }
 
-tier0::mut_ptr<void> operator new(tier0::Native<tier0::Size> count, tier1::AllocInfo info);
+tier0::ptr<void>::native operator new(tier0::Native<tier0::Size> count, tier1::AllocInfo info);
 
-tier0::mut_ptr<void> operator new[](tier0::Native<tier0::Size> count, tier1::AllocInfo info);
+tier0::ptr<void>::native operator new[](tier0::Native<tier0::Size> count, tier1::AllocInfo info);
 
 // array
 namespace tier1 {
@@ -28,7 +28,7 @@ namespace tier1 {
     struct DynArray : private DisableCopyConstructible {
     private:
         Int _size;
-        mut_ptr<T> memory;
+        _ptr<T> memory;
     public:
         constexpr ~DynArray() {
             delete[] memory;
@@ -108,7 +108,7 @@ namespace tier1 {
 
     inline String operator ""_s(cstring chars, Native<Size> N) {
         return String(DynArray<Char>(Native<Int>(N + 1), [=](Int i) {
-            return Native<Size>(i) < N ? chars[i] : '\0';
+            return Size(i) < N ? chars[i] : '\0';
         }));
     }
 }

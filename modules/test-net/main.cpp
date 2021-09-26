@@ -7,10 +7,10 @@
 
 using namespace tier2;
 
-Native<Int> main(Native<Int> argc, Array<cstring, 1>::array_type argv) {
+Native<Int> main(Native<Int> argc, Array<cstring, Size(1)>::array_type argv) {
     (void) argc;
     let handle = interface_open(argv[1]);
-    var buffer = Array<Byte, 0xffff + 1>();
+    var buffer = Array<Byte, Size(0xffff + 1)>();
     let span = buffer.asSpan();
     while (true) {
         let ret = interface_read(handle, span);

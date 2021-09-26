@@ -10,15 +10,15 @@ namespace tier2 {
 namespace tier2 {
     template<typename T>
     struct IntrusiveLinks {
-        mut_ptr<T> prev;
-        mut_ptr<T> next;
+        _ptr<T> prev;
+        _ptr<T> next;
     };
 
     template<typename T, IntrusiveLinks<T> T::*links>
     struct IntrusiveList {
     private:
-        mut_ptr<T> head;
-        mut_ptr<T> tail;
+        _ptr<T> head;
+        _ptr<T> tail;
     public:
         void add(mut_ref<T> value) {
             let lValue = &(value.*links);
@@ -108,7 +108,7 @@ namespace tier2 {
 
         template<typename E>
         struct Iterator {
-            ptr<List> self;
+            ptr<const List> self;
             Int idx;
 
             constexpr Boolean hasNext() const { return idx < self->size(); }

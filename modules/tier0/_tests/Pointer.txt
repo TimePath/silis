@@ -1,0 +1,4 @@
+p1: 0
+Traced<tier0::ptr<tier0::Int> >: ctor(tier0::ptr<tier0::Int>)
+p2: 1
+Traced<tier0::ptr<tier0::Int> >: dtor()

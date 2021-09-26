@@ -40,7 +40,9 @@ namespace test {
         return a[i] - b[i];
     }
 
-    inline void main(int_t argc, cstring_t *argv) {
+    void runTest(Test const *test);
+
+    void main(int_t argc, cstring_t *argv) {
         if (argc == 0) {
             auto count = 0;
             const auto format = "%s;%c;%s;%d\n";
@@ -55,8 +57,15 @@ namespace test {
         }
         auto target = argv[0];
         auto test = head;
-        for (; test && strcmp(test->name, target) != 0; test = test->next);
-        if (!test) return;
+        for (; test; test = test->next) {
+            if (target && strcmp(test->name, target) != 0) {
+                continue;
+            }
+            runTest(test);
+        }
+    }
+
+    void runTest(Test const *test) {
         switch (test->mode) {
             case Mode::Compile: {
                 auto compileTest = static_cast<CompileTest const *>(test);

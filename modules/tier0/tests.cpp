@@ -180,6 +180,23 @@ struct Traced {
 template<typename T>
 Traced(T value) -> Traced<T>;
 
+TEST("Pointer") {
+    {
+        var set = Boolean(false);
+        try {
+            var p1 = Traced<ptr<Int>>(nullptr);
+            set = true;
+        } catch (...) {
+        }
+        printf("p1: %d\n", Native<Boolean>(set));
+    }
+    {
+        var i = Int(0);
+        var p1 = Traced<ptr<Int>>(&i);
+        printf("p2: %d\n", !!p1._value);
+    }
+}
+
 TEST("Optional") {
     {
         var o1 = Optional<Traced<Int>>::of(Traced(Int(1)));
@@ -226,13 +243,13 @@ TEST("Result") {
 TEST("Variant") {
     using V = Variant<Traced<Short>, Traced<Int>, Traced<Long>>;
     {
-        var v1 = V::of<1>(Traced(Int(1)));
-        printf("V1: Value: %d\n", Native<Int>(v1.template get<1>()._value));
+        var v1 = V::of<Size(1)>(Traced(Int(1)));
+        printf("V1: Value: %d\n", Native<Int>(v1.template get<Size(1)>()._value));
     }
     {
-        var v2 = V::of<0>(Traced(Short(1)));
-        v2.set<1>(Traced(Int(2)));
-        printf("V2: Value: %d\n", Native<Int>(v2.template get<1>()._value));
+        var v2 = V::of<Size(0)>(Traced(Short(1)));
+        v2.set<Size(1)>(Traced(Int(2)));
+        printf("V2: Value: %d\n", Native<Int>(v2.template get<Size(1)>()._value));
     }
 }
 
