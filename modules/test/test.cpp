@@ -2,16 +2,19 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "../tier0/tier0.hpp"
 #include "test.hpp"
 
-int main(int argc, char const **argv) {
+using namespace tier0;
+
+Native<Int> main(Native<Int> argc, Native<ptr<cstring>> argv) {
     setbuf(stdout, nullptr);
     test::main(argc - 1, argv + 1);
     return 0;
 }
 
 namespace test {
-    static Test const *head = nullptr;
+    static Native<ptr<const Test>> head = nullptr;
 
     CompileTest::CompileTest(cstring_t _file, int_t _id, cstring_t _name, cstring_t _code) noexcept
             : Test{Mode::Compile, head, _file, _id, _name}, code(_code) {
@@ -40,9 +43,9 @@ namespace test {
         return a[i] - b[i];
     }
 
-    void runTest(Test const *test);
+    void runTest(Native<ptr<const Test>> test);
 
-    void main(int_t argc, cstring_t *argv) {
+    void main(int_t argc, Native<ptr<cstring_t>> argv) {
         if (argc == 0) {
             auto count = 0;
             const auto format = "%s;%c;%s;%d\n";
@@ -65,15 +68,15 @@ namespace test {
         }
     }
 
-    void runTest(Test const *test) {
+    void runTest(Native<ptr<const Test>> test) {
         switch (test->mode) {
             case Mode::Compile: {
-                auto compileTest = static_cast<CompileTest const *>(test);
+                auto compileTest = static_cast<Native<ptr<const CompileTest>>>(test);
                 printf(".compile %s\n", compileTest->code);
                 break;
             }
             case Mode::Run: {
-                auto runTest = static_cast<RunTest const *>(test);
+                auto runTest = static_cast<Native<ptr<const RunTest>>>(test);
                 runTest->run();
                 break;
             }

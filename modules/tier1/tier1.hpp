@@ -18,9 +18,9 @@ namespace tier1 {
     };
 }
 
-tier0::ptr<void>::native operator new(tier0::Native<tier0::Size> count, tier1::AllocInfo info);
+tier0::Native<tier0::ptr<void>> operator new(tier0::Native<tier0::Size> count, tier1::AllocInfo info);
 
-tier0::ptr<void>::native operator new[](tier0::Native<tier0::Size> count, tier1::AllocInfo info);
+tier0::Native<tier0::ptr<void>> operator new[](tier0::Native<tier0::Size> count, tier1::AllocInfo info);
 
 // array
 namespace tier1 {
@@ -28,7 +28,7 @@ namespace tier1 {
     struct DynArray : private DisableCopyConstructible {
     private:
         Int _size;
-        _ptr<T> memory;
+        Native<ptr<T>> memory;
     public:
         constexpr ~DynArray() {
             delete[] memory;

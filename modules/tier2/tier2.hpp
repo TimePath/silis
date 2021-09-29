@@ -10,15 +10,15 @@ namespace tier2 {
 namespace tier2 {
     template<typename T>
     struct IntrusiveLinks {
-        _ptr<T> prev;
-        _ptr<T> next;
+        Native<ptr<T>> prev;
+        Native<ptr<T>> next;
     };
 
     template<typename T, IntrusiveLinks<T> T::*links>
     struct IntrusiveList {
     private:
-        _ptr<T> head;
-        _ptr<T> tail;
+        Native<ptr<T>> head;
+        Native<ptr<T>> tail;
     public:
         void add(mut_ref<T> value) {
             let lValue = &(value.*links);

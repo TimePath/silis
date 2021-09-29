@@ -62,7 +62,7 @@ namespace {
 
 // https://en.cppreference.com/w/cpp/memory/new/operator_new
 
-ptr<void>::native operator new(Native<Size> count, AllocInfo info) {
+Native<ptr<void>> operator new(Native<Size> count, AllocInfo info) {
     if (RUNNING_ON_VALGRIND) {
         return ::operator new(count);
     }
@@ -70,7 +70,7 @@ ptr<void>::native operator new(Native<Size> count, AllocInfo info) {
     return alloc_ctor(memory, count, info);
 }
 
-ptr<void>::native operator new[](Native<Size> count, AllocInfo info) {
+Native<ptr<void>> operator new[](Native<Size> count, AllocInfo info) {
     if (RUNNING_ON_VALGRIND) {
         return ::operator new[](count);
     }
@@ -80,7 +80,7 @@ ptr<void>::native operator new[](Native<Size> count, AllocInfo info) {
 
 // https://en.cppreference.com/w/cpp/memory/new/operator_delete
 
-void operator delete(ptr<void>::native obj) noexcept {
+void operator delete(Native<ptr<void>> obj) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete(obj);
     }
@@ -88,7 +88,7 @@ void operator delete(ptr<void>::native obj) noexcept {
     ::free(alloc_dtor(memory));
 }
 
-void operator delete[](ptr<void>::native obj) noexcept {
+void operator delete[](Native<ptr<void>> obj) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete[](obj);
     }
@@ -96,9 +96,9 @@ void operator delete[](ptr<void>::native obj) noexcept {
     ::free(alloc_dtor(memory));
 }
 
-void operator delete(ptr<void>::native obj, Native<Size> sz) noexcept;
+void operator delete(Native<ptr<void>> obj, Native<Size> sz) noexcept;
 
-void operator delete(ptr<void>::native obj, Native<Size> sz) noexcept {
+void operator delete(Native<ptr<void>> obj, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete(obj, sz);
     }
@@ -106,9 +106,9 @@ void operator delete(ptr<void>::native obj, Native<Size> sz) noexcept {
     ::free(alloc_dtor(memory));
 }
 
-void operator delete[](ptr<void>::native obj, Native<Size> sz) noexcept;
+void operator delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept;
 
-void operator delete[](ptr<void>::native obj, Native<Size> sz) noexcept {
+void operator delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator delete[](obj, sz);
     }

@@ -1,10 +1,14 @@
 #pragma once
 
+#include "../tier0/tier0.hpp"
+
+using namespace tier0;
+
 namespace test {
     namespace {
-        using int_t = decltype(0);
-        using cstring_t = decltype(&""[0]);
-        using runnable_t = void (*)();
+        using int_t = Native<Int>;
+        using cstring_t = cstring;
+        using runnable_t = Native<ptr<void()>>;
     }
 
     enum class Mode {
@@ -14,7 +18,7 @@ namespace test {
 
     struct Test {
         Mode mode;
-        Test const *next;
+        Native<ptr<const Test>> next;
         cstring_t file;
         int_t id;
         cstring_t name;
@@ -38,7 +42,7 @@ namespace test {
     [[noreturn]]
     void abort();
 
-    void main(int_t argc, cstring_t *argv);
+    void main(int_t argc, Native<ptr<cstring_t>> argv);
 }
 
 #define TEST_COMPILE(name, code) TEST_COMPILE_1(name, __COUNTER__, code)

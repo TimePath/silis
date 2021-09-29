@@ -130,7 +130,7 @@ namespace tier0 {
 
 // memory model
 namespace tier0 {
-    using cstring = const char *;
+    using cstring = char const *;
 
     template<typename T>
     using ref = const T &;
@@ -145,6 +145,12 @@ namespace tier0 {
     constexpr movable<remove_reference<T>> move(movable<T> value) {
         return movable<remove_reference<T>>(value);
     }
+
+    template<typename T>
+    struct native_s;
+
+    template<typename T>
+    using Native = typename native_s<T>::type;
 }
 
 // primitives
@@ -200,7 +206,7 @@ namespace tier0 {
             /** Cast from */
             template<typename Other>
             requires (WordTraits<Other>::isWord && !is_same < Other, Word >)
-            explicit Word(Other word) : Word(typename WordTraits<Other>::native(word)) {}
+            explicit Word(Other word) : Word(Native<Other>(word)) {}
 
             /** Cast to */
             implicit constexpr operator T() const { return wordValue; }
@@ -213,12 +219,14 @@ namespace tier0 {
         template<typename T> requires is_base_of<WordTag, T>
         struct WordTraits<T> {
             static const bool isWord = true;
-            using native = decltype(static_cast<T *>(nullptr)->wordValue);
+            using underlying = decltype(static_cast<T *>(nullptr)->wordValue);
         };
     }
 
     template<typename T> requires detail::WordTraits<T>::isWord
-    using Native = typename detail::WordTraits<T>::native;
+    struct native_s<T> {
+        using type = typename detail::WordTraits<T>::underlying;
+    };
 
     struct Unit {
         explicit Unit() = default;
@@ -331,19 +339,29 @@ namespace tier0 {
         constexpr native operator->() const { return value(); }
     };
 
+    template<typename T>
+    struct native_s<ptr<T>> {
+        using type = _ptr<T>;
+    };
+
     template<typename Self>
     struct ptr_mixin_s<Self, true> {
     };
 
-    template<typename T>
-    struct ptr_mixin_s<ptr<T>, false> {
+    template<typename Self>
+    struct ptr_mixin_s<Self, false> {
     private:
-        using Self = ptr<T>;
-        using native = _ptr<T>;
+        template<typename>
+        struct extract_t;
+        template<typename T>
+        struct extract_t<ptr<T>> {
+            using type = T;
+        };
+        using T = typename extract_t<Self>::type;
 
-        constexpr _ptr<const Self> super() const { return static_cast<_ptr<const Self>>(this); }
+        constexpr Self const *super() const { return static_cast<Self const *>(this); }
 
-        constexpr _ptr<Self> super() { return static_cast<_ptr<Self>>(this); }
+        constexpr Self *super() { return static_cast<Self *>(this); }
 
     public:
         constexpr ptr_mixin_s() = default;
@@ -364,34 +382,36 @@ namespace tier0 {
 
 // placement new
 
-constexpr tier0::ptr<void>::native operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
+constexpr tier0::Native<tier0::ptr<void>>
+operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
 
-constexpr tier0::ptr<void>::native operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
+constexpr tier0::Native<tier0::ptr<void>>
+operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
 
-void operator delete(tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept;
+void operator delete(tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept;
 
-void operator delete[](tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept;
+void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept;
 
 #define IMPLEMENTS_PLACEMENT 1
 
 #if IMPLEMENTS_PLACEMENT
 
-constexpr inline tier0::ptr<void>::native operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
+constexpr inline tier0::Native<tier0::ptr<void>> operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
     (void) count;
     return place;
 }
 
-constexpr inline tier0::ptr<void>::native operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
+constexpr inline tier0::Native<tier0::ptr<void>> operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
     (void) count;
     return place;
 }
 
-inline void operator delete(tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept {
+inline void operator delete(tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept {
     (void) ptr;
     (void) place;
 }
 
-inline void operator delete[](tier0::ptr<void>::native ptr, tier0::ptr<void> place) noexcept {
+inline void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept {
     (void) ptr;
     (void) place;
 }
@@ -670,13 +690,13 @@ namespace tier0 {
 // iterable
 
 #define ENABLE_FOREACH_ITERABLE() \
-    constexpr _ptr<void> end() const { return nullptr; } \
+    constexpr Native<ptr<void>> end() const { return nullptr; } \
     constexpr auto begin() const { return iterator(); } \
     constexpr auto begin() { return iterator(); } \
     /**/
 
 #define ENABLE_FOREACH_ITERATOR(T) \
-    constexpr _ptr<void> end() const { return nullptr; } \
+    constexpr Native<ptr<void>> end() const { return nullptr; } \
     constexpr ref<T> begin() const { return *this; } \
     constexpr mut_ref<T> begin() { return *this; } \
     /**/
@@ -694,7 +714,8 @@ namespace tier0 {
 
 template<typename T>
 requires tier0::Iterator<T>
-inline constexpr tier0::Boolean operator!=(tier0::ref<T> self, tier0::_ptr<void>) { return self.hasNext(); }
+inline constexpr tier0::Boolean
+operator!=(tier0::ref<T> self, tier0::Native<tier0::ptr<void>>) { return self.hasNext(); }
 
 template<typename T>
 requires tier0::Iterator<T>
@@ -873,15 +894,15 @@ namespace tier0 {
         // fixme: constexpr
         template<typename T>
         constexpr ref<T> get() const {
-            _ptr<const T> out;
-            new(&out) _ptr<const void>(&this->bytes);
+            Native<ptr<const T>> out;
+            new(&out) Native<ptr<const void>>(&this->bytes);
             return *out;
         }
 
         template<typename T>
         constexpr mut_ref<T> get() {
-            _ptr<T> out;
-            new(&out) _ptr<void>(&this->bytes);
+            Native<ptr<T>> out;
+            new(&out) Native<ptr<void>>(&this->bytes);
             return *out;
         }
     };
@@ -1209,7 +1230,7 @@ namespace tier0 {
             Size leading;
             Size trailing;
         private:
-            static consteval Boolean calculate(_ptr<TypeNameFormat> ret) {
+            static consteval Boolean calculate(Native<ptr<TypeNameFormat>> ret) {
                 using int_t = decltype(0);
                 auto &needle = "int";
                 auto &haystack = RawTypeName<int_t>();

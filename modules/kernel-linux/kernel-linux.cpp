@@ -37,7 +37,7 @@ Int interface_open(cstring name) {
     sll.sll_family = AF_PACKET;
     sll.sll_protocol = htobe16(ETH_P_ALL);
     sll.sll_ifindex = idx;
-    if (bind(handle, reinterpret_cast<sockaddr *>(&sll), sizeof(sll)) == -1) {
+    if (bind(handle, reinterpret_cast<Native<ptr<sockaddr>>>(&sll), sizeof(sll)) == -1) {
         perror("socket");
         return -4;
     }
@@ -58,7 +58,10 @@ Int interface_read(Int handle, Span<Byte, Size(0xffff + 1)> span) {
     var addr = sockaddr_ll();
     static_assert(sizeof(addr) <= sizeof(sockaddr_storage));
     var addrSize = socklen_t(sizeof(addr));
-    let size = recvfrom(handle, &span._data, span.size(), MSG_TRUNC, reinterpret_cast<sockaddr *>(&addr), &addrSize);
+    let size = recvfrom(handle,
+                        &span._data, span.size(),
+                        MSG_TRUNC,
+                        reinterpret_cast<Native<ptr<sockaddr>>>(&addr), &addrSize);
     // response from interface: addr.sll_ifindex
     if (errno) {
         let errStr = strerror(errno);
