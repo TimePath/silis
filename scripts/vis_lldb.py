@@ -2,6 +2,7 @@ from typing import Any, List
 
 import os
 import sys
+import inspect
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import vis
@@ -30,13 +31,9 @@ def __lldb_init_module(debugger, internal_dict):
 
 
 def lookup(valobj):
-    val_type = canonical(valobj.GetType())
-    lookup_tag = val_type.GetName()
-    if val_type.GetNumberOfTemplateArguments():
-        lookup_tag = lookup_tag[:lookup_tag.find("<")]
-    printer = printers.get(lookup_tag)
-
     def parse_template_args(typename):
+        if "<" not in typename:
+            return
         csv = typename[typename.find("<") + 1: -1]
         depth = 0
         buf = ""
@@ -58,7 +55,12 @@ def lookup(valobj):
             else:
                 buf += c
 
-    template_args = list(parse_template_args(val_type.GetName()))
+    val_type = canonical(valobj.GetType())
+    lookup_tag = val_type.GetName()
+    template_args = list(parse_template_args(lookup_tag))
+    if len(template_args):
+        lookup_tag = lookup_tag[:lookup_tag.find("<")]
+    printer = printers.get(lookup_tag)
 
     def evaluate(exp):
         thread = valobj.process.GetSelectedThread()
@@ -66,16 +68,36 @@ def lookup(valobj):
         val = frame.EvaluateExpression(exp)
         return val if not val.GetError().Fail() else None
 
+    def genargs():
+        i = 0
+        n = len(template_args)
+        while i < n:
+            kind = val_type.GetTemplateArgumentKind(i)
+            if kind != lldb.eTemplateArgumentKindNull:
+                argument_type = val_type.GetTemplateArgumentType(i)
+            else:
+                argument_type = valobj.target.FindFirstType(template_args[i])
+            argtype = canonical(argument_type)
+            isintegral = kind == lldb.eTemplateArgumentKindIntegral
+            if isintegral:
+                val = evaluate(f"({argtype.GetName()}) {template_args[i]}")
+                argtype = val.GetValueAsUnsigned()
+            i += 1
+            yield {
+                "key": argtype.GetName() if not isintegral else False,
+                "val": Type(argtype) if not isintegral else argtype,
+            }
+
+    args = list(genargs())
     i = 0
     while isinstance(printer, dict):
-        argtype = canonical(val_type.GetTemplateArgumentType(i))
-        isintegral = val_type.GetTemplateArgumentKind(i) == lldb.eTemplateArgumentKindIntegral
-        if isintegral:
-            val = evaluate(f"({argtype.GetName()}) {template_args[i]}")
-            argtype = val.GetValueAsUnsigned()
+        arg = args[i]
         i += 1
-        k = argtype.GetName() if not isintegral else False
-        printer = printer.get(k) or printer.get(None)(Type(argtype) if not isintegral else argtype)
+        dyn = printer.get(None)
+        varargs = map(lambda it: it["val"], args[i:]) if dyn and inspect.getfullargspec(dyn).varargs else []
+        printer = printer.get(arg["key"]) or dyn(arg["val"], *varargs)
+    if not printer:
+        raise Exception(f"unable to lookup {lookup_tag}")
     return printer
 
 
@@ -102,9 +124,17 @@ class Value:
         self.sbvalue = sbvalue
 
     def __getitem__(self, item):
+        val = self.sbvalue
         if isinstance(item, str):
-            return Value(self.sbvalue.GetChildMemberWithName(item))
-        return Value(self.sbvalue.GetChildAtIndex(item))
+            return Value(val.GetChildMemberWithName(item))
+        t = val.Dereference().GetType()
+        return Value(val.CreateChildAtOffset("", t.size * item, t))
+
+    def __index__(self):
+        return self.sbvalue.GetValueAsUnsigned()
+
+    def cast(self, t):
+        return Value(self.sbvalue.Cast(t.sbtype))
 
 
 class LLDBValuePrinter:
@@ -169,8 +199,10 @@ class LLDBValuePrinter:
     def get_child_at_index(self, index):
         if not self.has_children():
             return None
-        ret = self.children[index][1]
-        return ret.sbvalue
+        child = self.children[index]
+        key = child[0]
+        val = child[1].sbvalue
+        return val.CreateChildAtOffset(key, 0, val.GetType())
 
     def get_child_index(self, name):
         if not self.has_children():

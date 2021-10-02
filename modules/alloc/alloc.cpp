@@ -34,10 +34,10 @@ namespace {
         var header = allocation;
         let payload = ptr<Byte>::reinterpret(allocation + 1);
         info.size = size;
-        if (DEBUG) {
-            fprintf(stderr, "alloc %lu %s\n", info.size.wordValue, info.name);
-        }
         var &block = *new(header) MemoryBlock(info);
+        if (DEBUG) {
+            fprintf(stderr, "alloc_ctor %p = %lu %s\n", Native<ptr<void>>(&block), info.size.wordValue, info.name);
+        }
         blocks.add(block);
         return payload;
     }
@@ -46,6 +46,10 @@ namespace {
         let header = payload - 1;
         let allocation = ptr<Byte>::reinterpret(header);
         var &block = *header;
+        if (DEBUG) {
+            let info = block._info;
+            fprintf(stderr, "alloc_dtor %p = %lu %s\n", Native<ptr<void>>(&block), info.size.wordValue, info.name);
+        }
         blocks.remove(block);
         block.~MemoryBlock();
         return allocation;

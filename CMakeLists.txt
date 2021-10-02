@@ -185,7 +185,7 @@ target_sources(libtier2-tests
 # kernel
 
 add_library(libkernel INTERFACE)
-target_link_libraries(libkernel INTERFACE libtier0)
+target_link_libraries(libkernel INTERFACE libtier2)
 target_sources(libkernel
         INTERFACE
         modules/kernel/kernel.hpp
@@ -217,3 +217,26 @@ add_executable(test-libnet
 target_link_libraries(test-libnet INTERFACE libtier2)
 target_link_libraries(test-libnet INTERFACE libkernel)
 target_link_libraries(test-libnet PRIVATE libkernel-linux)
+target_link_libraries(test-libnet PRIVATE liballoc)
+
+# scriptengine-jvm
+
+add_library(scriptengine-jvm)
+target_link_libraries(scriptengine-jvm INTERFACE libtier0)
+target_link_libraries(scriptengine-jvm INTERFACE libtier2)
+target_sources(scriptengine-jvm
+        PRIVATE
+        modules/scriptengine-jvm/scriptengine.hpp modules/scriptengine-jvm/scriptengine.cpp
+        )
+
+add_executable(scriptengine-jvm-tests)
+target_link_libraries(scriptengine-jvm-tests PRIVATE libkernel-linux)
+target_link_libraries(scriptengine-jvm-tests PRIVATE scriptengine-jvm)
+target_link_libraries(scriptengine-jvm-tests INTERFACE libtier2)
+target_link_libraries(scriptengine-jvm-tests PRIVATE liballoc)
+target_link_libraries(scriptengine-jvm-tests PRIVATE libtest)
+target_discover_tests(scriptengine-jvm-tests TEST_SOURCE_DIR modules/scriptengine-jvm/tests)
+target_sources(scriptengine-jvm-tests
+        PRIVATE
+        modules/scriptengine-jvm/tests/tests.cpp
+        )

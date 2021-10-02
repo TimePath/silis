@@ -3,6 +3,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 import vis
+import inspect
 
 gdb = __import__("gdb")
 printers = {}
@@ -23,13 +24,29 @@ def lookup(val):
     except RuntimeError as e:
         pass
     printer = printers.get(lookup_tag)
+
+    def genargs():
+        i = 0
+        while True:
+            try:
+                arg = val_type.template_argument(i)
+                integral = not isinstance(arg, gdb.Type)
+                yield {
+                    "key": arg.tag if not integral else False,
+                    "val": arg,
+                }
+            except RuntimeError as e:
+                return
+            i += 1
+
+    args = list(genargs())
     i = 0
     while isinstance(printer, dict):
-        arg = val_type.template_argument(i)
-        integral = not isinstance(arg, gdb.Type)
+        arg = args[i]
         i += 1
-        k = arg.tag if not integral else False
-        printer = printer.get(k) or printer.get(None)(arg)
+        dyn = printer.get(None)
+        varargs = map(lambda it: it["val"], args[i:]) if dyn and inspect.getfullargspec(dyn).varargs else []
+        printer = printer.get(arg["key"]) or dyn(arg, *varargs)
     return printer
 
 

@@ -29,13 +29,40 @@ namespace tier1 {
     private:
         Int _size;
         Native<ptr<T>> memory;
-    public:
-        constexpr ~DynArray() {
-            delete[] memory;
+
+        void acquire() {
+            if (!_size) {
+                memory = nullptr;
+                return;
+            }
+            var m = operator new[](Size(_size) * sizeof(T), AllocInfo::of<T>());
+            var m2 = Native<ptr<T>>(m);
+            memory = m2;
         }
 
-        explicit DynArray(Int size) : DisableCopyConstructible(Unit()),
-                                      _size(size), memory(!size ? nullptr : new(AllocInfo::of<T>()) T[Size(size)]) {}
+        void release() {
+            if (!_size) {
+                return;
+            }
+            var m2 = memory;
+            var m = Native<ptr<void>>(m2);
+            memory = nullptr;
+            for (var i : Range<Int>::until(Int(0), _size)) {
+                m2[_size - 1 - i].~T();
+            }
+            operator delete[](m);
+        }
+
+    public:
+        constexpr ~DynArray() {
+            release();
+        }
+
+        explicit DynArray() : DisableCopyConstructible(Unit()), _size(0) {}
+
+        explicit DynArray(Int size) : DisableCopyConstructible(Unit()), _size(size) {
+            acquire();
+        }
 
         implicit constexpr DynArray(movable<DynArray> other) : DisableCopyConstructible(Unit()),
                                                                _size(other._size), memory(other.memory) {

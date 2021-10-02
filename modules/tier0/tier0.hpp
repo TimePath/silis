@@ -748,7 +748,7 @@ namespace tier0 {
 
             constexpr ref<E> get() const { return self._begin; }
 
-            constexpr void next() { self._begin = self._begin + 1; }
+            constexpr void next() { self._begin = T(self._begin + 1); }
 
             ENABLE_FOREACH_ITERATOR(Iterator)
         };

@@ -8,6 +8,17 @@
 
 #include "../kernel/kernel.hpp"
 
+DynArray<Byte> file_read(cstring name) {
+    var fd = fopen(name, "r");
+    fseek(fd, 0, SEEK_END);
+    var size = ftell(fd);
+    fseek(fd, 0, SEEK_SET);
+    var ret = DynArray<Byte>(Int(size));
+    var readRet = fread(&ret.get(0), 1, size, fd);
+    (void) readRet;
+    return ret;
+}
+
 Int interface_open(cstring name) {
     var interfaces = if_nameindex();
     if (!interfaces) {
