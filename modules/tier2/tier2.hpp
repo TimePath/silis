@@ -77,6 +77,10 @@ namespace tier2 {
 
         explicit List() : _size(0), memory(0) {}
 
+        implicit List(movable<List> other) : _size(other._size), memory(move(other.memory)) {
+            other._size = 0;
+        }
+
         Int size() const { return _size; }
 
         ref<T> get(Int index) const {

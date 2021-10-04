@@ -13,5 +13,12 @@ namespace scriptengine::jvm {
         void release();
     };
 
+    struct MethodHandle {
+        ClassHandle handle;
+        Int index;
+    };
+
     ClassHandle LoadClass(DynArray<Byte> data);
+
+    void LoadCode(MethodHandle handle);
 }

@@ -8,5 +8,7 @@ pkgs.mkShell {
     cppcheck
     cpplint
     include-what-you-use
+
+    openjdk16
   ];
 }

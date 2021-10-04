@@ -241,15 +241,15 @@ TEST("Result") {
 }
 
 TEST("Variant") {
-    using V = Variant<Traced<Short>, Traced<Int>, Traced<Long>>;
+    using V = Variant<Byte, Traced<Short>, Traced<Int>, Traced<Long>>;
     {
-        var v1 = V::of<Size(1)>(Traced(Int(1)));
-        printf("V1: Value: %d\n", Native<Int>(v1.template get<Size(1)>()._value));
+        var v1 = V::of<Size(2)>(Traced(Int(1)));
+        printf("V1: Value: %d\n", Native<Int>(v1.get<Size(2)>()._value));
     }
     {
-        var v2 = V::of<Size(0)>(Traced(Short(1)));
-        v2.set<Size(1)>(Traced(Int(2)));
-        printf("V2: Value: %d\n", Native<Int>(v2.template get<Size(1)>()._value));
+        var v2 = V::of<Size(1)>(Traced(Short(1)));
+        v2.set<Size(2)>(Traced(Int(2)));
+        printf("V2: Value: %d\n", Native<Int>(v2.get<Size(2)>()._value));
     }
 }
 

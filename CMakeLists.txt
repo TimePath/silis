@@ -240,3 +240,26 @@ target_sources(scriptengine-jvm-tests
         PRIVATE
         modules/scriptengine-jvm/tests/tests.cpp
         )
+
+find_package(Java REQUIRED)
+function(target_java_source target srcfile)
+    string(REGEX REPLACE "[.]java$" ".class" dstfile ${srcfile})
+    string(REGEX REPLACE "[^A-Za-z0-9_.+-]" "_" classtarget ${dstfile})
+    set(classtarget "java_${classtarget}")
+    set(dstfile "${CMAKE_CURRENT_BINARY_DIR}/${dstfile}")
+    get_filename_component(dstdir "${dstfile}" DIRECTORY)
+    set(srcfile "${CMAKE_CURRENT_SOURCE_DIR}/${srcfile}")
+    get_filename_component(srcdir "${srcfile}" DIRECTORY)
+    add_custom_target(
+            "${classtarget}"
+            DEPENDS "${dstfile}"
+    )
+    add_custom_command(
+            VERBATIM
+            OUTPUT "${dstfile}"
+            DEPENDS "${srcfile}"
+            COMMAND "${Java_JAVAC_EXECUTABLE}" -cp "${srcdir}" -d "${dstdir}" -implicit:none "${srcfile}"
+    )
+    add_dependencies("${target}" "${classtarget}")
+endfunction()
+target_java_source(scriptengine-jvm-tests modules/scriptengine-jvm/tests/Main.java)

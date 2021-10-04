@@ -7,10 +7,10 @@ namespace net::ethernet {
         explicit Address(Span<Byte, Size(6)> span) : _span(span) {}
 
         void print() {
-            let d = _span._data;
+            let span = _span;
             printf("%02hhX" ":" "%02hhX" ":" "%02hhX" ":" "%02hhX" ":" "%02hhX" ":" "%02hhX",
-                   d[0].wordValue, d[1].wordValue, d[2].wordValue,
-                   d[3].wordValue, d[4].wordValue, d[5].wordValue
+                   span.get(0).wordValue, span.get(1).wordValue, span.get(2).wordValue,
+                   span.get(3).wordValue, span.get(4).wordValue, span.get(5).wordValue
             );
         }
     };
@@ -28,8 +28,8 @@ namespace net::ethernet {
 
         [[nodiscard]]
         UShort type() const {
-            let span = _span.offset<Size(6 + 6)>()._data;
-            return UShort(span[0] << 8 | span[1]);
+            let span = _span.offset<Size(6 + 6)>();
+            return UShort(span.get(0) << 8 | span.get(1));
         }
     };
 }

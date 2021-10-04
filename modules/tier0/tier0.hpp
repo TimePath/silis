@@ -32,11 +32,7 @@
 namespace tier0 {}
 
 namespace tier0 {
-    [[noreturn]]
-    inline void die() {
-        (void) *static_cast<char *>(nullptr);
-        __builtin_unreachable();
-    }
+    [[noreturn]] inline void die() { throw 0; }
 }
 
 // meta
@@ -241,6 +237,9 @@ namespace tier0 {
     struct Byte : detail::Word<unsigned char> {
         using Word::Word;
     };
+    struct Int8 : detail::Word<signed char> {
+        using Word::Word;
+    };
     struct Short : detail::Word<short signed int> {
         using Word::Word;
     };
@@ -315,7 +314,7 @@ namespace tier0 {
 
         constexpr void assert() const {
             if (!_value) {
-                throw 0;
+                die();
             }
         }
 
@@ -781,25 +780,16 @@ namespace tier0 {
 
 // span
 namespace tier0 {
-    namespace detail {
-        template<typename T, Size I>
-        using Arr = T[I];
+    constexpr Size unbounded = Size(0xffffffff);
 
-        template<typename T, Size N, Size M>
-        static ref<Arr<T, N>> array_cast(ref<Arr<T, M>> arr) { return *ptr<const Arr<T, N>>(ptr<const void>(&arr)); }
-
-        template<typename T, Size N, Size M>
-        static mut_ref<Arr<T, N>> array_cast(mut_ref<Arr<T, M>> arr) { return *ptr<Arr<T, N>>(ptr<void>(&arr)); }
-    }
-
-    template<typename T, Size N>
+    template<typename T, Size N = unbounded>
     struct Span {
         using array_type = T[N];
-        mut_ref<array_type> _data;
+        ptr<T> _data;
+    private:
+        explicit Span(ptr<T> addr) : _data(addr) {}
 
-        [[nodiscard]]
-        constexpr Size size() const { return N; }
-
+    public:
         explicit Span(mut_ref<array_type> array) : _data(array) {}
 
         explicit Span(ptr<array_type> array) : _data(*array) {}
@@ -808,7 +798,24 @@ namespace tier0 {
 
         template<Size M>
         requires (M >= N)
-        implicit Span(ref<Span<T, M>> span) : Span(detail::array_cast<T, N, M>(span._data)) {}
+        implicit Span(ref<Span<T, M>> span) : Span(span._data) {}
+
+        static Span<T, N> unsafe(ptr<T> addr) { return Span(addr); }
+
+        [[nodiscard]]
+        constexpr Size size() const { return N; }
+
+        constexpr ref<T> get(Int index) const {
+            return _data[index];
+        }
+
+        constexpr mut_ref<T> get(Int index) {
+            return _data[index];
+        }
+
+        constexpr void set(Int index, T value) {
+            new(&_data[index]) T(move(value));
+        }
 
         template<typename E>
         using Iterator = ContiguousIterator<Span, E>;
@@ -822,7 +829,7 @@ namespace tier0 {
         template<Size I>
         requires (I < N)
         [[nodiscard]]
-        Span<T, N - I> offset() const { return Span(ptr<array_type>(_data + I)); }
+        Span<T, N - I> offset() const { return Span(_data + I); }
     };
 }
 
@@ -1082,7 +1089,7 @@ namespace tier0 {
 
 // variant
 namespace tier0 {
-    template<typename... Ts>
+    template<typename E, typename... Ts>
     struct Variant {
         static_assert(sizeof...(Ts) <= 255 - 1);
     private:
@@ -1119,28 +1126,30 @@ namespace tier0 {
         implicit Variant(movable<Variant> other) : u(move(other.u)), active(move(other.active)) {}
 
         template<Size i>
-        static Variant of(typename types::template get<i> value) {
+        static Variant of(typename types::template get<i - 1> value) {
             var ret = Variant();
             ret.template set<i>(move(value));
             return ret;
         }
 
+        E tag() const { return E(Native<Byte>(active)); }
+
         template<Size i>
-        ref<typename types::template get<i>> get() const {
-            return u.template get<i>();
+        ref<typename types::template get<i - 1>> get() const {
+            return u.template get<i - 1>();
         }
 
         template<Size i>
-        mut_ref<typename types::template get<i>> get() {
-            return u.template get<i>();
+        mut_ref<typename types::template get<i - 1>> get() {
+            return u.template get<i - 1>();
         }
 
         template<Size i>
-        void set(movable<typename types::template get<i>> value) {
-            using T = typename types::template get<i>;
+        void set(movable<typename types::template get<i - 1>> value) {
+            using T = typename types::template get<i - 1>;
             destroy();
             new(&get<i>()) T(move(value));
-            active = Byte(1 + i);
+            active = Byte(i);
         }
     };
 }

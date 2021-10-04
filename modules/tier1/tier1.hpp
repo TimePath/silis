@@ -87,6 +87,10 @@ namespace tier1 {
             }
         }
 
+        Span<const T> asSpan() const { return Span<T>::unsafe(this->memory); }
+
+        Span<T> asSpan() { return Span<T>::unsafe(this->memory); }
+
         constexpr Int size() const { return _size; }
 
         constexpr DynArray copy() const {

@@ -36,7 +36,12 @@ class PointerPrinter(Printer):
 
 
 class VariantPrinter(Printer):
-    def __init__(self, Ts):
+    E: object
+    Ts: object
+
+    def __init__(self, E, Ts):
+        super().__init__()
+        self.E = E
         self.Ts = Ts
 
     _active: object
@@ -60,7 +65,11 @@ class VariantPrinter(Printer):
 
 
 class ArrayPrinter(Printer):
+    T: object
+    N: object
+
     def __init__(self, T, N):
+        super().__init__()
         self.T = T
         self.N = N
 
@@ -78,7 +87,10 @@ class ArrayPrinter(Printer):
 
 
 class DynArrayPrinter(Printer):
+    T: object
+
     def __init__(self, T):
+        super().__init__()
         self.T = T
 
     _size: object
@@ -93,7 +105,17 @@ class DynArrayPrinter(Printer):
 
     def children(self):
         for i in range(self._size):
-            yield f"[{i}]", self._data[i]
+            yield f"[{i}]", self._data[i].cast(self.T)
+
+
+class ListPrinter(DynArrayPrinter):
+    def __init__(self, T):
+        super().__init__(T)
+        self.T = T
+
+    def update(self, val):
+        super(ListPrinter, self).update(val)
+        self._data = self._data["memory"]
 
 
 def register():
@@ -105,7 +127,9 @@ def register():
         "tier0::Int": WordPrinter(),
         # "tier0::ptr": PointerPrinter(),
         "tier0::Variant": {
-            None: lambda *Ts: VariantPrinter(Ts)
+            None: lambda E: {
+                None: lambda *Ts: VariantPrinter(E, Ts)
+            }
         },
         "tier0::Span": {
             None: lambda T: {
@@ -119,5 +143,8 @@ def register():
         },
         "tier1::DynArray": {
             None: lambda T: DynArrayPrinter(T),
+        },
+        "tier2::List": {
+            None: lambda T: ListPrinter(T),
         },
     }
