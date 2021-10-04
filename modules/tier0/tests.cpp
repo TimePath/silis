@@ -8,12 +8,12 @@ using namespace test;
 
 TEST("False") {
     let value = Boolean(false);
-    printf("false: %d\n", value.wordValue);
+    printf("false: %d\n", Native<Boolean>(value));
 }
 
 TEST("True") {
     let value = Boolean(true);
-    printf("true: %d\n", value.wordValue);
+    printf("true: %d\n", Native<Boolean>(value));
 }
 
 TEST("TypeName") {
@@ -43,7 +43,7 @@ TEST("Binding") {
     };
     auto &[_v1, _v2, _v3] = testVar;
     _v1 = _v1 + 1;
-    printf("testVar: %d, %d, %d\n", _v1.wordValue, _v2.wordValue, _v3.wordValue);
+    printf("testVar: %d, %d, %d\n", Native<Int>(_v1), Native<Short>(_v2), Native<Int>(_v3));
 
     let testLet = Test{
             .i = 1,
@@ -51,13 +51,14 @@ TEST("Binding") {
             .k = 3,
     };
     auto &[_l1, _l2, _l3] = testLet;
-    printf("testLet: %d, %d, %d\n", _l1.wordValue, _l2.wordValue, _l3.wordValue);
+    printf("testLet: %d, %d, %d\n", Native<Int>(_l1), Native<Short>(_l2), Native<Int>(_l3));
 }
 
 TEST("Tuples") {
     var testVar = Tuple{Int(1), Short(2), Byte(3)};
     auto &[_v1, _v2, _v3] = testVar;
-    printf("testVar: %s: %d, %d, %d\n", TypeName<decltype(testVar)>(), _v1.wordValue, _v2.wordValue, _v3.wordValue);
+    printf("testVar: %s: %d, %d, %d\n", TypeName<decltype(testVar)>(), Native<Int>(_v1), Native<Short>(_v2),
+           Native<Byte>(_v3));
 }
 
 struct raw {
@@ -112,11 +113,11 @@ struct Statement {
 
     constexpr void operator()(ref<SourceLocation> loc = SourceLocation::current()) const {
         printf("'");
-        printf("/* %s */ ", loc._file);
-        printf("%s", strings._data[0]);
+        printf("/* %s */ ", loc.file_);
+        printf("%s", strings.data_[0]);
         auto printIdentifier = [&]<typename U>(Size i, ref<U> it) -> Size {
             printer<U>::print(false, it, false);
-            printf("%s", strings._data[1 + i]);
+            printf("%s", strings.data_[1 + i]);
             return i + 1;
         };
         forEach(values, printIdentifier, Size(0));

@@ -27,7 +27,7 @@ Native<Int> main(Native<Int> argc, Array<cstring, Size(1)>::array_type argv) {
         frame.src().print();
         printf("\n");
         let type = frame.type();
-        printf("frame.type: 0x%04hX\n", type.wordValue);
+        printf("frame.type: 0x%04hX\n", Native<UShort>(type));
         fflush(stdout);
     }
     return 0;

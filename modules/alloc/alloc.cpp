@@ -9,18 +9,18 @@ using namespace tier2;
 namespace {
     struct MemoryBlock {
     private:
-        inline static Size ids = Size(0);
+        inline static Size ids_ = Size(0);
     public:
-        Size id;
-        IntrusiveLinks<MemoryBlock> links;
-        AllocInfo _info;
+        Size id_;
+        IntrusiveLinks<MemoryBlock> links_;
+        AllocInfo info_;
 
         ~MemoryBlock() = default;
 
-        explicit MemoryBlock(AllocInfo info) : id(ids = ids + 1), links(), _info(move(info)) {}
+        explicit MemoryBlock(AllocInfo info) : id_(ids_ = ids_ + 1), links_(), info_(move(info)) {}
     };
 
-    IntrusiveList<MemoryBlock, &MemoryBlock::links> blocks;
+    IntrusiveList<MemoryBlock, &MemoryBlock::links_> g_blocks;
 
     let DEBUG = Boolean([]() {
         let p = getenv("DEBUG_ALLOC");
@@ -33,12 +33,13 @@ namespace {
     ptr<Byte> alloc_ctor(ptr<MemoryBlock> allocation, Size size, AllocInfo info) {
         var header = allocation;
         let payload = ptr<Byte>::reinterpret(allocation + 1);
-        info.size = size;
+        info.size_ = size;
         var &block = *new(header) MemoryBlock(info);
         if (DEBUG) {
-            fprintf(stderr, "alloc_ctor %p = %lu %s\n", Native<ptr<void>>(&block), info.size.wordValue, info.name);
+            fprintf(stderr, "alloc_ctor %p = %lu %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
+                    info.name_);
         }
-        blocks.add(block);
+        g_blocks.add(block);
         return payload;
     }
 
@@ -47,10 +48,11 @@ namespace {
         let allocation = ptr<Byte>::reinterpret(header);
         var &block = *header;
         if (DEBUG) {
-            let info = block._info;
-            fprintf(stderr, "alloc_dtor %p = %lu %s\n", Native<ptr<void>>(&block), info.size.wordValue, info.name);
+            let info = block.info_;
+            fprintf(stderr, "alloc_dtor %p = %lu %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
+                    info.name_);
         }
-        blocks.remove(block);
+        g_blocks.remove(block);
         block.~MemoryBlock();
         return allocation;
     }

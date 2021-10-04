@@ -16,23 +16,23 @@ class Printer:
 
 
 class WordPrinter(Printer):
-    wordValue: object
+    _data: object
 
     def update(self, val):
-        self.wordValue = val["wordValue"]
+        self._data = val["data_"]
 
     def repr(self):
-        return self.wordValue
+        return self._data
 
 
 class PointerPrinter(Printer):
-    _value: object
+    _data: object
 
     def update(self, val):
-        self._value = val["_value"]
+        self._data = val["data_"]
 
     def repr(self):
-        return self._value
+        return self._data
 
 
 class VariantPrinter(Printer):
@@ -44,13 +44,12 @@ class VariantPrinter(Printer):
         self.E = E
         self.Ts = Ts
 
+    _data: object
     _active: object
-    _u: object
 
     def update(self, val):
-        self._active = val["active"]["wordValue"]
-        self._u = val["u"]
-        pass
+        self._data = val["data_"]
+        self._active = val["active_"]["data_"]
 
     def repr(self):
         return f"Variant"
@@ -61,10 +60,10 @@ class VariantPrinter(Printer):
             yield f"active", self._active
             return
         t = self.Ts[i - 1]
-        yield f"[{t}]", self._u.cast(t)
+        yield f"[{t}]", self._data.cast(t)
 
 
-class ArrayPrinter(Printer):
+class SpanPrinter(Printer):
     T: object
     N: object
 
@@ -72,50 +71,55 @@ class ArrayPrinter(Printer):
         super().__init__()
         self.T = T
         self.N = N
+        self._size = N
 
     _data: object
-
-    def update(self, val):
-        self._data = val["_data"]
-
-    def repr(self):
-        return f"{self.T}[{self.N}]"
-
-    def children(self):
-        for i in range(self.N):
-            yield f"[{i}]", self._data[i]
-
-
-class DynArrayPrinter(Printer):
-    T: object
-
-    def __init__(self, T):
-        super().__init__()
-        self.T = T
-
     _size: object
-    _data: object
 
     def update(self, val):
-        self._size = val["_size"]["wordValue"]
-        self._data = val["memory"]
+        self._data = val["data_"]
+        self._size = val["size_"]["data_"]
 
     def repr(self):
-        return f"{self.T}[{int(self._size)}]"
+        return f"{self.T}[{self._size}]"
 
     def children(self):
         for i in range(self._size):
             yield f"[{i}]", self._data[i].cast(self.T)
 
 
+class StringSpanPrinter(Printer):
+    _data: object
+    _size: object
+
+    def update(self, val):
+        span = val["data_"]
+        self._data = span["data_"]
+        self._size = span["size_"]["data_"]
+
+    def repr(self):
+        s = "".join(chr(int(self._data[i]["data_"])) for i in range(self._size))
+        return f"String ({self._size}) {repr(s)}"
+
+
+class ArrayPrinter(SpanPrinter):
+    def update(self, val):
+        self._data = val["data_"]
+        self._size = self.N
+
+
+class DynArrayPrinter(SpanPrinter):
+    def __init__(self, T):
+        super().__init__(T, "*")
+
+
 class ListPrinter(DynArrayPrinter):
     def __init__(self, T):
         super().__init__(T)
-        self.T = T
 
     def update(self, val):
         super(ListPrinter, self).update(val)
-        self._data = self._data["memory"]
+        self._data = self._data["data_"]
 
 
 def register():
@@ -133,9 +137,10 @@ def register():
         },
         "tier0::Span": {
             None: lambda T: {
-                None: lambda N: ArrayPrinter(T, N),
+                None: lambda N: SpanPrinter(T, N),
             }
         },
+        "tier0::StringSpan": StringSpanPrinter(),
         "tier0::Array": {
             None: lambda T: {
                 None: lambda N: ArrayPrinter(T, N),

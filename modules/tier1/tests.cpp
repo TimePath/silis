@@ -9,5 +9,5 @@ using namespace test;
 
 TEST("DynArray") {
     let array = DynArray<Int>(3, [](Int i) { return 1 + i; });
-    printf("DynArray: %d %d %d\n", array.get(0).wordValue, array.get(1).wordValue, array.get(2).wordValue);
+    printf("DynArray: %d %d %d\n", Native<Int>(array.get(0)), Native<Int>(array.get(1)), Native<Int>(array.get(2)));
 }

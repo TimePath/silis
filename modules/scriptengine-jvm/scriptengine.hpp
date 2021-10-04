@@ -8,14 +8,14 @@ namespace scriptengine::jvm {
     struct Class;
 
     struct ClassHandle {
-        ptr<Class> handle;
+        ptr<Class> handle_;
 
         void release();
     };
 
     struct MethodHandle {
-        ClassHandle handle;
-        Int index;
+        ClassHandle handle_;
+        Int index_;
     };
 
     ClassHandle LoadClass(DynArray<Byte> data);

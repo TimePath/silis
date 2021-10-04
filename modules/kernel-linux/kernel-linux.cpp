@@ -70,7 +70,7 @@ Int interface_read(Int handle, Span<Byte, Size(0xffff + 1)> span) {
     static_assert(sizeof(addr) <= sizeof(sockaddr_storage));
     var addrSize = socklen_t(sizeof(addr));
     let size = recvfrom(handle,
-                        &span._data, span.size(),
+                        &span.data_, span.size(),
                         MSG_TRUNC,
                         reinterpret_cast<Native<ptr<sockaddr>>>(&addr), &addrSize);
     // response from interface: addr.sll_ifindex

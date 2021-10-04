@@ -10,42 +10,42 @@ namespace tier2 {
 namespace tier2 {
     template<typename T>
     struct IntrusiveLinks {
-        Native<ptr<T>> prev;
-        Native<ptr<T>> next;
+        Native<ptr<T>> prev_;
+        Native<ptr<T>> next_;
     };
 
     template<typename T, IntrusiveLinks<T> T::*links>
     struct IntrusiveList {
     private:
-        Native<ptr<T>> head;
-        Native<ptr<T>> tail;
+        Native<ptr<T>> head_;
+        Native<ptr<T>> tail_;
     public:
         void add(mut_ref<T> value) {
             let lValue = &(value.*links);
-            let prev = lValue->prev = tail;
+            let prev = lValue->prev_ = tail_;
             if (let lPrev = !prev ? nullptr : &(prev->*links)) {
-                lPrev->next = &value;
+                lPrev->next_ = &value;
             } else {
-                head = &value;
+                head_ = &value;
             }
-            tail = &value;
+            tail_ = &value;
         }
 
         void remove(mut_ref<T> value) {
             let lValue = &(value.*links);
-            let prev = lValue->prev;
-            let next = lValue->next;
+            let prev = lValue->prev_;
+            let next = lValue->next_;
             if (let lPrev = !prev ? nullptr : &(prev->*links)) {
-                lPrev->next = next;
+                lPrev->next_ = next;
             }
             if (let lNext = !next ? nullptr : &(next->*links)) {
-                lNext->prev = prev;
+                lNext->prev_ = prev;
             }
-            if (&value == head) {
-                head = next;
+            if (&value == head_) {
+                head_ = next;
             }
-            if (&value == tail) {
-                tail = prev;
+            if (&value == tail_) {
+                tail_ = prev;
             }
         }
     };
@@ -56,70 +56,70 @@ namespace tier2 {
     template<typename T>
     struct List {
     private:
-        Int _size;
-        DynArray<Unmanaged<T>> memory;
+        Int size_;
+        DynArray<Unmanaged<T>> data_;
 
         void realloc(Int capacity) {
-            if (memory.size() >= capacity) {
+            if (data_.size() >= capacity) {
                 return;
             }
-            memory = DynArray<Unmanaged<T>>(capacity * 2, [&](Int i) {
-                return (i < _size) ? Unmanaged<T>(move(memory.get(i))) : Unmanaged<T>();
+            data_ = DynArray<Unmanaged<T>>(capacity * 2, [&](Int i) {
+                return (i < size_) ? Unmanaged<T>(move(data_.get(i))) : Unmanaged<T>();
             });
         }
 
     public:
         ~List() {
             for (var i : Range<Int>::until(0, size())) {
-                memory.get(i).destroy();
+                data_.get(i).destroy();
             }
         }
 
-        explicit List() : _size(0), memory(0) {}
+        explicit List() : size_(0), data_(0) {}
 
-        implicit List(movable<List> other) : _size(other._size), memory(move(other.memory)) {
-            other._size = 0;
+        implicit List(movable<List> other) : size_(other.size_), data_(move(other.data_)) {
+            other.size_ = 0;
         }
 
-        Int size() const { return _size; }
+        Int size() const { return size_; }
 
         ref<T> get(Int index) const {
             if (!Range<Int>::until(0, size()).contains(index)) {
                 die();
             }
-            return memory.get(index).get();
+            return data_.get(index).get();
         }
 
         mut_ref<T> get(Int index) {
             if (!Range<Int>::until(0, size()).contains(index)) {
                 die();
             }
-            return memory.get(index).get();
+            return data_.get(index).get();
         }
 
         void set(Int index, T value) {
-            memory.get(index).destroy();
-            memory.set(index, Unmanaged<T>(move(value)));
+            data_.get(index).destroy();
+            data_.set(index, Unmanaged<T>(move(value)));
         }
 
         void add(T value) {
-            let index = _size;
+            let index = size_;
             let nextSize = index + 1;
             realloc(nextSize);
-            memory.set(index, Unmanaged<T>(move(value)));
-            _size = nextSize;
+            data_.set(index, Unmanaged<T>(move(value)));
+            size_ = nextSize;
         }
 
         template<typename E>
         struct Iterator {
-            ptr<const List> self;
-            Int idx;
+            ptr<const List> self_;
+            Int index_;
 
-            constexpr Boolean hasNext() const { return idx < self->size(); }
+            constexpr Boolean hasNext() const { return index_ < self_->size(); }
 
-            constexpr ref<E> get() const { return self->get(idx); }
+            constexpr ref<E> get() const { return self_->get(index_); }
 
-            constexpr void next() { idx = idx + 1; }
+            constexpr void next() { index_ = index_ + 1; }
 
             ENABLE_FOREACH_ITERATOR(Iterator)
         };

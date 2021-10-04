@@ -17,21 +17,21 @@ namespace test {
     };
 
     struct Test {
-        Mode mode;
-        Native<ptr<const Test>> next;
-        cstring_t file;
-        int_t id;
-        cstring_t name;
+        Mode mode_;
+        Native<ptr<const Test>> next_;
+        cstring_t file_;
+        int_t id_;
+        cstring_t name_;
     };
 
     struct CompileTest : Test {
-        cstring_t code;
+        cstring_t code_;
 
         CompileTest(cstring_t file, int_t id, cstring_t name, cstring_t code) noexcept;
     };
 
     struct RunTest : Test {
-        runnable_t run;
+        runnable_t run_;
 
         RunTest(cstring_t file, int_t id, cstring_t name, runnable_t run) noexcept;
     };

@@ -173,7 +173,8 @@ namespace tier0 {
 
         template<typename T> requires is_arithmetic<T>
         struct Word : WordTag {
-            T wordValue;
+            friend WordTraits<Word>;
+            T data_;
 
             constexpr ~Word() {}
 
@@ -182,12 +183,12 @@ namespace tier0 {
             /** Exact primitive match */
             template<typename T2>
             requires is_same<T, T2>
-            implicit constexpr Word(T2 value) : wordValue(value) {}
+            implicit constexpr Word(T2 value) : data_(value) {}
 
             /** Inexact primitive match */
             template<typename U>
             requires (!is_same < T, U > and is_arithmetic < U >)
-            explicit constexpr Word(U value) : wordValue(T(value)) {}
+            explicit constexpr Word(U value) : data_(T(value)) {}
 
             /** Copy */
             implicit constexpr Word(ref<Word> other) {
@@ -195,7 +196,7 @@ namespace tier0 {
             }
 
             constexpr mut_ref<Word> operator=(ref<Word> other) {
-                wordValue = other.wordValue;
+                data_ = other.data_;
                 return *this;
             }
 
@@ -205,17 +206,17 @@ namespace tier0 {
             explicit Word(Other word) : Word(Native<Other>(word)) {}
 
             /** Cast to */
-            implicit constexpr operator T() const { return wordValue; }
+            implicit constexpr operator T() const { return data_; }
 
             // operators
 
-            constexpr bool operator==(ref<Word> other) const { return (*this).wordValue == other.wordValue; }
+            constexpr bool operator==(ref<Word> other) const { return (*this).data_ == other.data_; }
         };
 
         template<typename T> requires is_base_of<WordTag, T>
         struct WordTraits<T> {
             static const bool isWord = true;
-            using underlying = decltype(static_cast<T *>(nullptr)->wordValue);
+            using underlying = decltype(static_cast<T *>(nullptr)->data_);
         };
     }
 
@@ -300,27 +301,27 @@ namespace tier0 {
     struct ptr : public ptr_mixin<ptr<T>>::type {
         using base = typename ptr_mixin<ptr<T>>::type;
         using native = _ptr<T>;
-        native _value;
+        native data_;
 
         constexpr ref<native> value() const {
             assert();
-            return _value;
+            return data_;
         }
 
         constexpr mut_ref<native> value() {
             assert();
-            return _value;
+            return data_;
         }
 
         constexpr void assert() const {
-            if (!_value) {
+            if (!data_) {
                 die();
             }
         }
 
         ptr() = delete;
 
-        implicit constexpr ptr(native value) : _value(value) {
+        implicit constexpr ptr(native value) : data_(value) {
             assert();
         }
 
@@ -365,7 +366,7 @@ namespace tier0 {
     public:
         constexpr ptr_mixin_s() = default;
 
-        explicit constexpr ptr_mixin_s(ptr<void> p) { super()->_value = Self::reinterpret(p.operator->()); }
+        explicit constexpr ptr_mixin_s(ptr<void> p) { super()->data_ = Self::reinterpret(p.operator->()); }
 
         implicit constexpr operator ptr<void>() { return super()->value(); }
 
@@ -661,9 +662,9 @@ namespace tier0 {
     template<typename... Ts>
     struct Tuple {
     private:
-        apply<TupleStorage, typename collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>::template map<ToTupleLeaf>> data;
+        apply<TupleStorage, typename collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>::template map<ToTupleLeaf>> data_;
     public:
-        implicit Tuple(Ts... args) : data{{args}...} {
+        implicit Tuple(Ts... args) : data_{{args}...} {
         }
 
         struct [[maybe_unused]] elements {
@@ -673,10 +674,10 @@ namespace tier0 {
             using type = typename TypeList<Ts...>::template get<I>;
 
             template<Size I, typename T>
-            static ref<type<I>> get(ref<T> self) { return self.data.TupleLeaf<I, type<I>>::value; }
+            static ref<type<I>> get(ref<T> self) { return self.data_.TupleLeaf<I, type<I>>::value; }
 
             template<Size I, typename T>
-            static mut_ref<type<I>> get(mut_ref<T> self) { return self.data.TupleLeaf<I, type<I>>::value; }
+            static mut_ref<type<I>> get(mut_ref<T> self) { return self.data_.TupleLeaf<I, type<I>>::value; }
         };
 
         ENABLE_STRUCTURED_BINDING(Tuple)
@@ -729,25 +730,25 @@ namespace tier0 {
     template<typename T>
     struct Range {
     private:
-        T _begin;
-        T _end;
+        T begin_;
+        T end_;
 
-        constexpr Range(T begin, T end) : _begin(begin), _end(end) {}
+        constexpr Range(T begin, T end) : begin_(begin), end_(end) {}
 
     public:
         static constexpr Range until(T begin, T end) { return {begin, end}; }
 
-        constexpr Boolean contains(T i) { return (i >= _begin and i < _end); }
+        constexpr Boolean contains(T i) { return (i >= begin_ and i < end_); }
 
         template<typename E>
         struct Iterator {
             Range self;
 
-            constexpr Boolean hasNext() const { return self._begin < self._end; }
+            constexpr Boolean hasNext() const { return self.begin_ < self.end_; }
 
-            constexpr ref<E> get() const { return self._begin; }
+            constexpr ref<E> get() const { return self.begin_; }
 
-            constexpr void next() { self._begin = T(self._begin + 1); }
+            constexpr void next() { self.begin_ = T(self.begin_ + 1); }
 
             ENABLE_FOREACH_ITERATOR(Iterator)
         };
@@ -764,15 +765,15 @@ namespace tier0 {
 namespace tier0 {
     template<typename T, typename E>
     struct ContiguousIterator {
-        ptr<const T> self;
-        Size idx;
+        ptr<const T> self_;
+        Size index_;
 
         [[nodiscard]]
-        constexpr Boolean hasNext() const { return idx < self->size(); }
+        constexpr Boolean hasNext() const { return index_ < self_->size(); }
 
-        constexpr ref<E> get() const { return self->_data[idx]; }
+        constexpr ref<E> get() const { return self_->data_[index_]; }
 
-        constexpr void next() { idx = idx + 1; }
+        constexpr void next() { index_ = index_ + 1; }
 
         ENABLE_FOREACH_ITERATOR(ContiguousIterator)
     };
@@ -785,36 +786,37 @@ namespace tier0 {
     template<typename T, Size N = unbounded>
     struct Span {
         using array_type = T[N];
-        ptr<T> _data;
+        Native<ptr<T>> data_;
+        Size size_;
     private:
-        explicit Span(ptr<T> addr) : _data(addr) {}
+        explicit Span(Native<ptr<T>> addr, Size size) : data_(addr), size_(size) {}
 
     public:
-        explicit Span(mut_ref<array_type> array) : _data(array) {}
+        explicit Span(mut_ref<array_type> array) : data_(array), size_(N) {}
 
-        explicit Span(ptr<array_type> array) : _data(*array) {}
+        explicit Span(ptr<array_type> array) : data_(*array), size_(N) {}
 
-        implicit Span(ref<Span<T, N>> span) : _data(span._data) {}
+        implicit Span(ref<Span> span) : data_(span.data_), size_(span.size_) {}
 
         template<Size M>
         requires (M >= N)
-        implicit Span(ref<Span<T, M>> span) : Span(span._data) {}
+        implicit Span(ref<Span<T, M>> span) : data_(span.data_), size_(N) {}
 
-        static Span<T, N> unsafe(ptr<T> addr) { return Span(addr); }
+        static Span unsafe(Native<ptr<T>> addr, Size size) { return Span(addr, size); }
 
         [[nodiscard]]
-        constexpr Size size() const { return N; }
+        constexpr Size size() const { return size_; }
 
         constexpr ref<T> get(Int index) const {
-            return _data[index];
+            return data_[index];
         }
 
         constexpr mut_ref<T> get(Int index) {
-            return _data[index];
+            return data_[index];
         }
 
         constexpr void set(Int index, T value) {
-            new(&_data[index]) T(move(value));
+            new(&data_[index]) T(move(value));
         }
 
         template<typename E>
@@ -829,7 +831,11 @@ namespace tier0 {
         template<Size I>
         requires (I < N)
         [[nodiscard]]
-        Span<T, N - I> offset() const { return Span(_data + I); }
+        Span<T, N - I> offset() const { return Span<T, N - I>::unsafe(data_ + I, N - I); }
+    };
+
+    struct StringSpan {
+        Span<Byte> data_;
     };
 }
 
@@ -838,29 +844,29 @@ namespace tier0 {
     template<typename T, Size N>
     struct Array {
         using array_type = T[N];
-        array_type _data;
+        array_type data_;
 
         [[nodiscard]]
         constexpr Size size() const { return N; }
 
-        implicit constexpr Array() : _data() {}
+        implicit constexpr Array() : data_() {}
 
         implicit constexpr Array(ref<array_type> data) {
             for (var i : Range<Size>::until(Size(0), N)) {
-                this->_data[i] = data[i];
+                data_[i] = data[i];
             }
         }
 
-        Span<const T, N> asSpan() const { return Span(this->_data); }
+        Span<const T, N> asSpan() const { return Span<const T, N>(data_); }
 
-        Span<T, N> asSpan() { return Span<T, N>(this->_data); }
+        Span<T, N> asSpan() { return Span<T, N>(data_); }
 
         template<Size N2>
         constexpr Array<T, N + N2> concat(ref<Array<T, N2>> other) {
             let self = *this;
             var ret = Array<T, N + N2>();
-            for (var i : Range<Size>::until(Size(0), N)) { ret._data[i] = self._data[i]; }
-            for (var i : Range<Size>::until(Size(0), N2)) { ret._data[N + i] = other._data[i]; }
+            for (var i : Range<Size>::until(Size(0), N)) { ret.data_[i] = self.data_[i]; }
+            for (var i : Range<Size>::until(Size(0), N2)) { ret.data_[N + i] = other.data_[i]; }
             return ret;
         }
 
@@ -890,7 +896,7 @@ namespace tier0 {
 
     template<Native<Size> size, Native<Size> align>
     struct AlignedStorage {
-        alignas(align) Array<Byte, size> bytes;
+        alignas(align) Array<Byte, size> data_;
     };
 
     template<typename... Ts>
@@ -902,14 +908,14 @@ namespace tier0 {
         template<typename T>
         constexpr ref<T> get() const {
             Native<ptr<const T>> out;
-            new(&out) Native<ptr<const void>>(&this->bytes);
+            new(&out) Native<ptr<const void>>(&this->data_);
             return *out;
         }
 
         template<typename T>
         constexpr mut_ref<T> get() {
             Native<ptr<T>> out;
-            new(&out) Native<ptr<void>>(&this->bytes);
+            new(&out) Native<ptr<void>>(&this->data_);
             return *out;
         }
     };
@@ -917,7 +923,7 @@ namespace tier0 {
     template<typename... Ts>
     struct Union {
     private:
-        AlignedUnionStorage<Ts...> u;
+        AlignedUnionStorage<Ts...> data_;
         using types = TypeList<Ts...>;
     public:
         constexpr ~Union() {}
@@ -930,18 +936,18 @@ namespace tier0 {
 
         explicit constexpr Union() {}
 
-        implicit constexpr Union(movable<Union> other) : u(move(other.u)) {}
+        implicit constexpr Union(movable<Union> other) : data_(move(other.data_)) {}
 
         template<Size i>
         constexpr ref<typename types::template get<i>> get() const {
             using T = typename types::template get<i>;
-            return u.template get<T>();
+            return data_.template get<T>();
         }
 
         template<Size i>
         constexpr mut_ref<typename types::template get<i>> get() {
             using T = typename types::template get<i>;
-            return u.template get<T>();
+            return data_.template get<T>();
         }
 
         template<Size i>
@@ -957,7 +963,7 @@ namespace tier0 {
     template<typename T>
     struct Unmanaged {
     private:
-        Union<T> u;
+        Union<T> data_;
     public:
         ~Unmanaged() {}
 
@@ -973,9 +979,9 @@ namespace tier0 {
             new(&get()) T(move(other.get()));
         }
 
-        ref<T> get() const { return u.template get<Size(0)>(); }
+        ref<T> get() const { return data_.template get<Size(0)>(); }
 
-        mut_ref<T> get() { return u.template get<Size(0)>(); }
+        mut_ref<T> get() { return data_.template get<Size(0)>(); }
     };
 }
 
@@ -984,12 +990,12 @@ namespace tier0 {
     template<typename T>
     struct [[nodiscard]] ATTR_TYPESTATE_TYPE Optional {
     private:
-        Union<T> u;
-        Boolean valueBit;
+        Union<T> data_;
+        Boolean valueBit_;
     public:
         constexpr ~Optional() {
-            if (valueBit) {
-                u.template destroy<Size(0)>();
+            if (valueBit_) {
+                data_.template destroy<Size(0)>();
             }
         }
 
@@ -999,29 +1005,30 @@ namespace tier0 {
         explicit constexpr Optional() {}
 
     public:
-        implicit constexpr Optional(movable<Optional> other) : u(move(other.u)), valueBit(move(other.valueBit)) {}
+        implicit constexpr Optional(movable<Optional> other) : data_(move(other.data_)),
+                                                               valueBit_(move(other.valueBit_)) {}
 
         // ATTR_TYPESTATE_CTOR(unconsumed)
         static constexpr Optional of(T value) {
             var ret = Optional();
-            ret.u.template set<Size(0)>(move(value));
-            ret.valueBit = true;
+            ret.data_.template set<Size(0)>(move(value));
+            ret.valueBit_ = true;
             return ret;
         }
 
         ATTR_TYPESTATE_PRECONDITION(unknown)
         ATTR_TYPESTATE_ASSERTS(unconsumed)
 
-        Native<Boolean> hasValue() const { return valueBit == Boolean(true); }
+        Native<Boolean> hasValue() const { return valueBit_ == Boolean(true); }
 
         ATTR_TYPESTATE_PRECONDITION(unconsumed)
 
-        ref<T> value() const { return u.template get<Size(0)>(); }
+        ref<T> value() const { return data_.template get<Size(0)>(); }
 
         // ATTR_TYPESTATE_CTOR(consumed)
         static Optional empty() {
             var ret = Optional();
-            ret.valueBit = false;
+            ret.valueBit_ = false;
             return ret;
         }
     };
@@ -1032,14 +1039,14 @@ namespace tier0 {
     template<typename T, typename E>
     struct [[nodiscard]] ATTR_TYPESTATE_TYPE Result {
     private:
-        Union<T, E> u;
-        Boolean errorBit;
+        Union<T, E> data_;
+        Boolean errorBit_;
     public:
         ~Result() {
-            if (!errorBit) {
-                u.template destroy<Size(0)>();
+            if (!errorBit_) {
+                data_.template destroy<Size(0)>();
             } else {
-                u.template destroy<Size(1)>();
+                data_.template destroy<Size(1)>();
             }
         }
 
@@ -1049,41 +1056,41 @@ namespace tier0 {
         explicit Result() {}
 
     public:
-        implicit Result(movable<Result> other) : u(move(other.u)), errorBit(move(other.errorBit)) {}
+        implicit Result(movable<Result> other) : data_(move(other.data_)), errorBit_(move(other.errorBit_)) {}
 
         // ATTR_TYPESTATE_CTOR(unconsumed)
         static Result value(T value) {
             var ret = Result();
-            ret.u.template set<Size(0)>(move(value));
-            ret.errorBit = false;
+            ret.data_.template set<Size(0)>(move(value));
+            ret.errorBit_ = false;
             return ret;
         }
 
         ATTR_TYPESTATE_PRECONDITION(unknown)
         ATTR_TYPESTATE_ASSERTS(unconsumed)
 
-        Native<Boolean> isValue() const { return errorBit == Boolean(false); }
+        Native<Boolean> isValue() const { return errorBit_ == Boolean(false); }
 
         ATTR_TYPESTATE_PRECONDITION(unconsumed)
 
-        ref<T> value() const { return u.template get<Size(0)>(); }
+        ref<T> value() const { return data_.template get<Size(0)>(); }
 
         // ATTR_TYPESTATE_CTOR(consumed)
         static Result error(E error) {
             var ret = Result();
-            ret.u.template set<Size(1)>(move(error));
-            ret.errorBit = true;
+            ret.data_.template set<Size(1)>(move(error));
+            ret.errorBit_ = true;
             return ret;
         }
 
         ATTR_TYPESTATE_PRECONDITION(unknown)
         ATTR_TYPESTATE_ASSERTS(consumed)
 
-        Native<Boolean> isError() const { return errorBit == Boolean(true); }
+        Native<Boolean> isError() const { return errorBit_ == Boolean(true); }
 
         ATTR_TYPESTATE_PRECONDITION(consumed)
 
-        ref<E> error() const { return u.template get<Size(1)>(); }
+        ref<E> error() const { return data_.template get<Size(1)>(); }
     };
 }
 
@@ -1093,24 +1100,24 @@ namespace tier0 {
     struct Variant {
         static_assert(sizeof...(Ts) <= 255 - 1);
     private:
-        Union<Ts...> u;
-        Byte active;
+        Union<Ts...> data_;
+        Byte active_;
         using types = TypeList<Ts...>;
 
         template<typename... Us>
         struct destructors {
-            using U = decltype(u);
+            using U = decltype(data_);
 
             template<typename T, typename R>
             using mptr = R T::*;
 
             static constexpr mptr<U, void()> funcs[] = {&U::template destroy<Us::first::value>...};
 
-            static constexpr void invoke(mut_ref<Variant> self) { (self.u.*funcs[self.active - 1])(); }
+            static constexpr void invoke(mut_ref<Variant> self) { (self.data_.*funcs[self.active_ - 1])(); }
         };
 
         void destroy() {
-            if (active == 0) {
+            if (active_ == 0) {
                 return;
             }
             apply<destructors, collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>>::invoke(*this);
@@ -1123,7 +1130,7 @@ namespace tier0 {
         explicit Variant() {}
 
     public:
-        implicit Variant(movable<Variant> other) : u(move(other.u)), active(move(other.active)) {}
+        implicit Variant(movable<Variant> other) : data_(move(other.data_)), active_(move(other.active_)) {}
 
         template<Size i>
         static Variant of(typename types::template get<i - 1> value) {
@@ -1132,16 +1139,16 @@ namespace tier0 {
             return ret;
         }
 
-        E tag() const { return E(Native<Byte>(active)); }
+        E tag() const { return E(Native<Byte>(active_)); }
 
         template<Size i>
         ref<typename types::template get<i - 1>> get() const {
-            return u.template get<i - 1>();
+            return data_.template get<i - 1>();
         }
 
         template<Size i>
         mut_ref<typename types::template get<i - 1>> get() {
-            return u.template get<i - 1>();
+            return data_.template get<i - 1>();
         }
 
         template<Size i>
@@ -1149,7 +1156,7 @@ namespace tier0 {
             using T = typename types::template get<i - 1>;
             destroy();
             new(&get<i>()) T(move(value));
-            active = Byte(i);
+            active_ = Byte(i);
         }
     };
 }
@@ -1159,25 +1166,25 @@ namespace tier0 {
     template<Size N>
     struct LiteralString {
         using array_type = Native<Char>[N];
-        array_type data;
+        array_type data_;
 
         [[nodiscard]]
         constexpr Size size() const { return N - 1; }
 
-        explicit consteval LiteralString() : data() {
+        explicit consteval LiteralString() : data_() {
             var n = size();
             for (var i : Range<Size>::until(Size(0), n)) {
-                data[i] = 0;
+                data_[i] = 0;
             }
-            data[n] = 0;
+            data_[n] = 0;
         }
 
-        implicit consteval LiteralString(ref<Native<Char>[N]> str) : data() {
+        implicit consteval LiteralString(ref<Native<Char>[N]> str) : data_() {
             var n = size();
             for (var i : Range<Size>::until(Size(0), n)) {
-                data[i] = str[i];
+                data_[i] = str[i];
             }
-            data[n] = 0;
+            data_[n] = 0;
         }
 
         template<Size begin, Size end = N>
@@ -1186,9 +1193,9 @@ namespace tier0 {
             const var n = end - begin;
             var ret = LiteralString<n + 1>();
             for (var i : Range<Size>::until(Size(0), n)) {
-                ret.data[i] = data[begin + i];
+                ret.data_[i] = data_[begin + i];
             }
-            ret.data[n] = 0;
+            ret.data_[n] = 0;
             return ret;
         }
     };
@@ -1199,16 +1206,16 @@ namespace tier0 {
     template<LiteralString str>
     cstring global() {
         static constinit auto value = str;
-        return value.data;
+        return value.data_;
     }
 }
 
 // source location
 namespace tier0 {
     struct SourceLocation {
-        const cstring _file;
-        const cstring _function;
-        const Int _line;
+        const cstring file_;
+        const cstring function_;
+        const Int line_;
 
         static SourceLocation current(
                 cstring file = __builtin_FILE(),
@@ -1223,7 +1230,7 @@ namespace tier0 {
         }
 
     private:
-        SourceLocation(cstring file, cstring function, Int line) : _file(file), _function(function), _line(line) {}
+        SourceLocation(cstring file, cstring function, Int line) : file_(file), function_(function), line_(line) {}
     };
 }
 
@@ -1236,8 +1243,8 @@ namespace tier0 {
         }
 
         struct TypeNameFormat {
-            Size leading;
-            Size trailing;
+            Size leading_;
+            Size trailing_;
         private:
             static consteval Boolean calculate(Native<ptr<TypeNameFormat>> ret) {
                 using int_t = decltype(0);
@@ -1246,13 +1253,12 @@ namespace tier0 {
                 for (Size i = Size(0);; i = i + 1) {
                     if (haystack[i] == needle[0] and haystack[i + 1] == needle[1] and haystack[i + 2] == needle[2]) {
                         if (ret) {
-                            ret->leading = i;
-                            ret->trailing = (sizeof(haystack) - 1) - i - (sizeof(needle) - 1);
+                            ret->leading_ = i;
+                            ret->trailing_ = (sizeof(haystack) - 1) - i - (sizeof(needle) - 1);
                         }
                         return true;
                     }
                 }
-                return false;
             }
 
         public:
@@ -1268,13 +1274,13 @@ namespace tier0 {
         consteval auto TypeName() {
             constexpr auto format = TypeNameFormat::get();
             auto &raw = RawTypeName<T>();
-            const auto n = (sizeof(raw) - 1) - (format.leading + format.trailing);
+            const auto n = (sizeof(raw) - 1) - (format.leading_ + format.trailing_);
             auto ret = Array<Native<Char>, n + 1>();
             auto o = 0;
             for (auto i : Range<remove_const < decltype(n)>>::until(0, n)) {
-                auto c = raw[i + format.leading];
-                if (c == ' ' && raw[i + format.leading - 1] == '>') continue; // GCC avoids emitting `>>`
-                ret._data[o++] = c;
+                auto c = raw[i + format.leading_];
+                if (c == ' ' && raw[i + format.leading_ - 1] == '>') continue; // GCC avoids emitting `>>`
+                ret.data_[o++] = c;
             }
             return ret;
         }
@@ -1283,15 +1289,15 @@ namespace tier0 {
     template<typename T>
     cstring TypeName() {
         static constinit auto name = detail::TypeName<T>();
-        return name._data;
+        return name.data_;
     }
 }
 
 // constexpr strtok
 namespace tier0::strtok {
     struct Range {
-        Size begin;
-        Size end;
+        Size begin_;
+        Size end_;
     };
 
     template<LiteralString str>
@@ -1302,7 +1308,7 @@ namespace tier0::strtok {
         consteval Size countPlaceholders() {
             var ret = Size(0);
             for (var i = Size(0); i < str.size();) {
-                if (str.data[i] == '{' && str.data[i + 1] == '}') {
+                if (str.data_[i] == '{' && str.data_[i + 1] == '}') {
                     ret = ret + 1;
                     i = i + 2;
                 } else {
@@ -1316,7 +1322,7 @@ namespace tier0::strtok {
         consteval Size countCharactersUntilPlaceholder() {
             var i = Size(0);
             for (; i < str.size();) {
-                if (str.data[i] == '{' && str.data[i + 1] == '}') {
+                if (str.data_[i] == '{' && str.data_[i + 1] == '}') {
                     break;
                 } else {
                     i = i + 1;
@@ -1329,7 +1335,7 @@ namespace tier0::strtok {
         constexpr Array<T, n> forEachRange(F f) {
             constexpr var size = countCharactersUntilPlaceholder<str.template slice<offset>()>();
             var ret = Array<T, Size(1)>();
-            ret._data[0] = f.template operator()<Range{offset + 0, offset + size}>();
+            ret.data_[0] = f.template operator()<Range{offset + 0, offset + size}>();
             if constexpr (n > 1) {
                 var next = forEachRange<str, T, n - 1, F, offset + size + 2>(f);
                 return ret.template concat(next);
@@ -1351,7 +1357,7 @@ namespace tier0::strtok {
     template<LiteralString str>
     constexpr Array<cstring, count<str>()> collect() {
         return detail::forEachRange<str>([]<Range r>() constexpr {
-            return global<str.template slice<r.begin, r.end>()>();
+            return global<str.template slice<r.begin_, r.end_>()>();
         });
     }
 }

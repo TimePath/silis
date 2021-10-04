@@ -9,9 +9,9 @@ namespace tier1 {
 // memory
 namespace tier1 {
     struct AllocInfo {
-        cstring name;
-        Size elementSize;
-        Size size;
+        cstring name_;
+        Size elementSize_;
+        Size size_;
 
         template<typename T>
         static AllocInfo of() { return {TypeName<T>(), sizeof(T), Size(0)}; }
@@ -27,28 +27,28 @@ namespace tier1 {
     template<typename T>
     struct DynArray : private DisableCopyConstructible {
     private:
-        Int _size;
-        Native<ptr<T>> memory;
+        Int size_;
+        Native<ptr<T>> data_;
 
         void acquire() {
-            if (!_size) {
-                memory = nullptr;
+            if (!size_) {
+                data_ = nullptr;
                 return;
             }
-            var m = operator new[](Size(_size) * sizeof(T), AllocInfo::of<T>());
+            var m = operator new[](Size(size_) * sizeof(T), AllocInfo::of<T>());
             var m2 = Native<ptr<T>>(m);
-            memory = m2;
+            data_ = m2;
         }
 
         void release() {
-            if (!_size) {
+            if (!size_) {
                 return;
             }
-            var m2 = memory;
+            var m2 = data_;
             var m = Native<ptr<void>>(m2);
-            memory = nullptr;
-            for (var i : Range<Int>::until(Int(0), _size)) {
-                m2[_size - 1 - i].~T();
+            data_ = nullptr;
+            for (var i : Range<Int>::until(Int(0), size_)) {
+                m2[size_ - 1 - i].~T();
             }
             operator delete[](m);
         }
@@ -58,25 +58,25 @@ namespace tier1 {
             release();
         }
 
-        explicit DynArray() : DisableCopyConstructible(Unit()), _size(0) {}
+        explicit DynArray() : DisableCopyConstructible(Unit()), size_(0) {}
 
-        explicit DynArray(Int size) : DisableCopyConstructible(Unit()), _size(size) {
+        explicit DynArray(Int size) : DisableCopyConstructible(Unit()), size_(size) {
             acquire();
         }
 
         implicit constexpr DynArray(movable<DynArray> other) : DisableCopyConstructible(Unit()),
-                                                               _size(other._size), memory(other.memory) {
-            other._size = 0;
-            other.memory = nullptr;
+                                                               size_(other.size_), data_(other.data_) {
+            other.size_ = 0;
+            other.data_ = nullptr;
         }
 
         constexpr mut_ref<DynArray> operator=(movable<DynArray> other) {
             if (&other == this) return *this;
             this->~DynArray();
-            _size = other._size;
-            other._size = 0;
-            memory = other.memory;
-            other.memory = nullptr;
+            size_ = other.size_;
+            other.size_ = 0;
+            data_ = other.data_;
+            other.data_ = nullptr;
             return *this;
         }
 
@@ -87,26 +87,26 @@ namespace tier1 {
             }
         }
 
-        Span<const T> asSpan() const { return Span<T>::unsafe(this->memory); }
+        Span<const T> asSpan() const { return Span<T>::unsafe(data_, Size(size_)); }
 
-        Span<T> asSpan() { return Span<T>::unsafe(this->memory); }
+        Span<T> asSpan() { return Span<T>::unsafe(data_, Size(size_)); }
 
-        constexpr Int size() const { return _size; }
+        constexpr Int size() const { return size_; }
 
         constexpr DynArray copy() const {
-            return DynArray(_size, [this](Int i) { return get(i); });
+            return DynArray(size_, [this](Int i) { return get(i); });
         }
 
         constexpr ref<T> get(Int index) const {
-            return memory[index];
+            return data_[index];
         }
 
         constexpr mut_ref<T> get(Int index) {
-            return memory[index];
+            return data_[index];
         }
 
         constexpr void set(Int index, T value) {
-            new(&memory[index]) T(move(value));
+            new(&data_[index]) T(move(value));
         }
     };
 }
@@ -115,11 +115,11 @@ namespace tier1 {
 namespace tier1 {
     struct String {
     private:
-        DynArray<Char> _chars;
+        DynArray<Char> data_;
     public:
         explicit String() : String(DynArray<Char>(0)) {}
 
-        explicit String(DynArray<Char> chars) : _chars(move(chars)) {}
+        explicit String(DynArray<Char> chars) : data_(move(chars)) {}
 
         template<Native<Size> N>
         implicit constexpr String(ref<Native<Char>[N]> chars) : String(DynArray<Char>(Native<Int>(N), [=](Int i) {
@@ -130,11 +130,11 @@ namespace tier1 {
             return i < bytes.size() ? Native<Char>(bytes.get(i)) : '\0';
         })) {}
 
-        constexpr Int size() const { return _chars.size() - 1; }
+        constexpr Int size() const { return data_.size() - 1; }
 
-        String copy() const { return String(_chars.copy()); }
+        String copy() const { return String(data_.copy()); }
 
-        explicit operator cstring() const { return cstring(&_chars.get(0)); }
+        explicit operator cstring() const { return cstring(&data_.get(0)); }
     };
 
     inline String operator ""_s(cstring chars, Native<Size> N) {

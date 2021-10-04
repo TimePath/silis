@@ -73,6 +73,7 @@ def lookup(valobj):
         n = len(template_args)
         while i < n:
             kind = val_type.GetTemplateArgumentKind(i)
+            kind = lldb.eTemplateArgumentKindNull
             if kind != lldb.eTemplateArgumentKindNull:
                 argument_type = val_type.GetTemplateArgumentType(i)
             else:
@@ -132,6 +133,9 @@ class Value:
 
     def __index__(self):
         return self.sbvalue.GetValueAsUnsigned()
+
+    def __str__(self):
+        return self.sbvalue.GetValue()
 
     def cast(self, t):
         return Value(self.sbvalue.Cast(t.sbtype))

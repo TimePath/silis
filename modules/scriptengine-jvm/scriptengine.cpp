@@ -347,8 +347,11 @@ namespace scriptengine::jvm {
     };
 
     struct Utf8String {
-        UShort length;
-        Int offset;
+        StringSpan value_;
+
+        implicit Utf8String() : value_(StringSpan{Span<Byte>::unsafe(nullptr, Size(0))}) {}
+
+        explicit Utf8String(StringSpan string) : value_(string) {}
     };
 
     template<>
@@ -356,11 +359,9 @@ namespace scriptengine::jvm {
         static Utf8String decode(mut_ref<StreamReader> reader) {
             let length = reader.read<UShort>();
             var offset = reader.offset;
+            let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset), Size(length));
             reader.offset = reader.offset + length;
-            return Utf8String{
-                    .length = length,
-                    .offset =offset,
-            };
+            return Utf8String(StringSpan{bytes});
         }
     };
 
@@ -471,7 +472,7 @@ namespace scriptengine::jvm {
         static AttributeInfo decode(mut_ref<StreamReader> reader) {
             let attributeNameIndex = reader.read<UShort>();
             let attributeLength = reader.read<UInt>();
-            let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset));
+            let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset), Size(attributeLength));
             reader.offset = Int(UInt(reader.offset) + attributeLength);
             return {
                     .attributeNameIndex = attributeNameIndex,
@@ -543,7 +544,7 @@ namespace scriptengine::jvm {
     };
 
     void ClassHandle::release() {
-        var ret = this->handle._value;
+        var ret = handle_.data_;
         delete ret;
     }
 
@@ -728,8 +729,8 @@ namespace scriptengine::jvm {
     }
 
     void LoadCode(MethodHandle handle) {
-        let ret = *handle.handle.handle;
-        let method = ret.methods.get(handle.index);
+        let ret = *handle.handle_.handle_;
+        let method = ret.methods.get(handle.index_);
         let attribute = method.attributes.get(0);
         var reader = StreamReader{attribute.bytes, 0};
         var code = reader.read<CodeAttribute>();
