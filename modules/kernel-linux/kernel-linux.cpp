@@ -14,7 +14,7 @@ DynArray<Byte> file_read(cstring name) {
     var size = ftell(fd);
     fseek(fd, 0, SEEK_SET);
     var ret = DynArray<Byte>(Int(size));
-    var readRet = fread(&ret.get(0), 1, size, fd);
+    var readRet = fread(&ret.get(0), 1, Native<Size>(size), fd);
     (void) readRet;
     return ret;
 }
@@ -47,14 +47,14 @@ Int interface_open(cstring name) {
     var sll = sockaddr_ll();
     sll.sll_family = AF_PACKET;
     sll.sll_protocol = htobe16(ETH_P_ALL);
-    sll.sll_ifindex = idx;
+    sll.sll_ifindex = Native<Int>(idx);
     if (bind(handle, reinterpret_cast<Native<ptr<sockaddr>>>(&sll), sizeof(sll)) == -1) {
         perror("socket");
         return -4;
     }
 
     var req = packet_mreq();
-    req.mr_ifindex = idx;
+    req.mr_ifindex = Native<Int>(idx);
     req.mr_type = PACKET_MR_PROMISC;
     if (setsockopt(handle, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &req, sizeof(req)) == -1) {
         perror("setsockopt");

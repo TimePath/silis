@@ -1270,8 +1270,11 @@ namespace tier0 {
             auto &raw = RawTypeName<T>();
             const auto n = (sizeof(raw) - 1) - (format.leading + format.trailing);
             auto ret = Array<Native<Char>, n + 1>();
+            auto o = 0;
             for (auto i : Range<remove_const < decltype(n)>>::until(0, n)) {
-                ret._data[i] = raw[i + format.leading];
+                auto c = raw[i + format.leading];
+                if (c == ' ' && raw[i + format.leading - 1] == '>') continue; // GCC avoids emitting `>>`
+                ret._data[o++] = c;
             }
             return ret;
         }

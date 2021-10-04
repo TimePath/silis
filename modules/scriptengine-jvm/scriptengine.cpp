@@ -472,7 +472,7 @@ namespace scriptengine::jvm {
             let attributeNameIndex = reader.read<UShort>();
             let attributeLength = reader.read<UInt>();
             let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset));
-            reader.offset = Int(reader.offset + attributeLength);
+            reader.offset = Int(UInt(reader.offset) + attributeLength);
             return {
                     .attributeNameIndex = attributeNameIndex,
                     .bytes = bytes,
@@ -664,7 +664,7 @@ namespace scriptengine::jvm {
             var offsets = List<Int>();
             var byteMap = DynArray<Int>(Int(codeSize), [](Int) { return 0; });
             var code = List<InstructionInfo>();
-            for (var begin = reader.offset, end = Int(reader.offset + codeSize); reader.offset < end;) {
+            for (var begin = reader.offset, end = Int(UInt(reader.offset) + codeSize); reader.offset < end;) {
                 offsets.add(reader.offset - begin);
                 byteMap.set(reader.offset - begin, code.size());
                 code.add(move(reader.read<InstructionInfo>()));
@@ -703,7 +703,10 @@ namespace scriptengine::jvm {
     X(jsr_w) \
     /**/
             var tag = instruction.variant.tag();
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch-enum"
             switch (tag) {
+#pragma clang diagnostic pop
                 default:
                     break;
 #define X(id) \
