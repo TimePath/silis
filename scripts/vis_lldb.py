@@ -31,29 +31,7 @@ def __lldb_init_module(debugger, internal_dict):
 
 
 def lookup(valobj):
-    def parse_template_args(typename):
-        if "<" not in typename:
-            return
-        csv = typename[typename.find("<") + 1: -1]
-        depth = 0
-        buf = ""
-        for c in csv + ",":
-            if c == ",":
-                if depth:
-                    buf += c
-                else:
-                    yield buf
-                    buf = ""
-            elif c == " ":
-                pass
-            elif c == "<":
-                buf += c
-                depth += 1
-            elif c == ">":
-                buf += c
-                depth -= 1
-            else:
-                buf += c
+    from vis_lib import parse_template_args
 
     val_type = canonical(valobj.GetType())
     lookup_tag = val_type.GetName()
@@ -75,18 +53,18 @@ def lookup(valobj):
             kind = val_type.GetTemplateArgumentKind(i)
             kind = lldb.eTemplateArgumentKindNull
             if kind != lldb.eTemplateArgumentKindNull:
-                argument_type = val_type.GetTemplateArgumentType(i)
+                arg = val_type.GetTemplateArgumentType(i)
             else:
-                argument_type = valobj.target.FindFirstType(template_args[i])
-            argtype = canonical(argument_type)
+                arg = valobj.target.FindFirstType(template_args[i])
+            arg = canonical(arg)
             isintegral = kind == lldb.eTemplateArgumentKindIntegral
             if isintegral:
-                val = evaluate(f"({argtype.GetName()}) {template_args[i]}")
-                argtype = val.GetValueAsUnsigned()
+                val = evaluate(f"({arg.GetName()}) {template_args[i]}")
+                arg = val.GetValueAsUnsigned()
             i += 1
             yield {
-                "key": argtype.GetName() if not isintegral else False,
-                "val": Type(argtype) if not isintegral else argtype,
+                "key": arg.GetName() if not isintegral else False,
+                "val": Type(arg) if not isintegral else arg,
             }
 
     args = list(genargs())
