@@ -19,3 +19,8 @@ echo "add-auto-load-safe-path $PWD/.gdbinit" >> ~/.gdbinit
 ```shell
 echo "settings set target.load-cwd-lldbinit true" >> ~/.lldbinit
 ```
+
+
+## Profiling
+
+-ftime-trace

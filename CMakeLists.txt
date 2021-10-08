@@ -9,12 +9,16 @@ endif ()
 
 include(cmake/DiscoverTests.cmake)
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
 project(silis
         LANGUAGES CXX
         )
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(BUILD_SHARED_LIBS ON)
 
 add_compile_options("-g3")
 add_compile_options("$<$<CONFIG:DEBUG>:-Og>")
@@ -118,34 +122,30 @@ add_compile_definitions(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 add_executable(silis-dummy
         modules/main/src/main.cpp
         )
-target_link_libraries(silis-dummy INTERFACE libtier2)
+target_link_libraries(silis-dummy PRIVATE libtier2)
 
 # libtest
 
-add_library(libtest)
-target_sources(libtest
-        PRIVATE
+add_library(libtest OBJECT
         modules/test/test.cpp
         )
 
 # liballoc
 
-add_library(liballoc)
-target_sources(liballoc
-        PRIVATE
-        modules/alloc/alloc.cpp
+add_library(liballoc OBJECT
+        modules/alloc/alloc.hpp modules/alloc/alloc.cpp
         )
+target_link_libraries(liballoc PUBLIC libtier0)
 
 # libtier0
 
-add_library(libtier0 INTERFACE)
-target_sources(libtier0
-        INTERFACE
+add_library(libtier0 OBJECT
         modules/tier0/tier0.hpp
         )
 
 add_executable(libtier0-tests)
-target_link_libraries(libtier0-tests PRIVATE libtest liballoc INTERFACE libtier0)
+target_link_libraries(libtier0-tests PRIVATE libtest)
+target_link_libraries(libtier0-tests PRIVATE libtier0)
 target_discover_tests(libtier0-tests TEST_SOURCE_DIR modules/tier0)
 target_sources(libtier0-tests
         PRIVATE
@@ -154,15 +154,16 @@ target_sources(libtier0-tests
 
 # libtier1
 
-add_library(libtier1 INTERFACE)
-target_link_libraries(libtier1 INTERFACE libtier0)
-target_sources(libtier1
-        INTERFACE
+add_library(libtier1 OBJECT
         modules/tier1/tier1.hpp
         )
+target_link_libraries(libtier1 PUBLIC libtier0)
+target_link_libraries(libtier1 PUBLIC liballoc)
 
 add_executable(libtier1-tests)
-target_link_libraries(libtier1-tests PRIVATE libtest liballoc INTERFACE libtier1)
+target_link_libraries(libtier1-tests PRIVATE libtest)
+target_link_libraries(libtier1-tests PRIVATE libtier1)
+target_link_libraries(libtier1-tests PRIVATE liballoc)
 target_discover_tests(libtier1-tests TEST_SOURCE_DIR modules/tier1)
 target_sources(libtier1-tests
         PRIVATE
@@ -171,15 +172,15 @@ target_sources(libtier1-tests
 
 # libtier2
 
-add_library(libtier2 INTERFACE)
-target_link_libraries(libtier2 INTERFACE libtier1)
-target_sources(libtier2
-        INTERFACE
+add_library(libtier2 OBJECT
         modules/tier2/tier2.hpp
         )
+target_link_libraries(libtier2 PUBLIC libtier1)
 
 add_executable(libtier2-tests)
-target_link_libraries(libtier2-tests PRIVATE libtest liballoc INTERFACE libtier2)
+target_link_libraries(libtier2-tests PRIVATE libtest)
+target_link_libraries(libtier2-tests PRIVATE libtier2)
+target_link_libraries(libtier2-tests PRIVATE liballoc)
 target_discover_tests(libtier2-tests TEST_SOURCE_DIR modules/tier2)
 target_sources(libtier2-tests
         PRIVATE
@@ -188,57 +189,54 @@ target_sources(libtier2-tests
 
 # kernel
 
-add_library(libkernel INTERFACE)
-target_link_libraries(libkernel INTERFACE libtier2)
-target_sources(libkernel
-        INTERFACE
+add_library(libkernel OBJECT
         modules/kernel/kernel.hpp
         )
+target_link_libraries(libkernel PUBLIC libtier1)
 
 # kernel linux impl
 
-add_library(libkernel-linux)
-target_link_libraries(libkernel-linux INTERFACE libtier2)
-target_sources(libkernel-linux
-        PRIVATE
+add_library(libkernel-linux OBJECT
         modules/kernel-linux/kernel-linux.cpp
         )
+target_link_libraries(libkernel-linux PUBLIC libtier2)
 
 # libnet
 
-add_library(libnet INTERFACE)
-target_link_libraries(libnet INTERFACE libtier0)
-target_sources(libnet
-        INTERFACE
+add_library(libnet OBJECT
         modules/net/net.hpp
         )
+target_link_libraries(libnet PUBLIC libtier0)
 
 # test-libnet
 
-add_executable(test-libnet
+add_executable(test-libnet)
+target_link_libraries(test-libnet PRIVATE libtier2)
+target_link_libraries(test-libnet PRIVATE liballoc)
+target_link_libraries(test-libnet PRIVATE libkernel-linux)
+target_sources(test-libnet
+        PRIVATE
         modules/test-net/main.cpp
         )
-target_link_libraries(test-libnet INTERFACE libtier2)
-target_link_libraries(test-libnet INTERFACE libkernel)
-target_link_libraries(test-libnet PRIVATE libkernel-linux)
-target_link_libraries(test-libnet PRIVATE liballoc)
 
 # scriptengine-jvm
 
-add_library(scriptengine-jvm)
-target_link_libraries(scriptengine-jvm INTERFACE libtier0)
-target_link_libraries(scriptengine-jvm INTERFACE libtier2)
-target_sources(scriptengine-jvm
-        PRIVATE
-        modules/scriptengine-jvm/scriptengine.hpp modules/scriptengine-jvm/scriptengine.cpp
+add_library(scriptengine-jvm OBJECT
+        modules/scriptengine-jvm/classfile.hpp
+        modules/scriptengine-jvm/classfile-constants.inc
+        modules/scriptengine-jvm/decode.hpp
+        modules/scriptengine-jvm/instructions.inc
+        modules/scriptengine-jvm/loadclass.cpp
+        modules/scriptengine-jvm/loadcode.cpp
+        modules/scriptengine-jvm/scriptengine.hpp
         )
+target_link_libraries(scriptengine-jvm PRIVATE libtier2)
 
 add_executable(scriptengine-jvm-tests)
-target_link_libraries(scriptengine-jvm-tests PRIVATE libkernel-linux)
-target_link_libraries(scriptengine-jvm-tests PRIVATE scriptengine-jvm)
-target_link_libraries(scriptengine-jvm-tests INTERFACE libtier2)
-target_link_libraries(scriptengine-jvm-tests PRIVATE liballoc)
 target_link_libraries(scriptengine-jvm-tests PRIVATE libtest)
+target_link_libraries(scriptengine-jvm-tests PRIVATE scriptengine-jvm)
+target_link_libraries(scriptengine-jvm-tests PRIVATE liballoc)
+target_link_libraries(scriptengine-jvm-tests PRIVATE libkernel-linux)
 target_discover_tests(scriptengine-jvm-tests TEST_SOURCE_DIR modules/scriptengine-jvm/tests)
 target_sources(scriptengine-jvm-tests
         PRIVATE

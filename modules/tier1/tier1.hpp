@@ -1,26 +1,11 @@
 #pragma once
 
 #include "../tier0/tier0.hpp"
+#include "../alloc/alloc.hpp"
 
 namespace tier1 {
     using namespace tier0;
 }
-
-// memory
-namespace tier1 {
-    struct AllocInfo {
-        cstring name_;
-        Size elementSize_;
-        Size size_;
-
-        template<typename T>
-        static AllocInfo of() { return {TypeName<T>(), sizeof(T), Size(0)}; }
-    };
-}
-
-tier0::Native<tier0::ptr<void>> operator new(tier0::Native<tier0::Size> count, tier1::AllocInfo info);
-
-tier0::Native<tier0::ptr<void>> operator new[](tier0::Native<tier0::Size> count, tier1::AllocInfo info);
 
 // array
 namespace tier1 {

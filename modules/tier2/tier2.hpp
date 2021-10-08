@@ -6,51 +6,6 @@ namespace tier2 {
     using namespace tier1;
 }
 
-// intrusive
-namespace tier2 {
-    template<typename T>
-    struct IntrusiveLinks {
-        Native<ptr<T>> prev_;
-        Native<ptr<T>> next_;
-    };
-
-    template<typename T, IntrusiveLinks<T> T::*links>
-    struct IntrusiveList {
-    private:
-        Native<ptr<T>> head_;
-        Native<ptr<T>> tail_;
-    public:
-        void add(mut_ref<T> value) {
-            let lValue = &(value.*links);
-            let prev = lValue->prev_ = tail_;
-            if (let lPrev = !prev ? nullptr : &(prev->*links)) {
-                lPrev->next_ = &value;
-            } else {
-                head_ = &value;
-            }
-            tail_ = &value;
-        }
-
-        void remove(mut_ref<T> value) {
-            let lValue = &(value.*links);
-            let prev = lValue->prev_;
-            let next = lValue->next_;
-            if (let lPrev = !prev ? nullptr : &(prev->*links)) {
-                lPrev->next_ = next;
-            }
-            if (let lNext = !next ? nullptr : &(next->*links)) {
-                lNext->prev_ = prev;
-            }
-            if (&value == head_) {
-                head_ = next;
-            }
-            if (&value == tail_) {
-                tail_ = prev;
-            }
-        }
-    };
-}
-
 // list
 namespace tier2 {
     template<typename T>

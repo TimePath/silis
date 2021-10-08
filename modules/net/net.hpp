@@ -1,5 +1,9 @@
 #pragma once
 
+#include "../tier0/tier0.hpp"
+
+using namespace tier0;
+
 namespace net::ethernet {
     struct Address {
         Span<Byte, Size(6)> span_;

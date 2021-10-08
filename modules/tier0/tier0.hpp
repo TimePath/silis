@@ -465,21 +465,26 @@ namespace tier0 {
     namespace detail {
         // METAFUNC_TYPE(get, ((I, Size), (Ts, typename...)))
 
-        template<Size I, typename... Ts>
+        template<Native<Size> I, typename... Ts>
         struct get_s;
 
-        template<Size I, typename... Ts>
+        template<Native<Size> I, typename... Ts>
         using get = typename get_s<I, Ts...>::type;
 
-        METAFUNC_TYPE_IMPL(get, (Size(0), T, Ts...), ((T, typename),(Ts, typename...)), T)
-        METAFUNC_TYPE_IMPL(get, (I, T, Ts...), ((I, Size), (T, typename),(Ts, typename...)),
+        METAFUNC_TYPE_IMPL(get, (0, T, Ts...), ((T, typename),(Ts, typename...)), T)
+        METAFUNC_TYPE_IMPL(get, (I, T, Ts...), ((I, Native<Size>), (T, typename),(Ts, typename...)),
                            get<I - 1 METAFUNC_IMPL_DELIMITER_COMMA() Ts...>)
     }
 
     template<typename... Ts>
     struct TypeList {
-        template<Size I>
+#if __has_builtin(__type_pack_element)
+        template<Native<Size> I>
+        using get = __type_pack_element<I, Ts...>;
+#else
+        template<Native<Size> I>
         using get = detail::get<I, Ts...>;
+#endif
 
         METAFUNC_TYPE(concat, ((U, typename)))
         METAFUNC_TYPE_IMPL(concat, (TypeList<Us...>), ((Us, typename...)),
@@ -500,7 +505,7 @@ namespace tier0 {
     METAFUNC_TYPE_IMPL(apply, (F, TypeList<Ts...>), ((F, apply_func),(Ts, typename...)), F < Ts...>)
 #undef apply_func
 
-    template<Size i = Size(0)>
+    template<Native<Size> i = 0>
     struct CounterIterator {
         constexpr static auto hasNext = true;
         using next = CounterIterator<i + 1>;
@@ -527,6 +532,32 @@ namespace tier0 {
         using first = First;
         using second = Second;
     };
+
+#if __has_builtin(__make_integer_seq)
+    template <typename... Ts>
+    struct IndicesContainer {
+        using list = TypeList<Ts...>;
+
+        template <Native<Size> i>
+        struct IndicesElement {
+            struct first { static constexpr var value = i; };
+            struct second { using type = typename list::template get<i>; };
+        };
+
+        template <typename T, T... Is>
+        struct IndicesList {
+            using combined = TypeList<IndicesElement<Is>...>;
+        };
+
+        using type = typename __make_integer_seq<IndicesList, Native<Size>, sizeof...(Ts)>::combined;
+    };
+
+    template <typename... Ts>
+    using Indices = typename IndicesContainer<Ts...>::type;
+#else
+    template <typename... Ts>
+    using Indices = collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>;
+#endif
 }
 
 // structured binding
@@ -662,7 +693,7 @@ namespace tier0 {
     template<typename... Ts>
     struct Tuple {
     private:
-        apply<TupleStorage, typename collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>::template map<ToTupleLeaf>> data_;
+        apply<TupleStorage, typename Indices<Ts...>::template map<ToTupleLeaf>> data_;
     public:
         implicit Tuple(Ts... args) : data_{{args}...} {
         }
@@ -870,6 +901,18 @@ namespace tier0 {
             return ret;
         }
 
+        constexpr ref<T> get(Int index) const {
+            return data_[index];
+        }
+
+        constexpr mut_ref<T> get(Int index) {
+            return data_[index];
+        }
+
+        constexpr void set(Int index, T value) {
+            new(&data_[index]) T(move(value));
+        }
+
         template<typename E>
         using Iterator = ContiguousIterator<Array, E>;
 
@@ -938,19 +981,19 @@ namespace tier0 {
 
         implicit constexpr Union(movable<Union> other) : data_(move(other.data_)) {}
 
-        template<Size i>
+        template<Native<Size> i>
         constexpr ref<typename types::template get<i>> get() const {
             using T = typename types::template get<i>;
             return data_.template get<T>();
         }
 
-        template<Size i>
+        template<Native<Size> i>
         constexpr mut_ref<typename types::template get<i>> get() {
             using T = typename types::template get<i>;
             return data_.template get<T>();
         }
 
-        template<Size i>
+        template<Native<Size> i>
         constexpr void set(movable<typename types::template get<i>> value) {
             using T = typename types::template get<i>;
             new(&get<i>()) T(move(value));
@@ -1120,7 +1163,7 @@ namespace tier0 {
             if (active_ == 0) {
                 return;
             }
-            apply<destructors, collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>>::invoke(*this);
+            apply<destructors, Indices<Ts...>>::invoke(*this);
         }
 
     public:
@@ -1132,7 +1175,7 @@ namespace tier0 {
     public:
         implicit Variant(movable<Variant> other) : data_(move(other.data_)), active_(move(other.active_)) {}
 
-        template<Size i>
+        template<Native<Size> i>
         static Variant of(typename types::template get<i - 1> value) {
             var ret = Variant();
             ret.template set<i>(move(value));
@@ -1141,17 +1184,17 @@ namespace tier0 {
 
         E tag() const { return E(Native<Byte>(active_)); }
 
-        template<Size i>
+        template<Native<Size> i>
         ref<typename types::template get<i - 1>> get() const {
             return data_.template get<i - 1>();
         }
 
-        template<Size i>
+        template<Native<Size> i>
         mut_ref<typename types::template get<i - 1>> get() {
             return data_.template get<i - 1>();
         }
 
-        template<Size i>
+        template<Native<Size> i>
         void set(movable<typename types::template get<i - 1>> value) {
             using T = typename types::template get<i - 1>;
             destroy();
@@ -1370,4 +1413,49 @@ namespace tier0 {
             forEach<i + 1, T, n, F>(tuple, f, acc);
         }
     }
+}
+
+// intrusive
+namespace tier0 {
+    template<typename T>
+    struct IntrusiveLinks {
+        Native<ptr<T>> prev_;
+        Native<ptr<T>> next_;
+    };
+
+    template<typename T, IntrusiveLinks<T> T::*links>
+    struct IntrusiveList {
+    private:
+        Native<ptr<T>> head_;
+        Native<ptr<T>> tail_;
+    public:
+        void add(mut_ref<T> value) {
+            let lValue = &(value.*links);
+            let prev = lValue->prev_ = tail_;
+            if (let lPrev = !prev ? nullptr : &(prev->*links)) {
+                lPrev->next_ = &value;
+            } else {
+                head_ = &value;
+            }
+            tail_ = &value;
+        }
+
+        void remove(mut_ref<T> value) {
+            let lValue = &(value.*links);
+            let prev = lValue->prev_;
+            let next = lValue->next_;
+            if (let lPrev = !prev ? nullptr : &(prev->*links)) {
+                lPrev->next_ = next;
+            }
+            if (let lNext = !next ? nullptr : &(next->*links)) {
+                lNext->prev_ = prev;
+            }
+            if (&value == head_) {
+                head_ = next;
+            }
+            if (&value == tail_) {
+                tail_ = prev;
+            }
+        }
+    };
 }

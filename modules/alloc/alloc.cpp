@@ -2,9 +2,11 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "../tier2/tier2.hpp"
+#include "../tier0/tier0.hpp"
 
-using namespace tier2;
+#include "alloc.hpp"
+
+using namespace tier0;
 
 namespace {
     struct MemoryBlock {
