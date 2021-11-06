@@ -77,9 +77,17 @@ class Value:
     def cast(self, t):
         return Value(self.gdbvalue.cast(t.gdbtype))
 
+    def child(self, i):
+        fld = self.gdbvalue.type.fields()[i]
+        return Value(self.gdbvalue[fld])
+
 
 class GDBValuePrinter:
-    """https://sourceware.org/gdb/onlinedocs/gdb/Pretty-Printing-API.html#Pretty-Printing-API"""
+    """
+    https://sourceware.org/gdb/onlinedocs/gdb/Pretty-Printing-API.html#Pretty-Printing-API
+    https://sourceware.org/gdb/onlinedocs/gdb/Types-In-Python.html#Types-In-Python
+    https://sourceware.org/gdb/onlinedocs/gdb/Values-From-Inferior.html#Values-From-Inferior
+    """
 
     @classmethod
     def factory(cls, val):

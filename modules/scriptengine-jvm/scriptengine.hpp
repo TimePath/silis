@@ -39,12 +39,15 @@ namespace scriptengine::jvm {
             Invalid,
             Reference,
             String,
+            Int,
         };
 
-        using Value = Variant<ValueKind, ptr<void>, StringSpan>;
+        using Value = Variant<ValueKind, ptr<void>, StringSpan, Int>;
 
         Int sp_ = Int(0);
         List<Value> stack_ = List<Value>();
+
+        Int size() const { return sp_; }
 
         void push(Value v) {
             stack_.ensure(sp_ + 1);
@@ -64,7 +67,9 @@ namespace scriptengine::jvm {
     struct Evaluator {
         virtual ~Evaluator();
 
-        virtual ptr<void> getstatic(StringSpan cls, StringSpan name) = 0;
+        virtual void putstatic(StringSpan cls, StringSpan name, Stack::Value) = 0;
+
+        virtual Stack::Value getstatic(StringSpan cls, StringSpan name) = 0;
 
         virtual void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
 

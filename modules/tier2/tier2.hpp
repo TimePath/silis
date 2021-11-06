@@ -87,3 +87,42 @@ namespace tier2 {
         ENABLE_FOREACH_ITERABLE()
     };
 }
+
+// map
+namespace tier2 {
+    template<typename K, typename V>
+    struct SlowMap {
+        List<K> keys_;
+        List<V> vals_;
+    private:
+        Optional<ptr<V>> _get(ref<K> key) {
+            var i = Int(0);
+            for (let it : keys_) {
+                if (it == key) {
+                    return Optional<ptr<V>>::of(ptr<V>(&vals_.get(i)));
+                }
+                i = i + 1;
+            }
+            return Optional<ptr<V>>::empty();
+        }
+
+    public:
+        Optional<V> get(ref<K> key) {
+            var opt = _get(key);
+            if (opt.hasValue()) {
+                return Optional<V>::of(move(*opt.value()));
+            }
+            return Optional<V>::empty();
+        }
+
+        void set(ref<K> key, V val) {
+            var opt = _get(key);
+            if (!opt.hasValue()) {
+                keys_.add(key);
+                vals_.add(move(val));
+                return;
+            }
+            new(opt.value()) V(move(val));
+        }
+    };
+}

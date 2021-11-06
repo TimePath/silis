@@ -483,6 +483,9 @@ namespace tier0 {
                            get<I - 1 METAFUNC_IMPL_DELIMITER_COMMA() Ts...>)
     }
 
+    template<typename T, T... values>
+    struct ValueList;
+
     template<typename... Ts>
     struct TypeList {
 #if __has_builtin(__type_pack_element)
@@ -499,6 +502,13 @@ namespace tier0 {
 
         template<template<typename> typename F>
         using map = TypeList<F<Ts>...>;
+
+        template<typename T, template<typename> typename F>
+        using mapv = ValueList<T, F<Ts>::value...>;
+    };
+
+    template<typename T, T... values>
+    struct ValueList {
     };
 
     METAFUNC_TYPE(collect2, ((hasNext, Boolean), (T, typename)))
@@ -511,6 +521,12 @@ namespace tier0 {
     METAFUNC_TYPE(apply, ((F, apply_func), (T, typename)))
     METAFUNC_TYPE_IMPL(apply, (F, TypeList<Ts...>), ((F, apply_func),(Ts, typename...)), F < Ts...>)
 #undef apply_func
+
+#define applyv_func template<T...> typename
+    METAFUNC_TYPE(applyv, ((T, typename), (F, applyv_func), (X, typename)))
+    METAFUNC_TYPE_IMPL(applyv, (T, F, ValueList<T, values...>), ((T, typename), (F, applyv_func),(values, T...)),
+                       F < values...>)
+#undef applyv_func
 
     template<Native<Size> i = 0>
     struct CounterIterator {
@@ -542,29 +558,40 @@ namespace tier0 {
 
 #if __has_builtin(__make_integer_seq)
     template <typename... Ts>
-    struct IndicesContainer {
+    struct EnumerateContainer {
         using list = TypeList<Ts...>;
 
         template <Native<Size> i>
-        struct IndicesElement {
+        struct EnumerateElement {
             struct first { static constexpr var value = i; };
             struct second { using type = typename list::template get<i>; };
         };
 
         template <typename T, T... Is>
-        struct IndicesList {
-            using combined = TypeList<IndicesElement<Is>...>;
+        struct EnumerateList {
+            using combined = TypeList<EnumerateElement<Is>...>;
         };
 
-        using type = typename __make_integer_seq<IndicesList, Native<Size>, sizeof...(Ts)>::combined;
+        using type = typename __make_integer_seq<EnumerateList, Native<Size>, sizeof...(Ts)>::combined;
     };
 
     template <typename... Ts>
-    using Indices = typename IndicesContainer<Ts...>::type;
+    using Enumerate = typename EnumerateContainer<Ts...>::type;
 #else
     template<typename... Ts>
-    using Indices = collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>;
+    using Enumerate = collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>;
 #endif
+
+    template<Native<Size>... values>
+    using NativeSizeValueList = ValueList<Native<Size>, values...>;
+
+    template<typename T>
+    struct ToIndex {
+        static constexpr auto value = T::first::value;
+    };
+
+    template<typename... Ts>
+    using Indices = applyv<Native<Size>, NativeSizeValueList, typename Enumerate<Ts...>::template mapv<Native<Size>, ToIndex>>;
 }
 
 // structured binding
@@ -685,24 +712,30 @@ struct std::tuple_element {
 
 // tuple
 namespace tier0 {
+    template<typename... Ts>
+    struct Structs;
+
+    template<typename... Ts>
+    struct Structs : Ts ... {
+    };
+
     template<Size i, typename T>
     struct TupleLeaf {
         T value;
-    };
-
-    template<typename... Ts>
-    struct TupleStorage : Ts ... {
     };
 
     template<typename T>
     using ToTupleLeaf = TupleLeaf<T::first::value, typename T::second::type>;
 
     template<typename... Ts>
+    using TupleStorage = apply<Structs, typename Enumerate<Ts...>::template map<ToTupleLeaf>>;
+
+    template<typename... Ts>
     struct Tuple {
     private:
-        apply<TupleStorage, typename Indices<Ts...>::template map<ToTupleLeaf>> data_;
+        TupleStorage<Ts...> data_;
     public:
-        implicit Tuple(Ts... args) : data_{{args}...} {
+        explicit Tuple(Ts... args) : data_{{args}...} {
         }
 
         struct [[maybe_unused]] elements {
@@ -719,6 +752,20 @@ namespace tier0 {
         };
 
         ENABLE_STRUCTURED_BINDING(Tuple)
+
+        constexpr Boolean operator==(ref<Tuple> other) const { return equal(*this, other); }
+
+    private:
+        template<Native<Size>... Is>
+        struct equality {
+            static constexpr Boolean invoke(ref<Tuple> a, ref<Tuple> b) {
+                return ((a.template get<Is>() == b.template get<Is>()) && ...);
+            }
+        };
+
+        static constexpr Boolean equal(ref<Tuple> a, ref<Tuple> b) {
+            return applyv<Native<Size>, equality, Indices<Ts...>>::invoke(a, b);
+        }
     };
 
     template<typename... Ts>
@@ -1109,6 +1156,8 @@ namespace tier0 {
 
         ref<T> value() const { return data_.template get<Size(0)>(); }
 
+        mut_ref<T> value() { return data_.template get<Size(0)>(); }
+
         // ATTR_TYPESTATE_CTOR(consumed)
         static Optional empty() {
             var ret = Optional();
@@ -1204,7 +1253,7 @@ namespace tier0 {
             if (active_ == 0) {
                 return;
             }
-            apply<destructors, Indices<Ts...>>::invoke(*this);
+            apply<destructors, Enumerate<Ts...>>::invoke(*this);
         }
 
     public:

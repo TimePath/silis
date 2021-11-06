@@ -42,22 +42,32 @@ void eval(cstring path) {
     struct EvaluatorState {
         ClassHandle mainClass;
         SystemStatics systemStatics;
+        SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value> statics;
     };
 
     var state = EvaluatorState{
             .mainClass = cls,
             .systemStatics = {
                     .out_ = PrintStream(),
-            }
+            },
+            .statics = SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value>()
     };
 
     struct MyEvaluator : Evaluator, EvaluatorState {
-        MyEvaluator(movable<EvaluatorState> state) : EvaluatorState(state) {}
+        explicit MyEvaluator(movable<EvaluatorState> state) : EvaluatorState(move(state)) {}
 
-        ptr<void> getstatic(StringSpan cls, StringSpan name) override {
-            (void) cls;
-            (void) name;
-            return &systemStatics.out_;
+        void putstatic(StringSpan cls, StringSpan name, Stack::Value value) override {
+            if (cls == "java/lang/System" && name == "out") {
+                return;
+            }
+            statics.set(Tuple(cls, name), move(value));
+        }
+
+        Stack::Value getstatic(StringSpan cls, StringSpan name) override {
+            if (cls == "java/lang/System" && name == "out") {
+                return Stack::Value::of<Stack::ValueKind::Reference>(&systemStatics.out_);
+            }
+            return move(statics.get(Tuple(cls, name)).value());
         }
 
         void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) override {
@@ -79,7 +89,11 @@ void eval(cstring path) {
     };
 
     var evaluator = MyEvaluator(move(state));
-    let mh = find_method(cls, "main");
-    eval(mh, evaluator);
+    let mhStaticInit = find_method(cls, "<clinit>");
+    if (mhStaticInit.index_ >= 0) {
+        eval(mhStaticInit, evaluator);
+    }
+    let mhMain = find_method(cls, "main");
+    eval(mhMain, evaluator);
     cls.release();
 }

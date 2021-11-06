@@ -35,6 +35,26 @@ class PointerPrinter(Printer):
         return self._data
 
 
+class TuplePrinter(Printer):
+    Ts: object
+
+    def __init__(self, Ts):
+        super().__init__()
+        self.Ts = Ts
+
+    _data: object
+
+    def update(self, val):
+        self._data = val["data_"]
+
+    def repr(self):
+        return f"Tuple"
+
+    def children(self):
+        for i, t in enumerate(self.Ts):
+            yield f"[{i}]", self._data.child(i).child(0)
+
+
 class VariantPrinter(Printer):
     E: object
     Ts: object
@@ -71,7 +91,7 @@ class SpanPrinter(Printer):
         super().__init__()
         self.T = T
         self.N = N
-        self._size = N
+        # self._size = N
 
     _data: object
     _size: object
@@ -130,6 +150,9 @@ def register():
         "tier0::UInt": WordPrinter(),
         "tier0::Int": WordPrinter(),
         # "tier0::ptr": PointerPrinter(),
+        "tier0::Tuple": {
+            None: lambda *Ts: TuplePrinter(Ts)
+        },
         "tier0::Variant": {
             None: lambda E: {
                 None: lambda *Ts: VariantPrinter(E, Ts)

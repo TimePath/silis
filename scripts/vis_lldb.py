@@ -51,11 +51,11 @@ def lookup(valobj):
         n = len(template_args)
         while i < n:
             kind = val_type.GetTemplateArgumentKind(i)
-            kind = lldb.eTemplateArgumentKindNull
+            # kind = lldb.eTemplateArgumentKindNull
             if kind != lldb.eTemplateArgumentKindNull:
                 arg = val_type.GetTemplateArgumentType(i)
             else:
-                arg = valobj.target.FindFirstType(template_args[i])
+                arg = valobj.target.FindFirstType(template_args[i])  # will likely fail for templated types
             arg = canonical(arg)
             isintegral = kind == lldb.eTemplateArgumentKindIntegral
             if isintegral:
@@ -120,11 +120,16 @@ class Value:
             return self
         return Value(self.sbvalue.Cast(t.sbtype))
 
+    def child(self, i):
+        return Value(self.sbvalue.GetChildAtIndex(i))
+
 
 class LLDBValuePrinter:
     """
     https://lldb.llvm.org/cpp_reference/namespacelldb.html
     https://opensource.apple.com/source/lldb/lldb-310.2.36/www/python_reference/frames.html
+    https://lldb.llvm.org/python_api/lldb.SBType.html
+    https://lldb.llvm.org/python_api/lldb.SBValue.html
     """
 
     def __init__(self, valobj, internal_dict):

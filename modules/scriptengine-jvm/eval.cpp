@@ -16,16 +16,27 @@ namespace scriptengine::jvm {
     void eval(MethodHandle mh, mut_ref<Evaluator> evaluator) {
         let pool = mh.handle_.handle_->constantPool;
         let code = load_code(mh);
-        var stack = Stack();
         var run = Boolean(true);
-        for (var pc = Int(-1); (void) (pc = pc + 1), run;) {
-            let v = code.code_.get(pc).variant_;
+        var stack = Stack();
+        var pc = Int(0);
+        var jump = [&](Int relative) { pc = pc + relative - 1; };
+        for (; run; pc = pc + 1) {
+            let _instruction = code.code_.get(pc).variant_;
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wswitch-enum"
-            switch (v.index()) {
+            switch (_instruction.index()) {
 #pragma clang diagnostic pop
+                default: {
+                    run = false;
+                    break;
+                }
+                case Instruction::_return: {
+                    run = false;
+                    break;
+                }
+                    // CLASS
                 case Instruction::getstatic: {
-                    let instruction = v.get<Instruction::getstatic>();
+                    let instruction = _instruction.get<Instruction::getstatic>();
                     let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
                     let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
                     let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
@@ -33,20 +44,24 @@ namespace scriptengine::jvm {
                     let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
                     let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
                     (void) refType;
-                    stack.push(Stack::Value::of<Stack::ValueKind::Reference>(
-                            evaluator.getstatic(refClassName.string.value_, refName.string.value_)
-                    ));
+                    stack.push(evaluator.getstatic(refClassName.string.value_, refName.string.value_));
                     break;
                 }
-                case Instruction::ldc: {
-                    let instruction = v.get<Instruction::ldc>();
-                    let constant = pool.get(instruction.index - 1).variant_.get<Constant::String>();
-                    let constantValue = pool.get(constant.stringIndex - 1).variant_.get<Constant::Utf8>();
-                    stack.push(Stack::Value::of<Stack::ValueKind::String>(constantValue.string.value_));
+                case Instruction::putstatic: {
+                    let instruction = _instruction.get<Instruction::putstatic>();
+                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
+                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
+                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
+                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    (void) refType;
+                    evaluator.putstatic(refClassName.string.value_, refName.string.value_, stack.pop());
                     break;
                 }
+                    // INVOKE
                 case Instruction::invokestatic: {
-                    let instruction = v.get<Instruction::invokestatic>();
+                    let instruction = _instruction.get<Instruction::invokestatic>();
                     let ref = pool.get(instruction.index - 1).variant_.get<Constant::Methodref>();
                     let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
                     let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
@@ -60,7 +75,7 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::invokevirtual: {
-                    let instruction = v.get<Instruction::invokevirtual>();
+                    let instruction = _instruction.get<Instruction::invokevirtual>();
                     let ref = pool.get(instruction.index - 1).variant_.get<Constant::Methodref>();
                     let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
                     let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
@@ -73,14 +88,74 @@ namespace scriptengine::jvm {
                     );
                     break;
                 }
-                case Instruction::_return: {
-                    run = false;
+                    // STACK
+                case Instruction::ldc: {
+                    let instruction = _instruction.get<Instruction::ldc>();
+                    let constant = pool.get(instruction.index - 1).variant_.get<Constant::String>();
+                    let constantValue = pool.get(constant.stringIndex - 1).variant_.get<Constant::Utf8>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::String>(constantValue.string.value_));
                     break;
                 }
-                default: {
-                    run = false;
+                    // BRANCH
+                case Instruction::_goto: {
+                    let instruction = _instruction.get<Instruction::ifeq>();
+                    jump(Int(instruction.branch));
                     break;
                 }
+                case Instruction::ifeq: {
+                    let instruction = _instruction.get<Instruction::ifeq>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue == Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::ifne: {
+                    let instruction = _instruction.get<Instruction::ifne>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue != Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                    // REFERENCE
+                    // BYTE
+                    // CHAR
+                    // SHORT
+                    // INT
+                case Instruction::iconst_0: {
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(0));
+                    break;
+                }
+                case Instruction::iconst_1: {
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(1));
+                    break;
+                }
+                case Instruction::iconst_2: {
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(2));
+                    break;
+                }
+                case Instruction::iconst_3: {
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(3));
+                    break;
+                }
+                case Instruction::iconst_4: {
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(4));
+                    break;
+                }
+                case Instruction::iconst_5: {
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(5));
+                    break;
+                }
+                case Instruction::iconst_m1: {
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(-1));
+                    break;
+                }
+                    // LONG
+                    // FLOAT
+                    // DOUBLE
             }
         }
     }

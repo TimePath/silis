@@ -141,7 +141,7 @@ template<LiteralString str, typename... Ts>
 auto sql(Ts... values) {
     constexpr var N = strtok::count<str>();
     static_assert(sizeof...(Ts) == N - 1, "incorrect number of arguments");
-    return Statement<N, Ts...>{strtok::collect<str>(), {values...}};
+    return Statement<N, Ts...>{strtok::collect<str>(), Tuple{values...}};
 }
 
 TEST("StrTok") {
