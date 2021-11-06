@@ -1069,6 +1069,12 @@ namespace tier0 {
 
         implicit constexpr Union(movable<Union> other) : data_(move(other.data_)) {}
 
+        Union copy() const {
+            var ret = Union();
+            ret.data_ = this->data_;
+            return ret;
+        }
+
         template<Native<Size> i>
         constexpr ref<typename types::template get<i>> get() const {
             using T = typename types::template get<i>;
@@ -1269,6 +1275,13 @@ namespace tier0 {
         static Variant of(typename types::template get<Native<Size>(i) - 1> value) {
             var ret = Variant();
             ret.template set<i>(move(value));
+            return ret;
+        }
+
+        Variant copy() const {
+            var ret = Variant();
+            ret.active_ = this->active_;
+            new(&ret.data_) Union<Ts...>(move(this->data_.copy()));
             return ret;
         }
 

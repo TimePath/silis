@@ -80,7 +80,7 @@ class VariantPrinter(Printer):
             yield f"active", self._active
             return
         t = self.Ts[i - 1]
-        yield f"[{t}]", self._data.cast(t)
+        yield f"[{i}:{t}]", self._data.cast(t)
 
 
 class SpanPrinter(Printer):

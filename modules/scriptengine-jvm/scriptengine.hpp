@@ -56,9 +56,13 @@ namespace scriptengine::jvm {
             stack_._size(sp_);
         }
 
+        mut_ref<Value> peek() {
+            return stack_.get(sp_ - 1);
+        }
+
         Value pop() {
+            var ret = move(peek());
             sp_ = sp_ - 1;
-            var ret = move(stack_.get(sp_));
             stack_._size(sp_);
             return ret;
         }
@@ -74,7 +78,11 @@ namespace scriptengine::jvm {
         virtual void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
 
         virtual void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
+
+        virtual Stack::Value _new(StringSpan cls) = 0;
+
+        virtual void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
     };
 
-    void eval(MethodHandle handle, mut_ref<Evaluator> evaluator);
+    void eval(MethodHandle handle, mut_ref<Evaluator> evaluator, List<Stack::Value> locals = List<Stack::Value>());
 }

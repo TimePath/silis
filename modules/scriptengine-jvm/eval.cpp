@@ -13,7 +13,12 @@ namespace scriptengine::jvm {
 namespace scriptengine::jvm {
     Evaluator::~Evaluator() {}
 
-    void eval(MethodHandle mh, mut_ref<Evaluator> evaluator) {
+    void eval(MethodHandle mh, mut_ref<Evaluator> evaluator, List<Stack::Value> locals) {
+        {
+            let nLocals = 100; // fixme
+            locals.ensure(nLocals);
+            locals._size(nLocals);
+        }
         let pool = mh.handle_.handle_->constantPool;
         let code = load_code(mh);
         var run = Boolean(true);
@@ -66,8 +71,17 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::instanceof:
-                case Instruction::multianewarray:
-                case Instruction::_new:
+                case Instruction::multianewarray: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::_new: {
+                    let instruction = _instruction.get<Instruction::_new>();
+                    let refClass = pool.get(instruction.index - 1).variant_.get<Constant::Class>();
+                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    stack.push(evaluator._new(refClassName.string.value_));
+                    break;
+                }
                 case Instruction::newarray:
                 case Instruction::putfield: {
                     unimplemented();
@@ -87,9 +101,22 @@ namespace scriptengine::jvm {
                 }
                     // INVOKE
                 case Instruction::invokedynamic:
-                case Instruction::invokeinterface:
-                case Instruction::invokespecial: {
+                case Instruction::invokeinterface: {
                     unimplemented();
+                    break;
+                }
+                case Instruction::invokespecial: {
+                    let instruction = _instruction.get<Instruction::invokespecial>();
+                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Methodref>();
+                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
+                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
+                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    evaluator.invokespecial(
+                            refClassName.string.value_, refName.string.value_, refType.string.value_,
+                            stack
+                    );
                     break;
                 }
                 case Instruction::invokestatic: {
@@ -121,7 +148,10 @@ namespace scriptengine::jvm {
                     break;
                 }
                     // STACK
-                case Instruction::dup:
+                case Instruction::dup: {
+                    stack.push(stack.peek().copy());
+                    break;
+                }
                 case Instruction::dup2:
                 case Instruction::dup2_x1:
                 case Instruction::dup2_x2:
@@ -138,8 +168,14 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::ldc2_w:
-                case Instruction::ldc_w:
-                case Instruction::pop:
+                case Instruction::ldc_w: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::pop: {
+                    stack.pop();
+                    break;
+                }
                 case Instruction::swap: {
                     unimplemented();
                     break;
@@ -200,19 +236,54 @@ namespace scriptengine::jvm {
                     // REFERENCE
                 case Instruction::aaload:
                 case Instruction::aastore:
-                case Instruction::aconst_null:
-                case Instruction::aload:
-                case Instruction::aload_0:
-                case Instruction::aload_1:
-                case Instruction::aload_2:
-                case Instruction::aload_3:
-                case Instruction::areturn:
-                case Instruction::astore:
-                case Instruction::astore_0:
-                case Instruction::astore_1:
-                case Instruction::astore_2:
-                case Instruction::astore_3: {
+                case Instruction::aconst_null: {
                     unimplemented();
+                    break;
+                }
+                case Instruction::aload: {
+                    let instruction = _instruction.get<Instruction::aload>();
+                    stack.push(locals.get(0 + instruction.index).copy());
+                    break;
+                }
+                case Instruction::aload_0: {
+                    stack.push(locals.get(0).copy());
+                    break;
+                }
+                case Instruction::aload_1: {
+                    stack.push(locals.get(1).copy());
+                    break;
+                }
+                case Instruction::aload_2: {
+                    stack.push(locals.get(2).copy());
+                    break;
+                }
+                case Instruction::aload_3: {
+                    stack.push(locals.get(3).copy());
+                    break;
+                }
+                case Instruction::areturn: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::astore: {
+                    let instruction = _instruction.get<Instruction::astore>();
+                    locals.set(0 + instruction.index, stack.pop());
+                    break;
+                }
+                case Instruction::astore_0: {
+                    locals.set(0, stack.pop());
+                    break;
+                }
+                case Instruction::astore_1: {
+                    locals.set(1, stack.pop());
+                    break;
+                }
+                case Instruction::astore_2: {
+                    locals.set(2, stack.pop());
+                    break;
+                }
+                case Instruction::astore_3: {
+                    locals.set(3, stack.pop());
                     break;
                 }
                     // BYTE
