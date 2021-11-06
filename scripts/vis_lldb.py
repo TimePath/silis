@@ -116,6 +116,8 @@ class Value:
         return self.sbvalue.GetValue()
 
     def cast(self, t):
+        if t.sbtype.GetName() == "":
+            return self
         return Value(self.sbvalue.Cast(t.sbtype))
 
 

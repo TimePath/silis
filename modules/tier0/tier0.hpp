@@ -842,6 +842,24 @@ namespace tier0 {
 
         static Span unsafe(Native<ptr<T>> addr, Size size) { return Span(addr, size); }
 
+        constexpr Boolean operator==(ref<Span> other) const { return equal(*this, other); }
+
+    private:
+        static constexpr Boolean equal(ref<Span> a, ref<Span> b) {
+            var i = Size(0);
+            while (i < a.size() && i < b.size()) {
+                let iA = a.get(Int(i));
+                let iB = b.get(Int(i));
+                if (iA != iB) {
+                    return false;
+                }
+                i = i + 1;
+            }
+            return i == a.size() && i == b.size();
+        }
+
+    public:
+
         [[nodiscard]]
         constexpr Size size() const { return size_; }
 
@@ -873,7 +891,23 @@ namespace tier0 {
     };
 
     struct StringSpan {
-        Span<Byte> data_;
+        Span<const Byte> data_;
+
+        explicit StringSpan(Span<const Byte> data) : data_(data) {}
+
+        implicit StringSpan(cstring str)
+                : data_(Span<const Byte>::unsafe(ptr<const Byte>::reinterpret(str), _strlen(str))) {}
+
+        constexpr Boolean operator==(ref<StringSpan> other) const { return (*this).data_ == other.data_; }
+
+    private:
+        static Size _strlen(cstring str) {
+            var ret = Size(0);
+            while (str[ret] != 0) {
+                ret = ret + 1;
+            }
+            return ret;
+        }
     };
 }
 

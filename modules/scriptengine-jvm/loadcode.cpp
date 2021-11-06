@@ -105,6 +105,19 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
+    MethodHandle find_method(ClassHandle cls, StringSpan name) {
+        let pool = cls.handle_->constantPool;
+        var i = Int(0);
+        for (let it : cls.handle_->methods.asSpan()) {
+            let refName = pool.get(it.nameIndex - 1).variant_.get<Constant::Utf8>();
+            if (refName.string.value_ == name) {
+                return {cls, i};
+            }
+            i = i + 1;
+        }
+        return {cls, -1};
+    }
+
     CodeAttribute load_code(MethodHandle handle) {
         let ret = *handle.handle_.handle_;
         let method = ret.methods.get(handle.index_);

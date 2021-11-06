@@ -16,7 +16,7 @@ namespace scriptengine::jvm {
     struct Utf8String {
         StringSpan value_;
 
-        implicit Utf8String() : value_(StringSpan{Span<Byte>::unsafe(nullptr, Size(0))}) {}
+        implicit Utf8String() : value_(StringSpan{Span<const Byte>::unsafe(nullptr, Size(0))}) {}
 
         explicit Utf8String(StringSpan string) : value_(string) {}
     };

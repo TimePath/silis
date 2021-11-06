@@ -9,9 +9,12 @@
 using namespace test;
 
 TEST("load_class") {
+    using namespace scriptengine::jvm;
+
     var data = file_read("modules/scriptengine-jvm/tests/Hello.class");
-    var cls = scriptengine::jvm::load_class(move(data));
-    scriptengine::jvm::load_code({cls, 1});
+    var cls = load_class(move(data));
+    let mh = find_method(cls, "main");
+    load_code(mh);
     cls.release();
     printf("load_class\n");
 }
@@ -36,15 +39,33 @@ void eval(cstring path) {
         PrintStream out_;
     };
 
-    struct MyEvaluator : Evaluator {
-        SystemStatics systemStatics = {
-                .out_ = PrintStream(),
-        };
+    struct EvaluatorState {
+        ClassHandle mainClass;
+        SystemStatics systemStatics;
+    };
+
+    var state = EvaluatorState{
+            .mainClass = cls,
+            .systemStatics = {
+                    .out_ = PrintStream(),
+            }
+    };
+
+    struct MyEvaluator : Evaluator, EvaluatorState {
+        MyEvaluator(movable<EvaluatorState> state) : EvaluatorState(state) {}
 
         ptr<void> getstatic(StringSpan cls, StringSpan name) override {
             (void) cls;
             (void) name;
             return &systemStatics.out_;
+        }
+
+        void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) override {
+            (void) cls;
+            (void) signature;
+            (void) stack;
+            let mh = find_method(mainClass, name);
+            eval(mh, *this);
         }
 
         void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) override {
@@ -55,8 +76,10 @@ void eval(cstring path) {
             var out = ptr<PrintStream>(stack.pop().get<Stack::ValueKind::Reference>());
             out->println(arg);
         }
-    } evaluator;
+    };
 
-    eval(cls, evaluator);
+    var evaluator = MyEvaluator(move(state));
+    let mh = find_method(cls, "main");
+    eval(mh, evaluator);
     cls.release();
 }

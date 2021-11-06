@@ -17,9 +17,9 @@ namespace scriptengine::jvm {
         static Utf8String decode(mut_ref<StreamReader> reader) {
             let length = reader.read<UShort>();
             var offset = reader.offset;
-            let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset), Size(length));
+            let bytes = Span<const Byte>::unsafe(&reader.data.get(reader.offset), Size(length));
             reader.offset = reader.offset + length;
-            return Utf8String(StringSpan{bytes});
+            return Utf8String(StringSpan(bytes));
         }
     };
 

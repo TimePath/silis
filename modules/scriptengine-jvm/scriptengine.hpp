@@ -24,6 +24,8 @@ namespace scriptengine::jvm {
 
     ClassHandle load_class(DynArray<Byte> data);
 
+    MethodHandle find_method(ClassHandle cls, StringSpan name);
+
     struct CodeAttribute {
         UShort maxStack_;
         UShort maxLocals_;
@@ -64,8 +66,10 @@ namespace scriptengine::jvm {
 
         virtual ptr<void> getstatic(StringSpan cls, StringSpan name) = 0;
 
+        virtual void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
+
         virtual void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
     };
 
-    void eval(ClassHandle handle, mut_ref<Evaluator> evaluator);
+    void eval(MethodHandle handle, mut_ref<Evaluator> evaluator);
 }
