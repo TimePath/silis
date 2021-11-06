@@ -8,8 +8,8 @@
 
 #include "../kernel/kernel.hpp"
 
-DynArray<Byte> file_read(cstring name) {
-    var fd = fopen(name, "r");
+DynArray<Byte> file_read(cstring path) {
+    var fd = fopen(path, "r");
     fseek(fd, 0, SEEK_END);
     var size = ftell(fd);
     fseek(fd, 0, SEEK_SET);

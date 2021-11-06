@@ -4,7 +4,7 @@
 
 using namespace tier1;
 
-DynArray<Byte> file_read(cstring name);
+DynArray<Byte> file_read(cstring path);
 
 Int interface_open(cstring name);
 

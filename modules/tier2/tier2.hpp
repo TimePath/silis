@@ -13,8 +13,12 @@ namespace tier2 {
     private:
         Int size_;
         DynArray<Unmanaged<T>> data_;
+    public:
+        void _size(Int size) {
+            size_ = size;
+        }
 
-        void realloc(Int capacity) {
+        void ensure(Int capacity) {
             if (data_.size() >= capacity) {
                 return;
             }
@@ -23,7 +27,6 @@ namespace tier2 {
             });
         }
 
-    public:
         ~List() {
             for (var i : Range<Int>::until(0, size())) {
                 data_.get(i).destroy();
@@ -32,9 +35,7 @@ namespace tier2 {
 
         explicit List() : size_(0), data_(0) {}
 
-        implicit List(movable<List> other) : size_(other.size_), data_(move(other.data_)) {
-            other.size_ = 0;
-        }
+        implicit List(movable<List> other) : size_(exchange(other.size_, 0)), data_(move(other.data_)) {}
 
         Int size() const { return size_; }
 
@@ -60,7 +61,7 @@ namespace tier2 {
         void add(T value) {
             let index = size_;
             let nextSize = index + 1;
-            realloc(nextSize);
+            ensure(nextSize);
             data_.set(index, Unmanaged<T>(move(value)));
             size_ = nextSize;
         }

@@ -1,5 +1,15 @@
 #pragma once
 
+#include "scriptengine.hpp"
+
+#include "../tier0/tier0.hpp"
+#include "../tier1/tier1.hpp"
+
+namespace scriptengine::jvm {
+    using namespace tier0;
+    using namespace tier1;
+}
+
 namespace scriptengine::jvm {
     template<typename T>
     struct DecodeTrait;

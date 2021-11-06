@@ -156,24 +156,23 @@ TEST_COMPILE("StrTok argcount", {
 
 template<typename T>
 struct Traced {
-    Boolean live = true;
-    T _value;
+    Boolean live_;
+    T value_;
 
     ~Traced() {
-        if (!live) return;
+        if (!live_) return;
         printf("%s: dtor()\n", TypeName<Traced>());
     }
 
-    explicit Traced(T value) : _value(move(value)) {
+    explicit Traced(T value) : live_(true), value_(move(value)) {
         printf("%s: ctor(%s)\n", TypeName<Traced>(), TypeName<T>());
     }
 
-    explicit Traced(movable<Traced> other) : _value(move(other._value)) {
-        other.live = false;
+    explicit Traced(movable<Traced> other) : live_(exchange(other.live_, false)), value_(move(other.value_)) {
         printf("%s: ctor(%s &&)\n", TypeName<Traced>(), TypeName<T>());
     }
 
-    explicit Traced(ref<Traced> other) : _value(other._value) {
+    explicit Traced(ref<Traced> other) : live_(other.live_), value_(other.value_) {
         printf("%s: ctor(%s const &)\n", TypeName<Traced>(), TypeName<T>());
     }
 };
@@ -194,7 +193,7 @@ TEST("Pointer") {
     {
         var i = Int(0);
         var p1 = Traced<ptr<Int>>(&i);
-        printf("p2: %d\n", !!p1._value);
+        printf("p2: %d\n", !!p1.value_);
     }
 }
 
@@ -205,7 +204,7 @@ TEST("Optional") {
             printf("O1: Empty\n");
             return;
         }
-        printf("O1: Value: %d\n", Native<Int>(o1.value()._value));
+        printf("O1: Value: %d\n", Native<Int>(o1.value().value_));
     }
     {
         var o2 = Optional<Traced<Int>>::empty();
@@ -213,7 +212,7 @@ TEST("Optional") {
             printf("O2: Empty\n");
             return;
         }
-        printf("O2: Value: %d\n", Native<Int>(o2.value()._value));
+        printf("O2: Value: %d\n", Native<Int>(o2.value().value_));
     }
 }
 
@@ -226,31 +225,31 @@ TEST("Result") {
     {
         var r1 = Result<Traced<Int>, Traced<ErrorCode>>::value(Traced(Int(1)));
         if (r1.isError()) {
-            printf("R1: Error: %d\n", Native<Int>(r1.error()._value));
+            printf("R1: Error: %d\n", Native<Int>(r1.error().value_));
             return;
         }
-        printf("R1: Value: %d\n", Native<Int>(r1.value()._value));
+        printf("R1: Value: %d\n", Native<Int>(r1.value().value_));
     }
     {
         var r2 = Result<Traced<Int>, Traced<ErrorCode>>::error(Traced(ErrorCode::BadNumber));
         if (r2.isError()) {
-            printf("R2: Error: %d\n", Native<Int>(r2.error()._value));
+            printf("R2: Error: %d\n", Native<Int>(r2.error().value_));
             return;
         }
-        printf("R2: Value: %d\n", Native<Int>(r2.value()._value));
+        printf("R2: Value: %d\n", Native<Int>(r2.value().value_));
     }
 }
 
 TEST("Variant") {
     using V = Variant<Byte, Traced<Short>, Traced<Int>, Traced<Long>>;
     {
-        var v1 = V::of<Size(2)>(Traced(Int(1)));
-        printf("V1: Value: %d\n", Native<Int>(v1.get<Size(2)>()._value));
+        var v1 = V::of<Byte(2)>(Traced(Int(1)));
+        printf("V1: Value: %d\n", Native<Int>(v1.get<Byte(2)>().value_));
     }
     {
-        var v2 = V::of<Size(1)>(Traced(Short(1)));
-        v2.set<Size(2)>(Traced(Int(2)));
-        printf("V2: Value: %d\n", Native<Int>(v2.get<Size(2)>()._value));
+        var v2 = V::of<Byte(1)>(Traced(Short(1)));
+        v2.set<Byte(2)>(Traced(Int(2)));
+        printf("V2: Value: %d\n", Native<Int>(v2.get<Byte(2)>().value_));
     }
 }
 

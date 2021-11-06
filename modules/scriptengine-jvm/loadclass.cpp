@@ -1,23 +1,14 @@
 #include "scriptengine.hpp"
 
+#include "../tier0/tier0.hpp"
+#include "../tier1/tier1.hpp"
+
 #include "classfile.hpp"
 #include "decode.hpp"
 
 namespace scriptengine::jvm {
-    enum class JVMConstant : Native<Byte> {
-#define X(name, val, _3, _4) name = val,
-        CONSTANTS(X)
-#undef X
-    };
-
-    constexpr Constant internalConstant(JVMConstant c) {
-        switch (c) {
-#define X(name, _2, _3, _4) case JVMConstant::name: return Constant::name;
-            CONSTANTS(X)
-#undef X
-        }
-        return Constant::Invalid;
-    }
+    using namespace tier0;
+    using namespace tier1;
 }
 
 namespace scriptengine::jvm {
@@ -41,17 +32,34 @@ namespace scriptengine::jvm {
             return self; \
         } \
     };
+
     CONSTANTS(X)
+
 #undef X
 
     template<>
     struct DecodeTrait<ConstantInfo> {
+        enum class JVMConstant : Native<Byte> {
+#define X(name, val, _3, _4) name = val,
+            CONSTANTS(X)
+#undef X
+        };
+
+        static constexpr Constant internalConstant(JVMConstant c) {
+            switch (c) {
+#define X(name, _2, _3, _4) case JVMConstant::name: return Constant::name;
+                CONSTANTS(X)
+#undef X
+            }
+            return Constant::Invalid;
+        }
+
         static ConstantInfo decode(mut_ref<StreamReader> reader) {
             let tag = JVMConstant(Native<Byte>(reader.read<Byte>()));
             switch (tag) {
 #define X(name, val, _3, _4) \
                 case JVMConstant::name: { \
-                    constexpr var i = Size(Native<Byte>(internalConstant(JVMConstant(val)))); \
+                    constexpr var i = internalConstant(JVMConstant(val)); \
                     return ConstantInfo(ConstantInfo::Storage::of<i>(reader.read<constant::name##Info>())); \
                 }
 
@@ -143,7 +151,7 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
-    ClassHandle LoadClass(DynArray<Byte> data) {
+    ClassHandle load_class(DynArray<Byte> data) {
         var reader = StreamReader{data.asSpan(), 0};
         var ret = reader.read<Class>(move(data));
         return {new(AllocInfo::of<Class>()) Class(move(ret))};

@@ -142,6 +142,13 @@ namespace tier0 {
         return movable<remove_reference<T>>(value);
     }
 
+    template<typename T, typename U>
+    constexpr T exchange(mut_ref<T> target, movable<U> replacement) {
+        var ret = move(target);
+        target = replacement;
+        return ret;
+    }
+
     template<typename T>
     struct native_s;
 
@@ -555,7 +562,7 @@ namespace tier0 {
     template <typename... Ts>
     using Indices = typename IndicesContainer<Ts...>::type;
 #else
-    template <typename... Ts>
+    template<typename... Ts>
     using Indices = collect<ZipIterator<CounterIterator<>, PackIterator<Ts...>>>;
 #endif
 }
@@ -662,19 +669,19 @@ namespace std {
     template<typename T>
     struct tuple_size;
 
-    template<tier0::Native<tier0::Size> i, typename T>
+    template<::tier0::Native<::tier0::Size> i, typename T>
     struct tuple_element;
-
-    template<typename T>
-    struct tuple_size {
-        static constexpr tier0::Native<tier0::Size> value = tier0::tuple_traits<T>::size;
-    };
-
-    template<tier0::Native<tier0::Size> i, typename T>
-    struct tuple_element {
-        using type = typename tier0::tuple_traits<T>::template type<i>;
-    };
 }
+
+template<typename T>
+struct std::tuple_size {
+    static constexpr tier0::Native<tier0::Size> value = tier0::tuple_traits<T>::size;
+};
+
+template<tier0::Native<tier0::Size> i, typename T>
+struct std::tuple_element {
+    using type = typename tier0::tuple_traits<T>::template type<i>;
+};
 
 // tuple
 namespace tier0 {
@@ -1175,31 +1182,31 @@ namespace tier0 {
     public:
         implicit Variant(movable<Variant> other) : data_(move(other.data_)), active_(move(other.active_)) {}
 
-        template<Native<Size> i>
-        static Variant of(typename types::template get<i - 1> value) {
+        template<E i>
+        static Variant of(typename types::template get<Native<Size>(i) - 1> value) {
             var ret = Variant();
             ret.template set<i>(move(value));
             return ret;
         }
 
-        E tag() const { return E(Native<Byte>(active_)); }
+        E index() const { return E(Native<Byte>(active_)); }
 
-        template<Native<Size> i>
-        ref<typename types::template get<i - 1>> get() const {
-            return data_.template get<i - 1>();
+        template<E i>
+        ref<typename types::template get<Native<Size>(i) - 1>> get() const {
+            return data_.template get<Native<Size>(i) - 1>();
         }
 
-        template<Native<Size> i>
-        mut_ref<typename types::template get<i - 1>> get() {
-            return data_.template get<i - 1>();
+        template<E i>
+        mut_ref<typename types::template get<Native<Size>(i) - 1>> get() {
+            return data_.template get<Native<Size>(i) - 1>();
         }
 
-        template<Native<Size> i>
-        void set(movable<typename types::template get<i - 1>> value) {
-            using T = typename types::template get<i - 1>;
+        template<E i>
+        void set(movable<typename types::template get<Native<Size>(i) - 1>> value) {
+            using T = typename types::template get<Native<Size>(i) - 1>;
             destroy();
             new(&get<i>()) T(move(value));
-            active_ = Byte(i);
+            active_ = Byte(Native<Size>(i));
         }
     };
 }

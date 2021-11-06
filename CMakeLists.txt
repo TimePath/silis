@@ -225,7 +225,8 @@ add_library(scriptengine-jvm OBJECT
         modules/scriptengine-jvm/classfile.hpp
         modules/scriptengine-jvm/classfile-constants.inc
         modules/scriptengine-jvm/decode.hpp
-        modules/scriptengine-jvm/instructions.inc
+        modules/scriptengine-jvm/eval.cpp
+        modules/scriptengine-jvm/instructions.inc modules/scriptengine-jvm/instructions.hpp
         modules/scriptengine-jvm/loadclass.cpp
         modules/scriptengine-jvm/loadcode.cpp
         modules/scriptengine-jvm/scriptengine.hpp
@@ -264,4 +265,4 @@ function(target_java_source target srcfile)
     )
     add_dependencies("${target}" "${classtarget}")
 endfunction()
-target_java_source(scriptengine-jvm-tests modules/scriptengine-jvm/tests/Main.java)
+target_java_source(scriptengine-jvm-tests modules/scriptengine-jvm/tests/Hello.java)

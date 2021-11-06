@@ -1,0 +1,39 @@
+#pragma once
+
+#include "scriptengine.hpp"
+
+#include "../tier0/tier0.hpp"
+#include "../tier1/tier1.hpp"
+
+#include "instructions.inc"
+
+namespace scriptengine::jvm {
+    using namespace tier0;
+    using namespace tier1;
+}
+
+namespace scriptengine::jvm {
+    enum class Instruction : Native<Byte> {
+        Invalid,
+#define X(prefix, name, _3, _4, _5) prefix##name,
+        INSTRUCTIONS(X)
+#undef X
+    };
+
+    namespace instruction {
+#define X(prefix, name, val, def, _5) struct prefix##name##Info def;
+        INSTRUCTIONS(X)
+#undef X
+    }
+
+    struct InstructionInfo {
+#define X(prefix, name, _2, _3, _5) , instruction::prefix##name##Info
+        Variant<Instruction INSTRUCTIONS(X)> variant_;
+        using Storage = decltype(variant_);
+#undef X
+
+        explicit InstructionInfo(Storage v) : variant_(move(v)) {}
+
+        implicit InstructionInfo(movable<InstructionInfo> other) : variant_(move(other.variant_)) {}
+    };
+}

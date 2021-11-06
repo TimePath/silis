@@ -1,6 +1,16 @@
 #pragma once
 
+#include "scriptengine.hpp"
+
+#include "../tier0/tier0.hpp"
+#include "../tier1/tier1.hpp"
+
 #include "classfile-constants.inc"
+
+namespace scriptengine::jvm {
+    using namespace tier0;
+    using namespace tier1;
+}
 
 namespace scriptengine::jvm {
     struct Utf8String {
@@ -11,6 +21,13 @@ namespace scriptengine::jvm {
         explicit Utf8String(StringSpan string) : value_(string) {}
     };
 
+    enum class Constant : Native<Byte> {
+        Invalid,
+#define X(name, _2, _3, _4) name,
+        CONSTANTS(X)
+#undef X
+    };
+
     namespace constant {
 #define X(name, _2, def, fieldOrder) struct name##Info def;
         CONSTANTS(X)
@@ -19,13 +36,13 @@ namespace scriptengine::jvm {
 
     struct ConstantInfo {
 #define X(name, _2, _3, _4) , constant::name##Info
-        Variant<Constant CONSTANTS(X)> variant;
-        using Storage = decltype(variant);
+        Variant<Constant CONSTANTS(X)> variant_;
+        using Storage = decltype(variant_);
 #undef X
 
-        explicit ConstantInfo(Storage v) : variant(move(v)) {}
+        explicit ConstantInfo(Storage v) : variant_(move(v)) {}
 
-        implicit ConstantInfo(movable<ConstantInfo> other) : variant(move(other.variant)) {}
+        implicit ConstantInfo(movable<ConstantInfo> other) : variant_(move(other.variant_)) {}
     };
 
     struct AttributeInfo {

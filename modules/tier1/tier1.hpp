@@ -50,10 +50,8 @@ namespace tier1 {
         }
 
         implicit constexpr DynArray(movable<DynArray> other) : DisableCopyConstructible(Unit()),
-                                                               size_(other.size_), data_(other.data_) {
-            other.size_ = 0;
-            other.data_ = nullptr;
-        }
+                                                               size_(exchange(other.size_, 0)),
+                                                               data_(exchange(other.data_, nullptr)) {}
 
         constexpr mut_ref<DynArray> operator=(movable<DynArray> other) {
             if (&other == this) return *this;

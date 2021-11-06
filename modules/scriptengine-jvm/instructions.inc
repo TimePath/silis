@@ -9,7 +9,21 @@
     X(, nop, 0x0, {}, ()) \
     X(_, return, 0xb1, {}, ()) \
     X(, wide, 0xc4, { /* TODO */ }, ()) \
-    /* class */ \
+    INSTRUCTIONS_CLASS(X) \
+    INSTRUCTIONS_INVOKE(X) \
+    INSTRUCTIONS_STACK(X) \
+    INSTRUCTIONS_BRANCH(X) \
+    INSTRUCTIONS_REFERENCE(X) \
+    INSTRUCTIONS_BYTE(X) \
+    INSTRUCTIONS_CHAR(X) \
+    INSTRUCTIONS_SHORT(X) \
+    INSTRUCTIONS_INT(X) \
+    INSTRUCTIONS_LONG(X) \
+    INSTRUCTIONS_FLOAT(X) \
+    INSTRUCTIONS_DOUBLE(X) \
+    /**/
+
+#define INSTRUCTIONS_CLASS(X) \
     X(, anewarray, 0xbd, { UShort index; }, (self.index)) \
     X(, arraylength, 0xbe, {}, ()) \
     X(, checkcast, 0xc0, { UShort index; }, (self.index)) \
@@ -21,13 +35,17 @@
     X(, newarray, 0xbc, { Byte atype; }, (self.atype)) \
     X(, putfield, 0xb5, { UShort index; }, (self.index)) \
     X(, putstatic, 0xb3, { UShort index; }, (self.index)) \
-    /* invoke */ \
+    /**/
+
+#define INSTRUCTIONS_INVOKE(X) \
     X(invoke, dynamic, 0xba, { UShort index; UShort _pad; }, (self.index, self._pad)) \
     X(invoke, interface, 0xb9, { UShort index; Byte _count; Byte _pad; }, (self.index, self._count, self._pad)) \
     X(invoke, special, 0xb7, { UShort index; }, (self.index)) \
     X(invoke, static, 0xb8, { UShort index; }, (self.index)) \
     X(invoke, virtual, 0xb6, { UShort index; }, (self.index)) \
-    /* stack */ \
+    /**/
+
+#define INSTRUCTIONS_STACK(X) \
     X(, dup, 0x59, {}, ()) \
     X(, dup2, 0x5c, {}, ()) \
     X(, dup2_x1, 0x5d, {}, ()) \
@@ -39,7 +57,14 @@
     X(, ldc_w, 0x13, { UShort index; }, (self.index)) \
     X(, pop, 0x57, {}, ()) \
     X(, swap, 0x5f, {}, ()) \
-    /* branch */ \
+    /**/
+
+#define INSTRUCTIONS_BRANCH(X) \
+    INSTRUCTIONS_BRANCH_BASIC(X) \
+    INSTRUCTIONS_BRANCH_ADVANCED(X) \
+    /**/
+
+#define INSTRUCTIONS_BRANCH_BASIC(X) \
     X(_, goto, 0xa7, { Short branch; }, (self.branch)) \
     X(, goto_w, 0xc8, { Int branch; }, (self.branch)) \
     X(, if_acmpeq, 0xa5, { Short branch; }, (self.branch)) \
@@ -60,10 +85,15 @@
     X(, ifnull, 0xc6, { Short branch; }, (self.branch)) \
     X(, jsr, 0xa8, { Short branch; }, (self.branch)) \
     X(, jsr_w, 0xc9, { Int branch; }, (self.branch)) \
+    /**/
+
+#define INSTRUCTIONS_BRANCH_ADVANCED(X) \
     X(, lookupswitch, 0xab, { UInt _default; UInt npairs; /* TODO */ }, ()) \
     X(, ret, 0xa9, { Byte index; }, (self.index)) \
     X(, tableswitch, 0xaa, { UInt _default; UInt low; UInt high; /* TODO */ }, ()) \
-    /* reference */ \
+    /**/
+
+#define INSTRUCTIONS_REFERENCE(X) \
     X(a, aload, 0x32, {}, ()) \
     X(a, astore, 0x53, {}, ()) \
     X(a, const_null, 0x1, {}, ()) \
@@ -78,18 +108,26 @@
     X(a, store_1, 0x4c, {}, ()) \
     X(a, store_2, 0x4d, {}, ()) \
     X(a, store_3, 0x4e, {}, ()) \
-    /* byte/bool */ \
+    /**/
+
+#define INSTRUCTIONS_BYTE(X) \
     X(b, aload, 0x33, {}, ()) \
     X(b, astore, 0x54, {}, ()) \
     X(b, ipush, 0x10, { Int8 value; }, (self.value)) \
-    /* char */ \
+    /**/
+
+#define INSTRUCTIONS_CHAR(X) \
     X(c, aload, 0x34, {}, ()) \
-    X(c, astore, 0x55, {}, ()) \
-    /* short */ \
+    X(c, astore, 0x55, {}, ())\
+    /**/
+
+#define INSTRUCTIONS_SHORT(X) \
     X(s, aload, 0x35, {}, ()) \
     X(s, astore, 0x56, {}, ()) \
     X(s, ipush, 0x11, { Short value; }, (self.value)) \
-    /* int */ \
+    /**/
+
+#define INSTRUCTIONS_INT(X) \
     X(i, 2b, 0x91, {}, ()) \
     X(i, 2c, 0x92, {}, ()) \
     X(i, 2d, 0x87, {}, ()) \
@@ -129,7 +167,9 @@
     X(i, sub, 0x64, {}, ()) \
     X(i, ushr, 0x7c, {}, ()) \
     X(i, xor, 0x82, {}, ()) \
-    /* long */ \
+    /**/
+
+#define INSTRUCTIONS_LONG(X) \
     X(l, 2d, 0x8a, {}, ()) \
     X(l, 2f, 0x89, {}, ()) \
     X(l, 2i, 0x88, {}, ()) \
@@ -161,7 +201,9 @@
     X(l, sub, 0x65, {}, ()) \
     X(l, ushr, 0x7d, {}, ()) \
     X(l, xor, 0x83, {}, ()) \
-    /* float */ \
+    /**/
+
+#define INSTRUCTIONS_FLOAT(X) \
     X(f, 2d, 0x8d, {}, ()) \
     X(f, 2i, 0x8b, {}, ()) \
     X(f, 2l, 0x8c, {}, ()) \
@@ -189,7 +231,9 @@
     X(f, store_2, 0x45, {}, ()) \
     X(f, store_3, 0x46, {}, ()) \
     X(f, sub, 0x66, {}, ()) \
-    /* double */ \
+    /**/
+
+#define INSTRUCTIONS_DOUBLE(X) \
     X(d, 2f, 0x90, {}, ()) \
     X(d, 2i, 0x8e, {}, ()) \
     X(d, 2l, 0x8f, {}, ()) \
@@ -217,13 +261,3 @@
     X(d, store_3, 0x4a, {}, ()) \
     X(d, sub, 0x67, {}, ()) \
     /**/
-
-namespace scriptengine::jvm {
-    enum class Instruction : Native<Byte> {
-        Invalid,
-#define X(prefix, name, _3, _4, _5) prefix##name,
-        INSTRUCTIONS(X)
-#undef X
-        Limit
-    };
-}

@@ -64,12 +64,3 @@
         UShort nameIndex; \
     }, (self.nameIndex)) \
     /**/
-
-namespace scriptengine::jvm {
-    enum class Constant : Native<Byte> {
-        Invalid,
-#define X(name, _2, _3, _4) name,
-        CONSTANTS(X)
-#undef X
-    };
-}

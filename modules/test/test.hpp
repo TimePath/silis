@@ -2,7 +2,9 @@
 
 #include "../tier0/tier0.hpp"
 
-using namespace tier0;
+namespace test {
+    using namespace tier0;
+}
 
 namespace test {
     namespace {

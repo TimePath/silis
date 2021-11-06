@@ -2,7 +2,9 @@
 
 #include "../tier0/tier0.hpp"
 
-using namespace tier0;
+namespace net::ethernet {
+    using namespace tier0;
+}
 
 namespace net::ethernet {
     struct Address {
