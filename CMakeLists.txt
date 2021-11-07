@@ -225,6 +225,7 @@ add_library(scriptengine-jvm OBJECT
         modules/scriptengine-jvm/classfile.hpp
         modules/scriptengine-jvm/classfile-constants.inc
         modules/scriptengine-jvm/decode.hpp
+        modules/scriptengine-jvm/descriptor.hpp
         modules/scriptengine-jvm/eval.cpp
         modules/scriptengine-jvm/instructions.inc modules/scriptengine-jvm/instructions.hpp
         modules/scriptengine-jvm/loadclass.cpp

@@ -33,7 +33,7 @@ namespace tier2 {
             }
         }
 
-        explicit List() : size_(0), data_(0) {}
+        implicit List() : size_(0), data_(0) {}
 
         implicit List(movable<List> other) : size_(exchange(other.size_, 0)), data_(move(other.data_)) {}
 

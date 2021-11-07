@@ -66,6 +66,23 @@ namespace scriptengine::jvm {
             stack_._size(sp_);
             return ret;
         }
+
+        List<Stack::Value> take(Int n) {
+            var ret = List<Stack::Value>();
+            var base = sp_ - n;
+            for (var i : Range<Int>::until(0, n)) {
+                ret.add(move(stack_.get(base + i)));
+            }
+            sp_ = base;
+            stack_._size(sp_);
+            return ret;
+        }
+    };
+
+    struct Frame {
+        Optional<ptr<Frame>> parent;
+        List<Stack::Value> locals;
+        Stack stack;
     };
 
     struct Evaluator {
@@ -75,11 +92,11 @@ namespace scriptengine::jvm {
 
         virtual Stack::Value getstatic(StringSpan cls, StringSpan name) = 0;
 
-        virtual void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
+        virtual void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) = 0;
 
-        virtual void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
+        virtual void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) = 0;
 
-        virtual void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
+        virtual void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) = 0;
 
         virtual Stack::Value _new(StringSpan cls) = 0;
 
@@ -96,5 +113,5 @@ namespace scriptengine::jvm {
         virtual Stack::Value arrayget(ptr<void> self, Int index) = 0;
     };
 
-    void eval(MethodHandle handle, mut_ref<Evaluator> evaluator, List<Stack::Value> locals = List<Stack::Value>());
+    void eval(MethodHandle handle, mut_ref<Evaluator> evaluator, Frame frame);
 }

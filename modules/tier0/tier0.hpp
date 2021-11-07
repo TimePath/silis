@@ -1136,10 +1136,9 @@ namespace tier0 {
             }
         }
 
-    private:
         ATTR_TYPESTATE_CTOR(unknown)
 
-        explicit constexpr Optional() {}
+        implicit constexpr Optional() : valueBit_(false) {}
 
     public:
         implicit constexpr Optional(movable<Optional> other) : data_(move(other.data_)),

@@ -14,19 +14,27 @@ class Hello {
         if (instances.length != 1) { System.out.println("Error: instances.length != 1"); return; }
         var instance = instances[0];
         if (instance == null) { System.out.println("Error: instance != null"); return; }
-        instance.greeting = "Hello, world!";
+        instance.setGreeting("Hello, world!");
         instance.hello();
     }
 
-    String greeting;
+    String _greeting;
+
+    void setGreeting(String greeting) {
+        this._greeting = greeting;
+    }
+
+    String getGreeting() {
+        return this._greeting;
+    }
 
     void hello() {
         synchronized (this) {
-            _hello();
+            _hello(true, getGreeting());
         }
     }
 
-    void _hello() {
+    void _hello(boolean flag, String greeting) {
         System.out.println(greeting);
     }
 }

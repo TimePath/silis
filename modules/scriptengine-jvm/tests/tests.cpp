@@ -5,6 +5,7 @@
 
 #include "../../kernel/kernel.hpp"
 #include "../scriptengine.hpp"
+#include "../descriptor.hpp"
 
 using namespace test;
 
@@ -55,193 +56,6 @@ void eval(cstring path) {
             .members = SlowMap<Tuple<ptr<void>, StringSpan>, Stack::Value>(),
     };
 
-    enum class DescriptorAtomKind {
-        Void,
-        Byte,
-        Char,
-        Double,
-        Float,
-        Int,
-        Long,
-        Reference,
-        Short,
-        Boolean,
-    };
-
-    struct DescriptorAtom {
-        DescriptorAtomKind kind_;
-        StringSpan value_;
-        Int begin_;
-        Int end_;
-    };
-
-    struct Name {
-        Int begin_;
-        Int end_;
-    };
-
-    // https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-4.html#jvms-4.3
-    struct DescriptorParser {
-        StringSpan input;
-        Int idx;
-        List<DescriptorAtom> output;
-
-        static List<DescriptorAtom> parseMethod(StringSpan input) {
-            var state = DescriptorParser{
-                    .input = input,
-                    .output = List<DescriptorAtom>()
-            };
-            state.methodDescriptor();
-            return move(state.output);
-        }
-
-        [[maybe_unused]]
-        static List<DescriptorAtom> parseField(StringSpan input) {
-            var state = DescriptorParser{
-                    .input = input,
-                    .output = List<DescriptorAtom>()
-            };
-            state.fieldDescriptor();
-            return move(state.output);
-        }
-
-    private:
-        Boolean error() {
-            return false;
-        }
-
-        Char peek() {
-            return Char(input.data_.get(idx));
-        }
-
-        void advance() {
-            idx = idx + 1;
-        }
-
-        Boolean require(Char c) {
-            var ret = peek() == c;
-            if (ret) {
-                advance();
-            }
-            return ret;
-        }
-
-        Boolean className() {
-            var n0 = unqualifiedName();
-            if (!n0.hasValue()) return false;
-            while (true) {
-                if (!require('/')) break;
-                var n = unqualifiedName();
-                if (!n.hasValue()) break;
-            }
-            return true;
-        }
-
-        Optional<Name> unqualifiedName() {
-            var begin = idx;
-            while (true) {
-                var c = peek();
-                if (c == Char('.')) break;
-                if (c == Char(';')) break;
-                if (c == Char('[')) break;
-                if (c == Char('/')) break;
-                advance();
-            }
-            var end = idx;
-            if (end == begin) {
-                return Optional<Name>::empty();
-            }
-            return Optional<Name>::of({begin, end});
-        }
-
-        void fieldDescriptor() {
-            fieldType();
-        }
-
-        Boolean fieldType() {
-            return baseType() || objectType() || arrayType();
-        }
-
-        Boolean baseType() {
-            var begin = idx;
-            if (require('B')) {
-                output.add({DescriptorAtomKind::Byte, input, begin, idx});
-                return true;
-            }
-            if (require('C')) {
-                output.add({DescriptorAtomKind::Char, input, begin, idx});
-                return true;
-            }
-            if (require('D')) {
-                output.add({DescriptorAtomKind::Double, input, begin, idx});
-                return true;
-            }
-            if (require('F')) {
-                output.add({DescriptorAtomKind::Float, input, begin, idx});
-                return true;
-            }
-            if (require('I')) {
-                output.add({DescriptorAtomKind::Int, input, begin, idx});
-                return true;
-            }
-            if (require('J')) {
-                output.add({DescriptorAtomKind::Long, input, begin, idx});
-                return true;
-            }
-            if (require('S')) {
-                output.add({DescriptorAtomKind::Short, input, begin, idx});
-                return true;
-            }
-            if (require('Z')) {
-                output.add({DescriptorAtomKind::Boolean, input, begin, idx});
-                return true;
-            }
-            return false;
-        }
-
-        Boolean objectType() {
-            if (!require('L')) return false;
-            var begin = idx;
-            if (!className()) return error();
-            output.add({DescriptorAtomKind::Reference, input, begin, idx});
-            if (!require(';')) return error();
-            return true;
-        }
-
-        Boolean arrayType() {
-            if (!require('[')) return false;
-            if (!componentType()) return error();
-            return true;
-        }
-
-        Boolean componentType() {
-            return fieldType();
-        }
-
-        Boolean methodDescriptor() {
-            if (!require('(')) return false;
-            while (parameterDescriptor());
-            if (!require(')')) return error();
-            if (!returnDescriptor()) return error();
-            return true;
-        }
-
-        Boolean parameterDescriptor() {
-            return fieldType();
-        }
-
-        Boolean returnDescriptor() {
-            return fieldType() || voidDescriptor();
-        }
-
-        Boolean voidDescriptor() {
-            var begin = idx;
-            if (!require('V')) return false;
-            output.add({DescriptorAtomKind::Void, input, begin, idx});
-            return true;
-        }
-    };
-
     struct Object {
 
     };
@@ -263,45 +77,47 @@ void eval(cstring path) {
             return move(statics.get(Tuple(cls, name)).value());
         }
 
-        void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) override {
+        void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) override {
             (void) cls;
-            (void) signature;
-            (void) stack;
-            let mh = find_method(mainClass, name);
-            eval(mh, *this);
-        }
-
-        void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) override {
-            if (cls == "java/io/PrintStream" && name == "println" && signature == "(Ljava/lang/String;)V") {
-                var arg = stack.pop().get<Stack::ValueKind::String>();
-                var out = ptr<PrintStream>(stack.pop().get<Stack::ValueKind::Reference>());
-                out->println(arg);
-                return;
-            }
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
-            var locals = List<Stack::Value>();
-            locals.add(stack.pop());
-            for (var i : Range<Int>::until(0, argc)) {
-                locals.add(stack.pop());
-            }
+            var locals = frame.stack.take(argc);
             let mh = find_method(mainClass, name);
-            eval(mh, *this, move(locals));
+            eval(mh, *this, Frame{
+                    .parent=Optional<ptr<Frame>>::of(&frame),
+                    .locals=move(locals),
+            });
         }
 
-        void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) override {
+        void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) override {
             if (cls == "java/lang/Object" && name == "<init>") {
                 return;
             }
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
-            var locals = List<Stack::Value>();
-            locals.add(stack.pop());
-            for (var i : Range<Int>::until(0, argc)) {
-                locals.add(stack.pop());
-            }
+            var locals = frame.stack.take(1 + argc);
             let mh = find_method(mainClass, name);
-            eval(mh, *this, move(locals));
+            eval(mh, *this, Frame{
+                    .parent=Optional<ptr<Frame>>::of(&frame),
+                    .locals=move(locals),
+            });
+        }
+
+        void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) override {
+            if (cls == "java/io/PrintStream" && name == "println" && signature == "(Ljava/lang/String;)V") {
+                var arg = frame.stack.pop().get<Stack::ValueKind::String>();
+                var out = ptr<PrintStream>(frame.stack.pop().get<Stack::ValueKind::Reference>());
+                out->println(arg);
+                return;
+            }
+            var sig = DescriptorParser::parseMethod(signature);
+            var argc = sig.size() - 1;
+            var locals = frame.stack.take(1 + argc);
+            let mh = find_method(mainClass, name);
+            eval(mh, *this, Frame{
+                    .parent=Optional<ptr<Frame>>::of(&frame),
+                    .locals=move(locals),
+            });
         }
 
         Stack::Value _new(StringSpan cls) override {
@@ -342,9 +158,9 @@ void eval(cstring path) {
     var evaluator = MyEvaluator(move(state));
     let mhStaticInit = find_method(cls, "<clinit>");
     if (mhStaticInit.index_ >= 0) {
-        eval(mhStaticInit, evaluator);
+        eval(mhStaticInit, evaluator, Frame());
     }
     let mhMain = find_method(cls, "main");
-    eval(mhMain, evaluator);
+    eval(mhMain, evaluator, Frame());
     cls.release();
 }

@@ -13,7 +13,9 @@ namespace scriptengine::jvm {
 namespace scriptengine::jvm {
     Evaluator::~Evaluator() {}
 
-    void eval(MethodHandle mh, mut_ref<Evaluator> evaluator, List<Stack::Value> locals) {
+    void eval(MethodHandle mh, mut_ref<Evaluator> evaluator, Frame frame) {
+        var &locals = frame.locals;
+        var &stack = frame.stack;
         {
             let nLocals = 100; // fixme
             locals.ensure(nLocals);
@@ -25,7 +27,6 @@ namespace scriptengine::jvm {
         var unimplemented = [&]() {
             die();
         };
-        var stack = Stack();
         var pc = Int(0);
         var jump = [&](Int relative) { pc = pc + relative - 1; };
         for (; run; pc = pc + 1) {
@@ -168,7 +169,7 @@ namespace scriptengine::jvm {
                     let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
                     evaluator.invokespecial(
                             refClassName.string.value_, refName.string.value_, refType.string.value_,
-                            stack
+                            frame
                     );
                     break;
                 }
@@ -182,7 +183,7 @@ namespace scriptengine::jvm {
                     let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
                     evaluator.invokestatic(
                             refClassName.string.value_, refName.string.value_, refType.string.value_,
-                            stack
+                            frame
                     );
                     break;
                 }
@@ -196,7 +197,7 @@ namespace scriptengine::jvm {
                     let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
                     evaluator.invokevirtual(
                             refClassName.string.value_, refName.string.value_, refType.string.value_,
-                            stack
+                            frame
                     );
                     break;
                 }
@@ -473,7 +474,10 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::areturn: {
-                    unimplemented();
+                    var ret = stack.pop();
+                    var &parentFrame = *frame.parent.value();
+                    parentFrame.stack.push(move(ret));
+                    run = false;
                     break;
                 }
                 case Instruction::astore: {

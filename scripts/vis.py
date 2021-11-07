@@ -55,6 +55,31 @@ class TuplePrinter(Printer):
             yield f"[{i}]", self._data.child(i).child(0)
 
 
+class OptionalPrinter(Printer):
+    T: object
+
+    def __init__(self, T):
+        super().__init__()
+        self.T = T
+
+    _data: object
+    _active: object
+
+    def update(self, val):
+        self._data = val["data_"]
+        self._active = val["valueBit_"]["data_"]
+
+    def repr(self):
+        return f"Optional{self.T}"
+
+    def children(self):
+        i = int(self._active)
+        if not i:
+            yield f"active", self._active
+            return
+        yield f"value", self._data.cast(self.T)
+
+
 class VariantPrinter(Printer):
     E: object
     Ts: object
@@ -157,6 +182,9 @@ def register():
             None: lambda E: {
                 None: lambda *Ts: VariantPrinter(E, Ts)
             }
+        },
+        "tier0::Optional": {
+            None: lambda T: OptionalPrinter(T)
         },
         "tier0::Span": {
             None: lambda T: {
