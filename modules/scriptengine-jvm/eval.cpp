@@ -14,15 +14,14 @@ namespace scriptengine::jvm {
     Evaluator::~Evaluator() {}
 
     void eval(MethodHandle mh, mut_ref<Evaluator> evaluator, Frame frame) {
-        var &locals = frame.locals;
-        var &stack = frame.stack;
-        {
-            let nLocals = 100; // fixme
-            locals.ensure(nLocals);
-            locals._size(nLocals);
-        }
         let pool = mh.handle_.handle_->constantPool;
         let code = load_code(mh);
+        var &stack = frame.stack;
+        var &locals = frame.locals;
+        stack.stack_.ensure(Int(code.maxStack_));
+        let nLocals = Int(code.maxLocals_);
+        locals.ensure(nLocals);
+        locals._size(nLocals);
         var run = Boolean(true);
         var unimplemented = [&]() {
             die();

@@ -81,8 +81,8 @@ namespace scriptengine::jvm {
 
     struct Frame {
         Optional<ptr<Frame>> parent;
-        List<Stack::Value> locals;
         Stack stack;
+        List<Stack::Value> locals;
     };
 
     struct Evaluator {
