@@ -1142,7 +1142,7 @@ namespace tier0 {
 
     public:
         implicit constexpr Optional(movable<Optional> other) : data_(move(other.data_)),
-                                                               valueBit_(move(other.valueBit_)) {}
+                                                               valueBit_(exchange(other.valueBit_, false)) {}
 
         // ATTR_TYPESTATE_CTOR(unconsumed)
         static constexpr Optional of(T value) {

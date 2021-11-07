@@ -24,6 +24,25 @@ void eval(cstring path);
 
 TEST("eval_hello") { eval("modules/scriptengine-jvm/tests/Hello.class"); }
 
+struct UniqueAnyPtr {
+    Optional<ptr<void>> ref_;
+    ptr<void(ptr<void>)> delete_;
+
+    template<typename T>
+    implicit UniqueAnyPtr(ptr<T> self) :
+            ref_(Optional<ptr<void>>::of(self)),
+            delete_(+[](ptr<void> ref) { delete ptr<T>(ref); }) {}
+
+    implicit UniqueAnyPtr(movable<UniqueAnyPtr> other) :
+            ref_(move(other.ref_)),
+            delete_(other.delete_) {}
+
+    ~UniqueAnyPtr() {
+        if (!ref_.hasValue()) return;
+        delete_(ref_.value());
+    }
+};
+
 void eval(cstring path) {
     using namespace scriptengine::jvm;
 
@@ -60,7 +79,13 @@ void eval(cstring path) {
 
     };
 
+    struct ArrayObject : DynArray<ptr<void>> {
+        using DynArray::DynArray;
+    };
+
     struct MyEvaluator : Evaluator, EvaluatorState {
+        List<UniqueAnyPtr> objects;
+
         explicit MyEvaluator(movable<EvaluatorState> state) : EvaluatorState(move(state)) {}
 
         void putstatic(StringSpan cls, StringSpan name, Stack::Value value) override {
@@ -122,7 +147,9 @@ void eval(cstring path) {
 
         Stack::Value _new(StringSpan cls) override {
             (void) cls;
-            return Stack::Value::of<Stack::ValueKind::Reference>(new(AllocInfo::of<Object>()) Object());
+            var ret = ptr<Object>(new(AllocInfo::of<Object>()) Object());
+            objects.add(ret);
+            return Stack::Value::of<Stack::ValueKind::Reference>(ret);
         }
 
         void putinstance(ptr<void> self, StringSpan name, Stack::Value value) override {
@@ -135,22 +162,23 @@ void eval(cstring path) {
 
         Stack::Value _newarray(StringSpan cls, Int count) override {
             (void) cls;
-            var arr = new(AllocInfo::of<DynArray<ptr<void>>>()) DynArray<ptr<void>>(count);
+            var arr = ptr<ArrayObject>(new(AllocInfo::of<ArrayObject>()) ArrayObject(count));
+            objects.add(arr);
             return Stack::Value::of<Stack::ValueKind::Reference>(arr);
         }
 
         Stack::Value arraysize(ptr<void> self) override {
-            var arr = ptr<DynArray<ptr<void>>>(self);
+            var arr = ptr<ArrayObject>(self);
             return Stack::Value::of<Stack::ValueKind::Int>(arr->size());
         }
 
         void arrayset(ptr<void> self, Int index, Stack::Value value) override {
-            var arr = ptr<DynArray<ptr<void>>>(self);
+            var arr = ptr<ArrayObject>(self);
             arr->set(index, value.get<Stack::ValueKind::Reference>());
         }
 
         Stack::Value arrayget(ptr<void> self, Int index) override {
-            var arr = ptr<DynArray<ptr<void>>>(self);
+            var arr = ptr<ArrayObject>(self);
             return Stack::Value::of<Stack::ValueKind::Reference>(arr->get(index));
         }
     };
