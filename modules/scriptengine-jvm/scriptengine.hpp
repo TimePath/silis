@@ -79,9 +79,21 @@ namespace scriptengine::jvm {
 
         virtual void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
 
+        virtual void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
+
         virtual Stack::Value _new(StringSpan cls) = 0;
 
-        virtual void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) = 0;
+        virtual void putinstance(ptr<void> self, StringSpan name, Stack::Value) = 0;
+
+        virtual Stack::Value getinstance(ptr<void> self, StringSpan name) = 0;
+
+        virtual Stack::Value _newarray(StringSpan cls, Int count) = 0;
+
+        virtual Stack::Value arraysize(ptr<void> self) = 0;
+
+        virtual void arrayset(ptr<void> self, Int index, Stack::Value value) = 0;
+
+        virtual Stack::Value arrayget(ptr<void> self, Int index) = 0;
     };
 
     void eval(MethodHandle handle, mut_ref<Evaluator> evaluator, List<Stack::Value> locals = List<Stack::Value>());

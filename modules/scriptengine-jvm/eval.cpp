@@ -23,7 +23,7 @@ namespace scriptengine::jvm {
         let code = load_code(mh);
         var run = Boolean(true);
         var unimplemented = [&]() {
-            run = false;
+            die();
         };
         var stack = Stack();
         var pc = Int(0);
@@ -32,14 +32,23 @@ namespace scriptengine::jvm {
             let _instruction = code.code_.get(pc).variant_;
             switch (_instruction.index()) {
                 case Instruction::Invalid: {
+                    die();
+                }
+                case Instruction::athrow: {
                     unimplemented();
                     break;
                 }
-                case Instruction::athrow:
-                case Instruction::monitorenter:
-                case Instruction::monitorexit:
+                case Instruction::monitorenter: {
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    (void) self;
+                    break;
+                }
+                case Instruction::monitorexit: {
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    (void) self;
+                    break;
+                }
                 case Instruction::nop: {
-                    unimplemented();
                     break;
                 }
                 case Instruction::_return: {
@@ -51,11 +60,35 @@ namespace scriptengine::jvm {
                     break;
                 }
                     // CLASS
-                case Instruction::anewarray:
-                case Instruction::arraylength:
-                case Instruction::checkcast:
-                case Instruction::getfield: {
+                case Instruction::anewarray: {
+                    let instruction = _instruction.get<Instruction::anewarray>();
+                    var count = stack.pop().get<Stack::ValueKind::Int>();
+                    let refClass = pool.get(instruction.index - 1).variant_.get<Constant::Class>();
+                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    stack.push(evaluator._newarray(refClassName.string.value_, count));
+                    break;
+                }
+                case Instruction::arraylength: {
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    stack.push(evaluator.arraysize(self));
+                    break;
+                }
+                case Instruction::checkcast: {
                     unimplemented();
+                    break;
+                }
+                case Instruction::getfield: {
+                    let instruction = _instruction.get<Instruction::getfield>();
+                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
+                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
+                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
+                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    (void) refClassName;
+                    (void) refType;
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    stack.push(evaluator.getinstance(self, refName.string.value_));
                     break;
                 }
                 case Instruction::getstatic: {
@@ -70,7 +103,10 @@ namespace scriptengine::jvm {
                     stack.push(evaluator.getstatic(refClassName.string.value_, refName.string.value_));
                     break;
                 }
-                case Instruction::instanceof:
+                case Instruction::instanceof: {
+                    unimplemented();
+                    break;
+                }
                 case Instruction::multianewarray: {
                     unimplemented();
                     break;
@@ -82,9 +118,23 @@ namespace scriptengine::jvm {
                     stack.push(evaluator._new(refClassName.string.value_));
                     break;
                 }
-                case Instruction::newarray:
-                case Instruction::putfield: {
+                case Instruction::newarray: {
                     unimplemented();
+                    break;
+                }
+                case Instruction::putfield: {
+                    let instruction = _instruction.get<Instruction::putfield>();
+                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
+                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
+                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
+                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
+                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    (void) refClassName;
+                    (void) refType;
+                    var value = stack.pop();
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    evaluator.putinstance(self, refName.string.value_, move(value));
                     break;
                 }
                 case Instruction::putstatic: {
@@ -100,7 +150,10 @@ namespace scriptengine::jvm {
                     break;
                 }
                     // INVOKE
-                case Instruction::invokedynamic:
+                case Instruction::invokedynamic: {
+                    unimplemented();
+                    break;
+                }
                 case Instruction::invokeinterface: {
                     unimplemented();
                     break;
@@ -152,11 +205,27 @@ namespace scriptengine::jvm {
                     stack.push(stack.peek().copy());
                     break;
                 }
-                case Instruction::dup2:
-                case Instruction::dup2_x1:
-                case Instruction::dup2_x2:
-                case Instruction::dup_x1:
+                case Instruction::dup_x1: {
+                    var value1 = stack.pop();
+                    var value2 = stack.pop();
+                    stack.push(value1.copy());
+                    stack.push(move(value2));
+                    stack.push(move(value1));
+                    break;
+                }
                 case Instruction::dup_x2: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::dup2: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::dup2_x1: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::dup2_x2: {
                     unimplemented();
                     break;
                 }
@@ -167,8 +236,14 @@ namespace scriptengine::jvm {
                     stack.push(Stack::Value::of<Stack::ValueKind::String>(constantValue.string.value_));
                     break;
                 }
-                case Instruction::ldc2_w:
                 case Instruction::ldc_w: {
+                    let instruction = _instruction.get<Instruction::ldc_w>();
+                    let constant = pool.get(instruction.index - 1).variant_.get<Constant::String>();
+                    let constantValue = pool.get(constant.stringIndex - 1).variant_.get<Constant::Utf8>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::String>(constantValue.string.value_));
+                    break;
+                }
+                case Instruction::ldc2_w: {
                     unimplemented();
                     break;
                 }
@@ -177,25 +252,93 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::swap: {
-                    unimplemented();
+                    var value1 = stack.pop();
+                    var value2 = stack.pop();
+                    stack.push(move(value1));
+                    stack.push(move(value2));
                     break;
                 }
                     // BRANCH
                 case Instruction::_goto: {
-                    let instruction = _instruction.get<Instruction::ifeq>();
+                    let instruction = _instruction.get<Instruction::_goto>();
                     jump(Int(instruction.branch));
                     break;
                 }
-                case Instruction::goto_w:
-                case Instruction::if_acmpeq:
-                case Instruction::if_acmpne:
-                case Instruction::if_icmpeq:
-                case Instruction::if_icmpge:
-                case Instruction::if_icmpgt:
-                case Instruction::if_icmple:
-                case Instruction::if_icmplt:
+                case Instruction::goto_w: {
+                    let instruction = _instruction.get<Instruction::goto_w>();
+                    jump(Int(instruction.branch));
+                    break;
+                }
+                case Instruction::if_acmpeq: {
+                    let instruction = _instruction.get<Instruction::if_acmpeq>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Reference>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Reference>();
+                    if (value1 == value2) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::if_acmpne: {
+                    let instruction = _instruction.get<Instruction::if_acmpne>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Reference>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Reference>();
+                    if (value1 != value2) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::if_icmpeq: {
+                    let instruction = _instruction.get<Instruction::if_icmpeq>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    if (value1 == value2) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::if_icmpge: {
+                    let instruction = _instruction.get<Instruction::if_icmpge>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    if (value1 >= value2) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::if_icmpgt: {
+                    let instruction = _instruction.get<Instruction::if_icmpgt>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    if (value1 > value2) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::if_icmple: {
+                    let instruction = _instruction.get<Instruction::if_icmple>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    if (value1 <= value2) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::if_icmplt: {
+                    let instruction = _instruction.get<Instruction::if_icmplt>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    if (value1 < value2) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
                 case Instruction::if_icmpne: {
-                    unimplemented();
+                    let instruction = _instruction.get<Instruction::if_icmpne>();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    if (value1 != value2) {
+                        jump(Int(instruction.branch));
+                    }
                     break;
                 }
                 case Instruction::ifeq: {
@@ -207,11 +350,40 @@ namespace scriptengine::jvm {
                     }
                     break;
                 }
-                case Instruction::ifge:
-                case Instruction::ifgt:
-                case Instruction::ifle:
+                case Instruction::ifge: {
+                    let instruction = _instruction.get<Instruction::ifge>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue >= Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::ifgt: {
+                    let instruction = _instruction.get<Instruction::ifgt>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue > Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::ifle: {
+                    let instruction = _instruction.get<Instruction::ifle>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue <= Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
                 case Instruction::iflt: {
-                    unimplemented();
+                    let instruction = _instruction.get<Instruction::iflt>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue < Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
                     break;
                 }
                 case Instruction::ifne: {
@@ -223,26 +395,65 @@ namespace scriptengine::jvm {
                     }
                     break;
                 }
-                case Instruction::ifnonnull:
-                case Instruction::ifnull:
-                case Instruction::jsr:
-                case Instruction::jsr_w:
-                case Instruction::lookupswitch:
-                case Instruction::ret:
+                case Instruction::ifnonnull: {
+                    let instruction = _instruction.get<Instruction::ifnonnull>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue != Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::ifnull: {
+                    let instruction = _instruction.get<Instruction::ifnull>();
+                    var value = stack.pop();
+                    var intValue = value.get<Stack::ValueKind::Int>();
+                    if (intValue == Int(0)) {
+                        jump(Int(instruction.branch));
+                    }
+                    break;
+                }
+                case Instruction::jsr: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::jsr_w: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::lookupswitch: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::ret: {
+                    unimplemented();
+                    break;
+                }
                 case Instruction::tableswitch: {
                     unimplemented();
                     break;
                 }
                     // REFERENCE
-                case Instruction::aaload:
-                case Instruction::aastore:
+                case Instruction::aaload: {
+                    var index = stack.pop().get<Stack::ValueKind::Int>();
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    stack.push(evaluator.arrayget(self, index));
+                    break;
+                }
+                case Instruction::aastore: {
+                    var value = stack.pop();
+                    var index = stack.pop().get<Stack::ValueKind::Int>();
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    evaluator.arrayset(self, index, move(value));
+                    break;
+                }
                 case Instruction::aconst_null: {
-                    unimplemented();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(0));
                     break;
                 }
                 case Instruction::aload: {
                     let instruction = _instruction.get<Instruction::aload>();
-                    stack.push(locals.get(0 + instruction.index).copy());
+                    stack.push(locals.get(Int(instruction.index)).copy());
                     break;
                 }
                 case Instruction::aload_0: {
@@ -267,7 +478,7 @@ namespace scriptengine::jvm {
                 }
                 case Instruction::astore: {
                     let instruction = _instruction.get<Instruction::astore>();
-                    locals.set(0 + instruction.index, stack.pop());
+                    locals.set(Int(instruction.index), stack.pop());
                     break;
                 }
                 case Instruction::astore_0: {
@@ -287,35 +498,81 @@ namespace scriptengine::jvm {
                     break;
                 }
                     // BYTE
-                case Instruction::baload:
-                case Instruction::bastore:
-                case Instruction::bipush: {
+                case Instruction::baload: {
                     unimplemented();
                     break;
                 }
+                case Instruction::bastore: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::bipush: {
+                    let instruction = _instruction.get<Instruction::bipush>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(Int(instruction.value)));
+                    break;
+                }
                     // CHAR
-                case Instruction::caload:
+                case Instruction::caload: {
+                    unimplemented();
+                    break;
+                }
                 case Instruction::castore: {
                     unimplemented();
                     break;
                 }
                     // SHORT
-                case Instruction::saload:
-                case Instruction::sastore:
-                case Instruction::sipush: {
+                case Instruction::saload: {
                     unimplemented();
                     break;
                 }
+                case Instruction::sastore: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::sipush: {
+                    let instruction = _instruction.get<Instruction::sipush>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(Int(instruction.value)));
+                    break;
+                }
                     // INT
-                case Instruction::i2b:
-                case Instruction::i2c:
-                case Instruction::i2d:
-                case Instruction::i2f:
-                case Instruction::i2l:
-                case Instruction::i2s:
-                case Instruction::iadd:
-                case Instruction::iaload:
-                case Instruction::iand:
+                case Instruction::i2b: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::i2c: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::i2d: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::i2f: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::i2l: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::i2s: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::iadd: {
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(value1 + value2));
+                    break;
+                }
+                case Instruction::iaload: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::iand: {
+                    unimplemented();
+                    break;
+                }
                 case Instruction::iastore: {
                     unimplemented();
                     break;
@@ -348,27 +605,99 @@ namespace scriptengine::jvm {
                     stack.push(Stack::Value::of<Stack::ValueKind::Int>(-1));
                     break;
                 }
-                case Instruction::idiv:
-                case Instruction::iinc:
-                case Instruction::iload:
-                case Instruction::iload_0:
-                case Instruction::iload_1:
-                case Instruction::iload_2:
-                case Instruction::iload_3:
-                case Instruction::imul:
-                case Instruction::ineg:
-                case Instruction::ior:
-                case Instruction::irem:
-                case Instruction::ireturn:
-                case Instruction::ishl:
-                case Instruction::ishr:
-                case Instruction::istore:
-                case Instruction::istore_0:
-                case Instruction::istore_1:
-                case Instruction::istore_2:
-                case Instruction::istore_3:
-                case Instruction::isub:
-                case Instruction::iushr:
+                case Instruction::idiv: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::iinc: {
+                    let instruction = _instruction.get<Instruction::iinc>();
+                    locals.set(
+                            Int(instruction.index),
+                            Stack::Value::of<Stack::ValueKind::Int>(
+                                    locals.get(Int(instruction.index)).get<Stack::ValueKind::Int>()
+                                    + Int(instruction.value)
+                            )
+                    );
+                    break;
+                }
+                case Instruction::iload: {
+                    let instruction = _instruction.get<Instruction::iload>();
+                    stack.push(locals.get(Int(instruction.index)).copy());
+                    break;
+                }
+                case Instruction::iload_0: {
+                    stack.push(locals.get(0).copy());
+                    break;
+                }
+                case Instruction::iload_1: {
+                    stack.push(locals.get(1).copy());
+                    break;
+                }
+                case Instruction::iload_2: {
+                    stack.push(locals.get(2).copy());
+                    break;
+                }
+                case Instruction::iload_3: {
+                    stack.push(locals.get(3).copy());
+                    break;
+                }
+                case Instruction::imul: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::ineg: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::ior: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::irem: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::ireturn: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::ishl: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::ishr: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::istore: {
+                    let instruction = _instruction.get<Instruction::istore>();
+                    locals.set(Int(instruction.index), stack.pop());
+                    break;
+                }
+                case Instruction::istore_0: {
+                    locals.set(0, stack.pop());
+                    break;
+                }
+                case Instruction::istore_1: {
+                    locals.set(1, stack.pop());
+                    break;
+                }
+                case Instruction::istore_2: {
+                    locals.set(2, stack.pop());
+                    break;
+                }
+                case Instruction::istore_3: {
+                    locals.set(3, stack.pop());
+                    break;
+                }
+                case Instruction::isub: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::iushr: {
+                    unimplemented();
+                    break;
+                }
                 case Instruction::ixor: {
                     unimplemented();
                     break;

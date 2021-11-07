@@ -43,6 +43,7 @@ void eval(cstring path) {
         ClassHandle mainClass;
         SystemStatics systemStatics;
         SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value> statics;
+        SlowMap<Tuple<ptr<void>, StringSpan>, Stack::Value> members;
     };
 
     var state = EvaluatorState{
@@ -50,7 +51,8 @@ void eval(cstring path) {
             .systemStatics = {
                     .out_ = PrintStream(),
             },
-            .statics = SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value>()
+            .statics = SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value>(),
+            .members = SlowMap<Tuple<ptr<void>, StringSpan>, Stack::Value>(),
     };
 
     enum class DescriptorAtomKind {
@@ -287,11 +289,6 @@ void eval(cstring path) {
             eval(mh, *this, move(locals));
         }
 
-        Stack::Value _new(StringSpan cls) override {
-            (void) cls;
-            return Stack::Value::of<Stack::ValueKind::Reference>(new(AllocInfo::of<Object>()) Object());
-        }
-
         void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Stack> stack) override {
             if (cls == "java/lang/Object" && name == "<init>") {
                 return;
@@ -305,6 +302,40 @@ void eval(cstring path) {
             }
             let mh = find_method(mainClass, name);
             eval(mh, *this, move(locals));
+        }
+
+        Stack::Value _new(StringSpan cls) override {
+            (void) cls;
+            return Stack::Value::of<Stack::ValueKind::Reference>(new(AllocInfo::of<Object>()) Object());
+        }
+
+        void putinstance(ptr<void> self, StringSpan name, Stack::Value value) override {
+            members.set(Tuple(self, name), move(value));
+        }
+
+        Stack::Value getinstance(ptr<void> self, StringSpan name) override {
+            return move(members.get(Tuple(self, name)).value());
+        }
+
+        Stack::Value _newarray(StringSpan cls, Int count) override {
+            (void) cls;
+            var arr = new(AllocInfo::of<DynArray<ptr<void>>>()) DynArray<ptr<void>>(count);
+            return Stack::Value::of<Stack::ValueKind::Reference>(arr);
+        }
+
+        Stack::Value arraysize(ptr<void> self) override {
+            var arr = ptr<DynArray<ptr<void>>>(self);
+            return Stack::Value::of<Stack::ValueKind::Int>(arr->size());
+        }
+
+        void arrayset(ptr<void> self, Int index, Stack::Value value) override {
+            var arr = ptr<DynArray<ptr<void>>>(self);
+            arr->set(index, value.get<Stack::ValueKind::Reference>());
+        }
+
+        Stack::Value arrayget(ptr<void> self, Int index) override {
+            var arr = ptr<DynArray<ptr<void>>>(self);
+            return Stack::Value::of<Stack::ValueKind::Reference>(arr->get(index));
         }
     };
 

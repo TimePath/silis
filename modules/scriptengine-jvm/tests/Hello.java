@@ -5,15 +5,28 @@ class Hello {
     public static void main(String[] args) {
         if (boolZero) { System.out.println("Error: boolZero was true"); return; }
         if (boolOne); else { System.out.println("Error: boolOne was not true"); return; }
-        var instance = new Hello();
+        var n = 1;
+        for (var i = 0; i < 10; i += 1) {
+            n = n + n;
+        }
+        if (!(n == 1024)) { System.out.println("Error: n != 1024"); return; }
+        var instances = new Hello[]{new Hello()};
+        if (instances.length != 1) { System.out.println("Error: instances.length != 1"); return; }
+        var instance = instances[0];
+        if (instance == null) { System.out.println("Error: instance != null"); return; }
+        instance.greeting = "Hello, world!";
         instance.hello();
     }
 
+    String greeting;
+
     void hello() {
-        hello2();
+        synchronized (this) {
+            _hello();
+        }
     }
 
-    void hello2() {
-        System.out.println("Hello, world!");
+    void _hello() {
+        System.out.println(greeting);
     }
 }

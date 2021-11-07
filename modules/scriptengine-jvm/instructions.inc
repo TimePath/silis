@@ -47,14 +47,14 @@
 
 #define INSTRUCTIONS_STACK(X) \
     X(, dup, 0x59, {}, ()) \
+    X(, dup_x1, 0x5a, {}, ()) \
+    X(, dup_x2, 0x5b, {}, ()) \
     X(, dup2, 0x5c, {}, ()) \
     X(, dup2_x1, 0x5d, {}, ()) \
     X(, dup2_x2, 0x5e, {}, ()) \
-    X(, dup_x1, 0x5a, {}, ()) \
-    X(, dup_x2, 0x5b, {}, ()) \
     X(, ldc, 0x12, { Byte index; }, (self.index)) \
-    X(, ldc2_w, 0x14, { UShort index; }, (self.index)) \
     X(, ldc_w, 0x13, { UShort index; }, (self.index)) \
+    X(, ldc2_w, 0x14, { UShort index; }, (self.index)) \
     X(, pop, 0x57, {}, ()) \
     X(, swap, 0x5f, {}, ()) \
     /**/
