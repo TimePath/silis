@@ -11,11 +11,9 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
-    Evaluator::~Evaluator() {}
-
-    void eval(MethodHandle mh, mut_ref<Evaluator> evaluator, Frame frame) {
+    void eval(mut_ref<VM> vm, MethodHandle mh, mut_ref<Evaluator> evaluator, Frame frame) {
         let pool = mh.handle_.handle_->constantPool;
-        let code = load_code(mh);
+        let code = load_code(vm, mh);
         var &stack = frame.stack;
         var &locals = frame.locals;
         stack.stack_.ensure(Int(code.maxStack_));

@@ -9,6 +9,8 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
+    struct VM;
+
     struct Class;
 
     struct ClassHandle {
@@ -22,9 +24,15 @@ namespace scriptengine::jvm {
         Int index_;
     };
 
-    ClassHandle load_class(DynArray<Byte> data);
+    struct ClassLoader {
+        virtual ~ClassLoader();
 
-    MethodHandle find_method(ClassHandle cls, StringSpan name);
+        virtual void resolve(mut_ref<VM> vm, StringSpan cls) = 0;
+    };
+
+    ClassHandle load_class(mut_ref<VM> vm, DynArray<Byte> data);
+
+    MethodHandle find_method(mut_ref<VM> vm, ClassHandle cls, StringSpan name);
 
     struct CodeAttribute {
         UShort maxStack_;
@@ -32,7 +40,7 @@ namespace scriptengine::jvm {
         List<InstructionInfo> code_;
     };
 
-    CodeAttribute load_code(MethodHandle handle);
+    CodeAttribute load_code(mut_ref<VM> vm, MethodHandle handle);
 
     struct Stack {
         enum class ValueKind {
@@ -113,5 +121,9 @@ namespace scriptengine::jvm {
         virtual Stack::Value arrayget(ptr<void> self, Int index) = 0;
     };
 
-    void eval(MethodHandle handle, mut_ref<Evaluator> evaluator, Frame frame);
+    void eval(mut_ref<VM> vm, MethodHandle handle, mut_ref<Evaluator> evaluator, Frame frame);
+
+    struct VM {
+        mut_ref<ClassLoader> classLoader;
+    };
 }

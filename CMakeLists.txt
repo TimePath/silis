@@ -230,7 +230,7 @@ add_library(scriptengine-jvm OBJECT
         modules/scriptengine-jvm/instructions.inc modules/scriptengine-jvm/instructions.hpp
         modules/scriptengine-jvm/loadclass.cpp
         modules/scriptengine-jvm/loadcode.cpp
-        modules/scriptengine-jvm/scriptengine.hpp
+        modules/scriptengine-jvm/scriptengine.hpp modules/scriptengine-jvm/scriptengine.cpp
         )
 target_link_libraries(scriptengine-jvm PRIVATE libtier2)
 
@@ -266,4 +266,30 @@ function(target_java_source target srcfile)
     )
     add_dependencies("${target}" "${classtarget}")
 endfunction()
+target_java_source(scriptengine-jvm-tests modules/scriptengine-jvm/scripts/ExtractJRT.java)
+
+set(extractJRTDir "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm/scripts")
+set(extractJRTClass "ExtractJRT")
+set(JRT "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm/rt")
+add_custom_target(
+        "rt"
+        DEPENDS "${JRT}"
+)
+add_custom_command(
+        VERBATIM
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm"
+        OUTPUT "${JRT}.jar"
+        DEPENDS "${extractJRTDir}/${extractJRTClass}.class"
+        COMMAND "${Java_JAVA_EXECUTABLE}" -cp "${extractJRTDir}" "${extractJRTClass}"
+        COMMAND "mkdir" "rt"
+)
+add_custom_command(
+        VERBATIM
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm/rt"
+        OUTPUT "${JRT}"
+        DEPENDS "${JRT}.jar"
+        COMMAND "unzip" "${JRT}.jar"
+)
+add_dependencies("scriptengine-jvm-tests" "rt")
+
 target_java_source(scriptengine-jvm-tests modules/scriptengine-jvm/tests/Hello.java)

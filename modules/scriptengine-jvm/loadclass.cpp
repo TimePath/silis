@@ -124,7 +124,13 @@ namespace scriptengine::jvm {
             let magic = reader.read<UInt>();
             let minorVersion = reader.read<UShort>();
             let majorVersion = reader.read<UShort>();
-            var constantPool = reader.read<Repeating<ConstantInfo, UShort, -1>>();
+            struct Skipper {
+                static Int invoke(ref<ConstantInfo> it) {
+                    var kind = it.variant_.index();
+                    return (kind == Constant::Long || kind == Constant::Double) ? 1 : 0;
+                }
+            };
+            var constantPool = reader.read<Repeating<ConstantInfo, UShort, -1, Skipper>>();
             let accessFlags = reader.read<UShort>();
             let thisClass = reader.read<UShort>();
             let superClass = reader.read<UShort>();
@@ -151,9 +157,17 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
-    ClassHandle load_class(DynArray<Byte> data) {
+    ClassHandle load_class(mut_ref<VM> vm, DynArray<Byte> data) {
         var reader = StreamReader{data.asSpan(), 0};
         var ret = reader.read<Class>(move(data));
+        let pool = ret.constantPool;
+        for (let it : pool.asSpan()) {
+            if (it.variant_.index() == Constant::Class) {
+                let refClass = it.variant_.get<Constant::Class>();
+                let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
+                vm.classLoader.resolve(vm, refClassName.string.value_);
+            }
+        }
         return {new(AllocInfo::of<Class>()) Class(move(ret))};
     }
 

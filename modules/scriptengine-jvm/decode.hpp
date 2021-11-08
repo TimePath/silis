@@ -77,17 +77,29 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
-    template<typename T, typename I, Native<Int> adjust = 0>
+    template<typename T>
+    struct RepeatingNoSkip {
+        static Int invoke(ref<T>) { return 0; }
+    };
+
+    template<typename T, typename I, Native<Int> adjust = 0, typename Skip = RepeatingNoSkip<T>>
     struct Repeating {
     };
 
-    template<typename T, typename I, Native<Int> adjust>
-    struct DecodeTrait<Repeating<T, I, adjust>> {
+    template<typename T, typename I, Native<Int> adjust, typename Skip>
+    struct DecodeTrait<Repeating<T, I, adjust, Skip>> {
         static DynArray<T> decode(mut_ref<StreamReader> reader) {
+            var skip = I(0);
             let size = I(reader.read<I>() + adjust);
             var entries = DynArray<T>(Int(size));
             for (let i : Range<I>::until(I(0), size)) {
-                entries.set(Int(i), move(reader.read<T>()));
+                if (skip > 0) {
+                    skip = I(skip - I(1));
+                    continue;
+                }
+                var value = reader.read<T>();
+                skip = I(Skip::invoke(value));
+                entries.set(Int(i), move(value));
             }
             return entries;
         }

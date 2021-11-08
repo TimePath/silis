@@ -70,7 +70,7 @@ namespace tier1 {
             }
         }
 
-        Span<const T> asSpan() const { return Span<T>::unsafe(data_, Size(size_)); }
+        Span<const T> asSpan() const { return Span<const T>::unsafe(data_, Size(size_)); }
 
         Span<T> asSpan() { return Span<T>::unsafe(data_, Size(size_)); }
 

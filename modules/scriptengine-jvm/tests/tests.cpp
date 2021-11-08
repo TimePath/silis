@@ -9,13 +9,39 @@
 
 using namespace test;
 
+struct TestClassLoader : scriptengine::jvm::ClassLoader {
+    tier2::SlowMap<StringSpan, Optional<scriptengine::jvm::ClassHandle>> classes_;
+
+    void resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls) override;
+};
+
+void TestClassLoader::resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls) {
+    var ret = classes_.get(cls);
+    if (ret.hasValue()) {
+        return;
+    }
+    classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::empty());
+    if (cls == "Hello") {
+        var data = file_read("modules/scriptengine-jvm/tests/Hello.class");
+        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(scriptengine::jvm::load_class(vm, move(data))));
+    }
+    if (cls == "java/lang/Object") {
+        var data = file_read("modules/scriptengine-jvm/rt/java/lang/Object.class");
+        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(scriptengine::jvm::load_class(vm, move(data))));
+    }
+}
+
 TEST("load_class") {
     using namespace scriptengine::jvm;
 
+    var classLoader = TestClassLoader();
+    var vm = VM{
+            .classLoader=classLoader,
+    };
     var data = file_read("modules/scriptengine-jvm/tests/Hello.class");
-    var cls = load_class(move(data));
-    let mh = find_method(cls, "main");
-    load_code(mh);
+    var cls = load_class(vm, move(data));
+    let mh = find_method(vm, cls, "main");
+    load_code(vm, mh);
     cls.release();
     printf("load_class\n");
 }
@@ -46,8 +72,12 @@ struct UniqueAnyPtr {
 void eval(cstring path) {
     using namespace scriptengine::jvm;
 
+    var classLoader = TestClassLoader();
+    var vm = VM{
+            .classLoader=classLoader,
+    };
     var data = file_read(path);
-    var cls = load_class(move(data));
+    var cls = load_class(vm, move(data));
 
     struct PrintStream {
         void println(StringSpan line) {
@@ -60,6 +90,7 @@ void eval(cstring path) {
     };
 
     struct EvaluatorState {
+        mut_ref<VM> vm;
         ClassHandle mainClass;
         SystemStatics systemStatics;
         SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value> statics;
@@ -67,6 +98,7 @@ void eval(cstring path) {
     };
 
     var state = EvaluatorState{
+            .vm = vm,
             .mainClass = cls,
             .systemStatics = {
                     .out_ = PrintStream(),
@@ -107,8 +139,8 @@ void eval(cstring path) {
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
             var locals = frame.stack.take(argc);
-            let mh = find_method(mainClass, name);
-            eval(mh, *this, Frame{
+            let mh = find_method(vm, mainClass, name);
+            eval(vm, mh, *this, Frame{
                     .parent=Optional<ptr<Frame>>::of(&frame),
                     .locals=move(locals),
             });
@@ -121,8 +153,8 @@ void eval(cstring path) {
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
             var locals = frame.stack.take(1 + argc);
-            let mh = find_method(mainClass, name);
-            eval(mh, *this, Frame{
+            let mh = find_method(vm, mainClass, name);
+            eval(vm, mh, *this, Frame{
                     .parent=Optional<ptr<Frame>>::of(&frame),
                     .locals=move(locals),
             });
@@ -138,8 +170,8 @@ void eval(cstring path) {
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
             var locals = frame.stack.take(1 + argc);
-            let mh = find_method(mainClass, name);
-            eval(mh, *this, Frame{
+            let mh = find_method(vm, mainClass, name);
+            eval(vm, mh, *this, Frame{
                     .parent=Optional<ptr<Frame>>::of(&frame),
                     .locals=move(locals),
             });
@@ -184,11 +216,11 @@ void eval(cstring path) {
     };
 
     var evaluator = MyEvaluator(move(state));
-    let mhStaticInit = find_method(cls, "<clinit>");
+    let mhStaticInit = find_method(vm, cls, "<clinit>");
     if (mhStaticInit.index_ >= 0) {
-        eval(mhStaticInit, evaluator, Frame());
+        eval(vm, mhStaticInit, evaluator, Frame());
     }
-    let mhMain = find_method(cls, "main");
-    eval(mhMain, evaluator, Frame());
+    let mhMain = find_method(vm, cls, "main");
+    eval(vm, mhMain, evaluator, Frame());
     cls.release();
 }
