@@ -31,8 +31,8 @@ namespace scriptengine::jvm {
         };
 
         StringSpan input;
-        Int idx;
-        List<Atom> output;
+        Int idx = 0;
+        List<Atom> output = List<Atom>();
 
         static List<Atom> parseMethod(StringSpan input) {
             var state = DescriptorParser{

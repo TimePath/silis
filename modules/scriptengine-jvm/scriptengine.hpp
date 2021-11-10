@@ -89,7 +89,7 @@ namespace scriptengine::jvm {
 
     struct Frame {
         Optional<ptr<Frame>> parent;
-        Stack stack;
+        Stack stack = Stack();
         List<Stack::Value> locals;
     };
 

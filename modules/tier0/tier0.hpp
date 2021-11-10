@@ -290,6 +290,27 @@ namespace tier0 {
     template<typename T>
     using _ptr = T *;
 
+    template<typename T, typename R>
+    struct mptr;
+
+    template<typename T, typename R>
+    mptr(R T::*) -> mptr<T, R>;
+
+    template<typename T, typename R>
+    struct mptr {
+        using native = R T::*;
+        native data_;
+
+        implicit constexpr mptr(native data) : data_(data) {}
+
+        ref<R> get(ref<T> obj) const { return obj.*data_; }
+
+        mut_ref<R> get(mut_ref<T> obj) const { return obj.*data_; }
+
+        template<typename... Ts>
+        auto call(mut_ref<T> obj, Ts... args) const { return (obj.*data_)(args...); }
+    };
+
     template<typename T>
     struct ptr;
 
@@ -328,7 +349,7 @@ namespace tier0 {
 
         ptr() = delete;
 
-        implicit constexpr ptr(native value) : data_(value) {
+        implicit constexpr ptr(native _value) : data_(_value) {
             assert();
         }
 
@@ -469,6 +490,151 @@ namespace tier0 {
 
 // meta
 namespace tier0 {
+    template<typename... Ts>
+    struct Structs;
+
+    template<typename... Ts>
+    struct Structs : Ts ... {
+    };
+
+    template<typename... Ts>
+    struct TypeList;
+
+    template<typename T, T... values>
+    struct ValueList;
+
+#if !__has_builtin(__make_integer_seq)
+    namespace detail {
+        template<Native<Size> n>
+        struct make_seq_s;
+
+        template<Native<Size> n>
+        using make_seq = typename make_seq_s<n>::type;
+
+        template<Native<Size> n>
+        struct make_seq_lo_s;
+
+        template<Native<Size> n>
+        using make_seq_lo = make_seq_lo_s<n>;
+
+        template<typename T, Native<Size>... tail>
+        struct make_seq_recurse_s;
+
+        template<Native<Size> n, Native<Size>... values>
+        using make_seq_recurse = typename make_seq_recurse_s<make_seq<n>, values...>::type;
+
+        constexpr Native<Size> seq_bits = 3;
+
+        consteval Native<Size> seq_lo(Native<Size> n) { return n & ((1 << seq_bits) - 1); }
+
+        consteval Native<Size> seq_hi(Native<Size> n) { return n >> seq_bits; }
+
+        template<Native<Size> n>
+        using make_seq_generic = typename make_seq_lo<seq_lo(n)>::template hi<n>;
+
+        template<Native<Size> n>
+        struct make_seq_s {
+            using type = make_seq_generic<n>;
+        };
+
+        template<>
+        struct make_seq_s<0> {
+            using type = ValueList<Native<Size>>;
+        };
+        template<>
+        struct make_seq_s<1> {
+            using type = ValueList<Native<Size>, 0>;
+        };
+        template<>
+        struct make_seq_s<2> {
+            using type = ValueList<Native<Size>, 0, 1>;
+        };
+        template<>
+        struct make_seq_s<3> {
+            using type = ValueList<Native<Size>, 0, 1, 2>;
+        };
+        template<>
+        struct make_seq_s<4> {
+            using type = ValueList<Native<Size>, 0, 1, 2, 3>;
+        };
+        template<>
+        struct make_seq_s<5> {
+            using type = ValueList<Native<Size>, 0, 1, 2, 3, 4>;
+        };
+        template<>
+        struct make_seq_s<6> {
+            using type = ValueList<Native<Size>, 0, 1, 2, 3, 4, 5>;
+        };
+        template<>
+        struct make_seq_s<7> {
+            using type = ValueList<Native<Size>, 0, 1, 2, 3, 4, 5, 6>;
+        };
+
+        template<>
+        struct make_seq_lo_s<0> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n)>;
+        };
+        template<>
+        struct make_seq_lo_s<1> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n), n - 1>;
+        };
+        template<>
+        struct make_seq_lo_s<2> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n), n - 2, n - 1>;
+        };
+        template<>
+        struct make_seq_lo_s<3> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n), n - 3, n - 2, n - 1>;
+        };
+        template<>
+        struct make_seq_lo_s<4> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n), n - 4, n - 3, n - 2, n - 1>;
+        };
+        template<>
+        struct make_seq_lo_s<5> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n), n - 5, n - 4, n - 3, n - 2, n - 1>;
+        };
+        template<>
+        struct make_seq_lo_s<6> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n), n - 6, n - 5, n - 4, n - 3, n - 2, n - 1>;
+        };
+        template<>
+        struct make_seq_lo_s<7> {
+            template<Native<Size> n>
+            using hi = make_seq_recurse<seq_hi(n), n - 7, n - 6, n - 5, n - 4, n - 3, n - 2, n - 1>;
+        };
+
+        template<Native<Size>... values, Native<Size>... tail>
+        struct make_seq_recurse_s<ValueList<Native<Size>, values...>, tail...> {
+            static const auto n = sizeof...(values);
+            using type = ValueList<Native<Size>,
+                    ((0 * n) + values)...,
+                    ((1 * n) + values)...,
+                    ((2 * n) + values)...,
+                    ((3 * n) + values)...,
+                    ((4 * n) + values)...,
+                    ((5 * n) + values)...,
+                    ((6 * n) + values)...,
+                    ((7 * n) + values)...,
+                    tail...
+            >;
+        };
+    }
+
+    template<template<typename X, X...> typename C, typename T, T n>
+    using __make_integer_seq = typename detail::make_seq<n>::template transform<C>;
+#endif
+
+#if !__has_builtin(__type_pack_element)
+#define TYPE_PACK_ELEMENT_FALLBACK 2
+#if TYPE_PACK_ELEMENT_FALLBACK == 1
     namespace detail {
         // METAFUNC_TYPE(get, ((I, Size), (Ts, typename...)))
 
@@ -483,18 +649,39 @@ namespace tier0 {
                            get<I - 1 METAFUNC_IMPL_DELIMITER_COMMA() Ts...>)
     }
 
-    template<typename T, T... values>
-    struct ValueList;
+    template<Native<Size> I, typename... Ts>
+    using __type_pack_element = detail::get<I, Ts...>;
+#endif
+#if TYPE_PACK_ELEMENT_FALLBACK == 2
+    namespace detail {
+        template<Native<Size>, typename T>
+        struct IndexedType {
+            using type = T;
+        };
+
+        template<typename Ts, typename Is>
+        struct IndexedTypes;
+
+        template<typename... Ts, Native<Size>... Is>
+        struct IndexedTypes<TypeList<Ts...>, ValueList<Native<Size>, Is...>> : IndexedType<Is, Ts> ... {
+        };
+
+        template<Native<Size> I, typename T>
+        IndexedType<I, T> get_base(ref<IndexedType<I, T>>);
+    }
+
+    template<Native<Size> I, typename... Ts>
+    using __type_pack_element = typename decltype(
+    detail::get_base<I>(
+            detail::IndexedTypes<TypeList<Ts...>, __make_integer_seq<ValueList, Native<Size>, sizeof...(Ts)>>{}
+    ))::type;
+#endif
+#endif
 
     template<typename... Ts>
     struct TypeList {
-#if __has_builtin(__type_pack_element)
         template<Native<Size> I>
         using get = __type_pack_element<I, Ts...>;
-#else
-        template<Native<Size> I>
-        using get = detail::get<I, Ts...>;
-#endif
 
         METAFUNC_TYPE(concat, ((U, typename)))
         METAFUNC_TYPE_IMPL(concat, (TypeList<Us...>), ((Us, typename...)),
@@ -509,6 +696,8 @@ namespace tier0 {
 
     template<typename T, T... values>
     struct ValueList {
+        template<template<typename X, X...> typename C>
+        using transform = C<T, values...>;
     };
 
     METAFUNC_TYPE(collect2, ((hasNext, Boolean), (T, typename)))
@@ -604,9 +793,9 @@ namespace tier0 {
         struct property<R T::*, v> {
             using type = R;
 
-            static ref<type> get(ref<T> self) { return self.*v; }
+            static ref<type> get(ref<T> self) { return mptr(v).get(self); }
 
-            static mut_ref<type> get(mut_ref<T> self) { return self.*v; }
+            static mut_ref<type> get(mut_ref<T> self) { return mptr(v).get(self); }
         };
     }
 
@@ -712,13 +901,6 @@ struct std::tuple_element {
 
 // tuple
 namespace tier0 {
-    template<typename... Ts>
-    struct Structs;
-
-    template<typename... Ts>
-    struct Structs : Ts ... {
-    };
-
     template<Size i, typename T>
     struct TupleLeaf {
         T value;
@@ -729,6 +911,12 @@ namespace tier0 {
 
     template<typename... Ts>
     using TupleStorage = apply<Structs, typename Enumerate<Ts...>::template map<ToTupleLeaf>>;
+
+    template<typename... Ts>
+    struct Tuple;
+
+    template<typename... Ts>
+    Tuple(Ts...) -> Tuple<Ts...>;
 
     template<typename... Ts>
     struct Tuple {
@@ -767,9 +955,6 @@ namespace tier0 {
             return applyv<Native<Size>, equality, Indices<Ts...>>::invoke(a, b);
         }
     };
-
-    template<typename... Ts>
-    Tuple(Ts... args) -> Tuple<Ts...>;
 }
 
 // iterable
@@ -1246,12 +1431,9 @@ namespace tier0 {
         struct destructors {
             using U = decltype(data_);
 
-            template<typename T, typename R>
-            using mptr = R T::*;
-
             static constexpr mptr<U, void()> funcs[] = {&U::template destroy<Us::first::value>...};
 
-            static constexpr void invoke(mut_ref<Variant> self) { (self.data_.*funcs[self.active_ - 1])(); }
+            static constexpr void invoke(mut_ref<Variant> self) { funcs[self.active_ - 1].call(self.data_); }
         };
 
         void destroy() {
@@ -1309,6 +1491,12 @@ namespace tier0 {
 // literal string
 namespace tier0 {
     template<Size N>
+    struct LiteralString;
+
+    template<Native<Size> N>
+    LiteralString(ref<Native<Char>[N]>) -> LiteralString<N>;
+
+    template<Size N>
     struct LiteralString {
         using array_type = Native<Char>[N];
         array_type data_;
@@ -1344,9 +1532,6 @@ namespace tier0 {
             return ret;
         }
     };
-
-    template<Native<Size> N>
-    LiteralString(ref<Native<Char>[N]> str) -> LiteralString<N>;
 
     template<LiteralString str>
     cstring global() {
@@ -1525,16 +1710,16 @@ namespace tier0 {
         Native<ptr<T>> next_;
     };
 
-    template<typename T, IntrusiveLinks<T> T::*links>
+    template<typename T, mptr<T, IntrusiveLinks<T>> links>
     struct IntrusiveList {
     private:
         Native<ptr<T>> head_;
         Native<ptr<T>> tail_;
     public:
         void add(mut_ref<T> value) {
-            let lValue = &(value.*links);
+            let lValue = &links.get(value);
             let prev = lValue->prev_ = tail_;
-            if (let lPrev = !prev ? nullptr : &(prev->*links)) {
+            if (let lPrev = !prev ? nullptr : &links.get(*prev)) {
                 lPrev->next_ = &value;
             } else {
                 head_ = &value;
@@ -1543,13 +1728,13 @@ namespace tier0 {
         }
 
         void remove(mut_ref<T> value) {
-            let lValue = &(value.*links);
+            let lValue = &links.get(value);
             let prev = lValue->prev_;
             let next = lValue->next_;
-            if (let lPrev = !prev ? nullptr : &(prev->*links)) {
+            if (let lPrev = !prev ? nullptr : &links.get(*prev)) {
                 lPrev->next_ = next;
             }
-            if (let lNext = !next ? nullptr : &(next->*links)) {
+            if (let lNext = !next ? nullptr : &links.get(*next)) {
                 lNext->prev_ = prev;
             }
             if (&value == head_) {

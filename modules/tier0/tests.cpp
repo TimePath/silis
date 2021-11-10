@@ -155,6 +155,12 @@ TEST_COMPILE("StrTok argcount", {
 })
 
 template<typename T>
+struct Traced;
+
+template<typename T>
+Traced(T) -> Traced<T>;
+
+template<typename T>
 struct Traced {
     Boolean live_;
     T value_;
@@ -176,9 +182,6 @@ struct Traced {
         printf("%s: ctor(%s const &)\n", TypeName<Traced>(), TypeName<T>());
     }
 };
-
-template<typename T>
-Traced(T value) -> Traced<T>;
 
 TEST("Pointer") {
     {

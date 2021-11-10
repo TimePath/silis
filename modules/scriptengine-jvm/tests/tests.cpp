@@ -26,7 +26,7 @@ void TestClassLoader::resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls)
         classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(scriptengine::jvm::load_class(vm, move(data))));
     }
     if (cls == "java/lang/Object") {
-        var data = file_read("modules/scriptengine-jvm/rt/java/lang/Object.class");
+        var data = file_read("modules/scriptengine-jvm/rt/" "java/lang/Object" ".class");
         classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(scriptengine::jvm::load_class(vm, move(data))));
     }
 }
