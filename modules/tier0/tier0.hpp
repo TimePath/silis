@@ -161,6 +161,15 @@ namespace tier0 {
     using Native = typename native_s<T>::type;
 }
 
+// order
+namespace tier0 {
+    enum class Order {
+        Before = -1,
+        Undefined,
+        After,
+    };
+}
+
 // primitives
 namespace tier0 {
     namespace detail {
@@ -214,6 +223,18 @@ namespace tier0 {
             // operators
 
             constexpr bool operator==(ref<Word> other) const { return (*this).data_ == other.data_; }
+
+            constexpr Order compareTo(ref<Word> other) const {
+                let a = this->data_;
+                let b = other.data_;
+                if (a < b) {
+                    return Order::Before;
+                }
+                if (a > b) {
+                    return Order::After;
+                }
+                return Order::Undefined;
+            }
         };
 
         template<typename T> requires is_base_of<WordTag, T>
@@ -358,6 +379,11 @@ namespace tier0 {
     private:
         constexpr void check() const { assert(!!data_); }
     };
+
+    template<typename T>
+    Order operator<=>(ref<ptr<T>> a, ref<ptr<T>> b) {
+        return Size(Native<Size>(a.data_)).compareTo(Size(Native<Size>(b.data_)));
+    }
 
     template<typename T>
     struct native_s<ptr<T>> {
@@ -891,6 +917,26 @@ struct std::tuple_element {
     using type = typename tier0::tuple_traits<T>::template type<i>;
 };
 
+namespace tier0 {
+    template<Size i = Size(0), typename T, Size n = tuple_traits<T>::size, typename F, typename A>
+    constexpr A forEach(ref<T> tuple, F f, A acc) {
+        if constexpr (i < n) {
+            acc = f(acc, tuple.template get<i>(), i);
+            return forEach<i + 1, T, n, F>(tuple, f, acc);
+        }
+        return acc;
+    }
+
+    template<Size i = Size(0), typename T, Size n = tuple_traits<T>::size, typename F, typename A>
+    constexpr A forEach(ref<T> a, ref<T> b, F f, A acc) {
+        if constexpr (i < n) {
+            acc = f(acc, a.template get<i>(), b.template get<i>(), i);
+            return forEach<i + 1, T, n, F>(a, b, f, acc);
+        }
+        return acc;
+    }
+}
+
 // tuple
 namespace tier0 {
     template<Size i, typename T>
@@ -947,6 +993,17 @@ namespace tier0 {
             return applyv<Native<Size>, equality, Indices<Ts...>>::invoke(a, b);
         }
     };
+
+    template<typename... Ts>
+    Order operator<=>(ref<Tuple<Ts...>> a, ref<Tuple<Ts...>> b) {
+        auto compare = [&]<typename T>(Order acc, ref<T> aElem, ref<T> bElem, Size) -> Order {
+            if (acc == Order::Undefined) {
+                acc = aElem <=> bElem;
+            }
+            return acc;
+        };
+        return forEach(a, b, compare, Order::Undefined);
+    }
 }
 
 // iterable
@@ -1054,6 +1111,8 @@ namespace tier0 {
         explicit Span(Native<ptr<T>> addr, Size size) : data_(addr), size_(size) {}
 
     public:
+        static Span empty() { return Span(Native<ptr<T>>(), Size(0)); }
+
         explicit Span(mut_ref<array_type> array) : data_(array), size_(N) {}
 
         explicit Span(ptr<array_type> array) : data_(*array), size_(N) {}
@@ -1066,20 +1125,24 @@ namespace tier0 {
 
         static Span unsafe(Native<ptr<T>> addr, Size size) { return Span(addr, size); }
 
-        constexpr Boolean operator==(ref<Span> other) const { return equal(*this, other); }
+        constexpr Boolean operator==(ref<Span> other) const { return compare(*this, other) == Order::Undefined; }
 
-    private:
-        static constexpr Boolean equal(ref<Span> a, ref<Span> b) {
+        static constexpr Order compare(ref<Span> a, ref<Span> b) {
             var i = Size(0);
-            while (i < a.size() && i < b.size()) {
+            var nA = a.size();
+            var nB = b.size();
+            while (i < nA && i < nB) {
                 let iA = a.get(Int(i));
                 let iB = b.get(Int(i));
-                if (iA != iB) {
-                    return false;
+                if (iA < iB) {
+                    return Order::Before;
+                }
+                if (iA > iB) {
+                    return Order::After;
                 }
                 i = i + 1;
             }
-            return i == a.size() && i == b.size();
+            return nA.compareTo(nB);
         }
 
     public:
@@ -1112,7 +1175,18 @@ namespace tier0 {
         requires (I < N)
         [[nodiscard]]
         Span<T, N - I> offset() const { return Span<T, N - I>::unsafe(data_ + I, N - I); }
+
+        [[nodiscard]] Span<T, unbounded> limit(Size limit) const {
+            return Span<T, unbounded>::unsafe(data_, limit);
+        }
+
+        [[nodiscard]] Span<T, unbounded> offset(Size offset) const {
+            return Span<T, unbounded>::unsafe(data_ + offset, size_ - offset);
+        }
     };
+
+    template<typename T>
+    inline Order operator<=>(ref<Span<T>> a, ref<Span<T>> b) { return Span<T>::compare(a, b); }
 
     struct StringSpan {
         Span<const Byte> data_;
@@ -1134,6 +1208,8 @@ namespace tier0 {
             return ret;
         }
     };
+
+    inline Order operator<=>(ref<StringSpan> a, ref<StringSpan> b) { return a.data_ <=> b.data_; }
 }
 
 // array
@@ -1736,17 +1812,6 @@ namespace tier0::strtok {
         return detail::forEachRange<str>([]<Range r>() constexpr {
             return global<str.template slice<r.begin_, r.end_>()>();
         });
-    }
-}
-
-namespace tier0 {
-    template<Size i = Size(0), typename T, Size n = tuple_traits<T>::size, typename F, typename A>
-    constexpr A forEach(ref<T> tuple, F f, A acc) {
-        if constexpr (i < n) {
-            acc = f(acc, tuple.template get<i>(), i);
-            return forEach<i + 1, T, n, F>(tuple, f, acc);
-        }
-        return acc;
     }
 }
 

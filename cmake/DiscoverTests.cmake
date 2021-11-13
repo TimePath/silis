@@ -216,7 +216,7 @@ target_compile_definitions(${target} PRIVATE __TEST_COMPILE __TEST_${id}=1)
                     --
                     ${DISCOVER_TESTS_TEST_EMULATOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}" "${testid}"
                     )
-            script_append(set_tests_properties "${testname}" PROPERTIES TIMEOUT 2)
+            script_append(set_tests_properties "${testname}" PROPERTIES TIMEOUT 10)
             if (testid MATCHES "^DISABLED_")
                 script_append(set_tests_properties "${testname}" PROPERTIES DISABLED TRUE)
             endif ()

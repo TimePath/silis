@@ -178,6 +178,8 @@ def register():
         "tier0::Short": WordPrinter(),
         "tier0::UInt": WordPrinter(),
         "tier0::Int": WordPrinter(),
+        "tier0::ULong": WordPrinter(),
+        "tier0::Long": WordPrinter(),
         # "tier0::ptr": PointerPrinter(),
         "tier0::Tuple": {
             None: lambda *Ts: TuplePrinter(Ts)
