@@ -1120,12 +1120,13 @@ namespace tier0 {
         explicit StringSpan(Span<const Byte> data) : data_(data) {}
 
         implicit StringSpan(cstring str)
-                : data_(Span<const Byte>::unsafe(ptr<const Byte>::reinterpret(str), _strlen(str))) {}
+                : data_(Span<const Byte>::unsafe(ptr<const Byte>::reinterpret(str), strlen(str))) {}
 
         constexpr Boolean operator==(ref<StringSpan> other) const { return (*this).data_ == other.data_; }
 
-    private:
-        static Size _strlen(cstring str) {
+        Size size() const { return data_.size(); }
+
+        static Size strlen(cstring str) {
             var ret = Size(0);
             while (str[ret] != 0) {
                 ret = ret + 1;
@@ -1740,11 +1741,12 @@ namespace tier0::strtok {
 
 namespace tier0 {
     template<Size i = Size(0), typename T, Size n = tuple_traits<T>::size, typename F, typename A>
-    constexpr void forEach(ref<T> tuple, F f, A acc) {
+    constexpr A forEach(ref<T> tuple, F f, A acc) {
         if constexpr (i < n) {
-            acc = f(acc, tuple.template get<i>());
-            forEach<i + 1, T, n, F>(tuple, f, acc);
+            acc = f(acc, tuple.template get<i>(), i);
+            return forEach<i + 1, T, n, F>(tuple, f, acc);
         }
+        return acc;
     }
 }
 

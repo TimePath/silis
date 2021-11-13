@@ -101,7 +101,7 @@ class VariantPrinter(Printer):
 
     def children(self):
         i = int(self._active)
-        if not i:
+        if i not in range(1, 1 + len(self.Ts)):
             yield f"active", self._active
             return
         t = self.Ts[i - 1]
@@ -158,6 +158,10 @@ class DynArrayPrinter(SpanPrinter):
         super().__init__(T, "*")
 
 
+class StringPrinter(StringSpanPrinter):
+    pass
+
+
 class ListPrinter(DynArrayPrinter):
     def __init__(self, T):
         super().__init__(T)
@@ -200,6 +204,7 @@ def register():
         "tier1::DynArray": {
             None: lambda T: DynArrayPrinter(T),
         },
+        "tier1::String": StringPrinter(),
         "tier2::List": {
             None: lambda T: ListPrinter(T),
         },

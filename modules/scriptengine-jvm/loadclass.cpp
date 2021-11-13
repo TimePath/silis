@@ -125,9 +125,13 @@ namespace scriptengine::jvm {
             let minorVersion = reader.read<UShort>();
             let majorVersion = reader.read<UShort>();
             struct Skipper {
-                static Int invoke(ref<ConstantInfo> it) {
+                static Int size(ref<ConstantInfo> it) {
                     var kind = it.variant_.index();
-                    return (kind == Constant::Long || kind == Constant::Double) ? 1 : 0;
+                    return (kind == Constant::Long || kind == Constant::Double) ? 2 : 1;
+                }
+
+                static void pad(ptr<ConstantInfo> out) {
+                    new(out) ConstantInfo(ConstantInfo::Storage::of<Constant::Integer>(constant::IntegerInfo{}));
                 }
             };
             var constantPool = reader.read<Repeating<ConstantInfo, UShort, -1, Skipper>>();
@@ -170,7 +174,11 @@ namespace scriptengine::jvm {
             if (it.variant_.index() == Constant::Class) {
                 let refClass = it.variant_.get<Constant::Class>();
                 let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                vm.classLoader.resolve(vm, refClassName.string.value_);
+                var descriptorString = refClassName.string.value_;
+                if (descriptorString.data_.get(0) == Char('[')) {
+                    continue;
+                }
+                vm.classLoader.resolve(vm, descriptorString);
             }
         }
         return {new(AllocInfo::of<Class>()) Class(move(ret))};

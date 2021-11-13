@@ -79,7 +79,9 @@ namespace scriptengine::jvm {
 namespace scriptengine::jvm {
     template<typename T>
     struct RepeatingNoSkip {
-        static Int invoke(ref<T>) { return 0; }
+        static Int size(ref<T>) { return 1; }
+
+        static void pad(ptr<T>) {}
     };
 
     template<typename T, typename I, Native<Int> adjust = 0, typename Skip = RepeatingNoSkip<T>>
@@ -94,12 +96,13 @@ namespace scriptengine::jvm {
             var entries = DynArray<T>(Int(size));
             for (let i : Range<I>::until(I(0), size)) {
                 if (skip > 0) {
-                    skip = I(skip - I(1));
-                    continue;
+                    Skip::pad(&entries.get(Int(i)));
+                } else {
+                    var value = reader.read<T>();
+                    skip = I(Skip::size(value));
+                    entries.set(Int(i), move(value));
                 }
-                var value = reader.read<T>();
-                skip = I(Skip::invoke(value));
-                entries.set(Int(i), move(value));
+                skip = I(skip - I(1));
             }
             return entries;
         }

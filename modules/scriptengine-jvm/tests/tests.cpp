@@ -50,12 +50,9 @@ void TestClassLoader::resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls)
         classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(ret));
         return;
     }
-    if (cls == "java/lang/Object") {
-        var data = file_read("modules/scriptengine-jvm/rt/" "java/lang/Object" ".class");
-        var ret = scriptengine::jvm::load_class_internal(vm, move(data));
-        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(ret));
-        return;
-    }
+    var data = file_read(cstring(format<"modules/scriptengine-jvm/rt/{}.class">(cls)()));
+    var ret = scriptengine::jvm::load_class_internal(vm, move(data));
+    classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(ret));
 }
 
 TEST("load_class") {

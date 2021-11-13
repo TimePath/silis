@@ -110,3 +110,63 @@ namespace tier1 {
         }));
     }
 }
+
+namespace tier1 {
+    struct FormatWriter {
+        mut_ref<DynArray<Char>> chars_;
+        Int offset_;
+
+        void write(Char c) {
+            chars_.set(offset_, c);
+            offset_ = offset_ + 1;
+        }
+    };
+
+    template<typename T>
+    struct FormatTraits;
+
+    template<>
+    struct FormatTraits<StringSpan> {
+        static Size size(ref<StringSpan> self) { return self.size(); }
+
+        static void write(ref<StringSpan> self, mut_ref<FormatWriter> writer) {
+            for (var c : self.data_.iterator()) {
+                writer.write(Char(c));
+            }
+        }
+    };
+
+    template<Size n, typename... Ts>
+    struct LazyString {
+        const Array<cstring, n> strings_;
+        const Tuple<Ts...> values_;
+
+        String operator()() const {
+            auto calculateSize = [&]<typename T>(Size acc, ref<T> it, Size i) -> Size {
+                var s1 = FormatTraits<T>::size(it);
+                var s2 = FormatTraits<StringSpan>::size(strings_.get(Int(1 + i)));
+                return acc + s1 + s2;
+            };
+            var size = forEach(values_, calculateSize, FormatTraits<StringSpan>::size(strings_.get(0)));
+            var arr = DynArray<Char>(Int(size + 1));
+            var writer = FormatWriter{arr, 0};
+            FormatTraits<StringSpan>::write(strings_.get(0), writer);
+            auto write = [&]<typename T>(Size acc, ref<T> it, Size i) -> Size {
+                FormatTraits<T>::write(it, writer);
+                FormatTraits<StringSpan>::write(strings_.get(Int(1 + i)), writer);
+                return acc;
+            };
+            forEach(values_, write, Size(0));
+            writer.write(Char(0));
+            var ret = String(move(arr));
+            return ret;
+        }
+    };
+
+    template<LiteralString str, typename... Ts>
+    auto format(Ts... values) {
+        constexpr var N = strtok::count<str>();
+        static_assert(sizeof...(Ts) == N - 1, "incorrect number of arguments");
+        return LazyString<N, Ts...>{strtok::collect<str>(), Tuple{values...}};
+    }
+}
