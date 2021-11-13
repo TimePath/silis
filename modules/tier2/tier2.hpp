@@ -14,19 +14,6 @@ namespace tier2 {
         Int size_;
         DynArray<Unmanaged<T>> data_;
     public:
-        void _size(Int size) {
-            size_ = size;
-        }
-
-        void ensure(Int capacity) {
-            if (data_.size() >= capacity) {
-                return;
-            }
-            data_ = DynArray<Unmanaged<T>>(capacity * 2, [&](Int i) {
-                return (i < size_) ? Unmanaged<T>(move(data_.get(i))) : Unmanaged<T>();
-            });
-        }
-
         ~List() {
             for (var i : Range<Int>::until(0, size())) {
                 data_.get(i).destroy();
@@ -39,17 +26,15 @@ namespace tier2 {
 
         Int size() const { return size_; }
 
+        void _size(Int size) { size_ = size; }
+
         ref<T> get(Int index) const {
-            if (!Range<Int>::until(0, size()).contains(index)) {
-                die();
-            }
+            assert(Range<Int>::until(0, size()).contains(index));
             return data_.get(index).get();
         }
 
         mut_ref<T> get(Int index) {
-            if (!Range<Int>::until(0, size()).contains(index)) {
-                die();
-            }
+            assert(Range<Int>::until(0, size()).contains(index));
             return data_.get(index).get();
         }
 
@@ -85,6 +70,15 @@ namespace tier2 {
         constexpr Iterator<T> iterator() { return {this, 0}; }
 
         ENABLE_FOREACH_ITERABLE()
+
+        void ensure(Int capacity) {
+            if (data_.size() >= capacity) {
+                return;
+            }
+            data_ = DynArray<Unmanaged<T>>(capacity * 2, [&](Int i) {
+                return (i < size_) ? Unmanaged<T>(move(data_.get(i))) : Unmanaged<T>();
+            });
+        }
     };
 }
 
@@ -92,25 +86,20 @@ namespace tier2 {
 namespace tier2 {
     template<typename K, typename V>
     struct SlowMap {
+    private:
         List<K> keys_;
         List<V> vals_;
-    private:
-        Optional<ptr<V>> _get(ref<K> key) {
-            var i = Int(0);
-            for (let it : keys_) {
-                if (it == key) {
-                    return Optional<ptr<V>>::of(ptr<V>(&vals_.get(i)));
-                }
-                i = i + 1;
-            }
-            return Optional<ptr<V>>::empty();
-        }
-
     public:
-        Optional<V> get(ref<K> key) {
+        ref<List<K>> keys() const { return keys_; }
+
+        ref<List<V>> values() const { return vals_; }
+
+        Optional<V> get(ref<K> key) const {
             var opt = _get(key);
             if (opt.hasValue()) {
-                return Optional<V>::of(move(*opt.value()));
+                var ptr = opt.value();
+                var copy = V(*ptr);
+                return Optional<V>::of(move(copy));
             }
             return Optional<V>::empty();
         }
@@ -122,7 +111,29 @@ namespace tier2 {
                 vals_.add(move(val));
                 return;
             }
-            new(opt.value()) V(move(val));
+            var ptr = opt.value();
+            new(ptr) V(move(val));
         }
+
+    private:
+        template<typename Self, typename R>
+        static Optional<ptr<R>> _get(mut_ref<Self> self, ref<K> key);
+
+        Optional<ptr<const V>> _get(ref<K> key) const { return _get<const SlowMap, const V>(*this, key); }
+
+        Optional<ptr<V>> _get(ref<K> key) { return _get<SlowMap, V>(*this, key); }
     };
+
+    template<typename K, typename V>
+    template<typename Self, typename R>
+    Optional<ptr<R>> SlowMap<K, V>::_get(mut_ref<Self> self, ref<K> key) {
+        var i = Int(0);
+        for (let it : self.keys_) {
+            if (it == key) {
+                return Optional<ptr<R>>::of(ptr<R>(&self.vals_.get(i)));
+            }
+            i = i + 1;
+        }
+        return Optional<ptr<R>>::empty();
+    }
 }

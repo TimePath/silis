@@ -31,10 +31,6 @@
 
 namespace tier0 {}
 
-namespace tier0 {
-    [[noreturn]] inline void die() { throw 0; }
-}
-
 // meta
 namespace tier0 {
 
@@ -150,6 +146,15 @@ namespace tier0 {
     }
 
     template<typename T>
+    constexpr mut_ref<T> operator_move_assign(mut_ref<T> self, movable<T> other) {
+        if (&self != &other) {
+            self.~T();
+            new(&self) T(move(other));
+        }
+        return self;
+    }
+
+    template<typename T>
     struct native_s;
 
     template<typename T>
@@ -183,9 +188,10 @@ namespace tier0 {
             friend WordTraits<Word>;
             T data_;
 
-            constexpr ~Word() {}
-
             explicit constexpr Word() : Word(0) {}
+
+            /** Copy */
+            implicit constexpr Word(ref<Word> other) : data_(other.data_) {}
 
             /** Exact primitive match */
             template<typename T2>
@@ -196,16 +202,6 @@ namespace tier0 {
             template<typename U>
             requires (!is_same < T, U > and is_arithmetic < U >)
             explicit constexpr Word(U value) : data_(T(value)) {}
-
-            /** Copy */
-            implicit constexpr Word(ref<Word> other) {
-                *this = other;
-            }
-
-            constexpr mut_ref<Word> operator=(ref<Word> other) {
-                data_ = other.data_;
-                return *this;
-            }
 
             /** Cast from */
             template<typename Other>
@@ -285,6 +281,15 @@ namespace tier0 {
 #pragma GCC poison double
 }
 
+// assert
+namespace tier0 {
+    [[noreturn]] inline void die() {
+        throw 0;
+    }
+
+#define assert(flag) do { if (!(flag)) die(); } while (0)
+}
+
 // pointer
 namespace tier0 {
     template<typename T>
@@ -303,12 +308,12 @@ namespace tier0 {
 
         implicit constexpr mptr(native data) : data_(data) {}
 
-        ref<R> get(ref<T> obj) const { return obj.*data_; }
+        constexpr ref<R> get(ref<T> obj) const { return obj.*data_; }
 
-        mut_ref<R> get(mut_ref<T> obj) const { return obj.*data_; }
+        constexpr mut_ref<R> get(mut_ref<T> obj) const { return obj.*data_; }
 
         template<typename... Ts>
-        auto call(mut_ref<T> obj, Ts... args) const { return (obj.*data_)(args...); }
+        constexpr auto call(mut_ref<T> obj, Ts... args) const { return (obj.*data_)(args...); }
     };
 
     template<typename T>
@@ -331,40 +336,27 @@ namespace tier0 {
         using native = _ptr<T>;
         native data_;
 
-        constexpr ref<native> value() const {
-            assert();
-            return data_;
-        }
-
-        constexpr mut_ref<native> value() {
-            assert();
-            return data_;
-        }
-
-        constexpr void assert() const {
-            if (!data_) {
-                die();
-            }
-        }
-
-        ptr() = delete;
-
-        implicit constexpr ptr(native _value) : data_(_value) {
-            assert();
-        }
-
         using base::base;
 
+        constexpr ptr() = delete;
+
         template<typename U>
-        static constexpr ptr reinterpret(_ptr<U> value) {
-            return reinterpret_cast<native>(value);
-        }
+        static constexpr ptr reinterpret(_ptr<U> value) { return reinterpret_cast<native>(value); }
+
+        implicit constexpr ptr(native data) : data_(data) { check(); }
+
+        constexpr ref<native> value() const { return check(), data_; }
+
+        constexpr mut_ref<native> value() { return check(), data_; }
 
         implicit constexpr operator native() const { return value(); }
 
         explicit constexpr operator Native<Boolean>() { return value(); }
 
         constexpr native operator->() const { return value(); }
+
+    private:
+        constexpr void check() const { assert(!!data_); }
     };
 
     template<typename T>
@@ -396,7 +388,7 @@ namespace tier0 {
 
         explicit constexpr ptr_mixin_s(ptr<void> p) { super()->data_ = Self::reinterpret(p.operator->()); }
 
-        implicit constexpr operator ptr<void>() { return super()->value(); }
+        implicit constexpr operator ptr<void>() const { return ptr<void>::reinterpret(super()->value()); }
 
         constexpr ref<T> operator[](Int index) const { return super()->value()[index]; }
 
@@ -1329,6 +1321,12 @@ namespace tier0 {
         implicit constexpr Optional(movable<Optional> other) : data_(move(other.data_)),
                                                                valueBit_(exchange(other.valueBit_, false)) {}
 
+        explicit constexpr Optional(ref<Optional> other) : valueBit_(other.valueBit_) {
+            if (other.hasValue()) {
+                value() = other.value();
+            }
+        }
+
         // ATTR_TYPESTATE_CTOR(unconsumed)
         static constexpr Optional of(T value) {
             var ret = Optional();
@@ -1344,9 +1342,17 @@ namespace tier0 {
 
         ATTR_TYPESTATE_PRECONDITION(unconsumed)
 
-        ref<T> value() const { return data_.template get<Size(0)>(); }
+        ref<T> value() const {
+            assert(hasValue());
+            return data_.template get<Size(0)>();
+        }
 
-        mut_ref<T> value() { return data_.template get<Size(0)>(); }
+        ATTR_TYPESTATE_PRECONDITION(unconsumed)
+
+        mut_ref<T> value() {
+            assert(hasValue());
+            return data_.template get<Size(0)>();
+        }
 
         // ATTR_TYPESTATE_CTOR(consumed)
         static Optional empty() {
@@ -1428,13 +1434,17 @@ namespace tier0 {
         using types = TypeList<Ts...>;
 
         template<typename... Us>
-        struct destructors {
-            using U = decltype(data_);
+        struct constructors;
 
-            static constexpr mptr<U, void()> funcs[] = {&U::template destroy<Us::first::value>...};
+        void construct(ref<Variant> other) {
+            if (active_ == 0) {
+                return;
+            }
+            apply<constructors, Enumerate<Ts...>>::invoke(*this, other);
+        }
 
-            static constexpr void invoke(mut_ref<Variant> self) { funcs[self.active_ - 1].call(self.data_); }
-        };
+        template<typename... Us>
+        struct destructors;
 
         void destroy() {
             if (active_ == 0) {
@@ -1450,7 +1460,11 @@ namespace tier0 {
         explicit Variant() {}
 
     public:
-        implicit Variant(movable<Variant> other) : data_(move(other.data_)), active_(move(other.active_)) {}
+        implicit Variant(movable<Variant> other) : data_(move(other.data_)), active_(other.active_) {}
+
+        explicit Variant(ref<Variant> other) : active_(other.active_) {
+            construct(other);
+        }
 
         template<E i>
         static Variant of(typename types::template get<Native<Size>(i) - 1> value) {
@@ -1485,6 +1499,40 @@ namespace tier0 {
             new(&get<i>()) T(move(value));
             active_ = Byte(Native<Size>(i));
         }
+
+        template<E i>
+        void set(ref<typename types::template get<Native<Size>(i) - 1>> value) {
+            using T = typename types::template get<Native<Size>(i) - 1>;
+            destroy();
+            new(&get<i>()) T(value);
+            active_ = Byte(Native<Size>(i));
+        }
+
+    private:
+        template<typename... Us>
+        struct constructors {
+            using U = decltype(data_);
+
+            static constexpr ptr<void(mut_ref<Variant> self, ref<Variant> other)> funcs[] = {
+                    (+[](mut_ref<Variant> self, ref<Variant> other) {
+                        constexpr var index = E(1 + Us::first::value);
+                        self.set<index>(other.template get<index>());
+                    })...
+            };
+
+            static constexpr void invoke(mut_ref<Variant> self, ref<Variant> other) {
+                (*funcs[self.active_ - 1])(self, other);
+            }
+        };
+
+        template<typename... Us>
+        struct destructors {
+            using U = decltype(data_);
+
+            static constexpr mptr<U, void()> funcs[] = {&U::template destroy<Us::first::value>...};
+
+            static constexpr void invoke(mut_ref<Variant> self) { funcs[self.active_ - 1].call(self.data_); }
+        };
     };
 }
 
@@ -1500,9 +1548,6 @@ namespace tier0 {
     struct LiteralString {
         using array_type = Native<Char>[N];
         array_type data_;
-
-        [[nodiscard]]
-        constexpr Size size() const { return N - 1; }
 
         explicit consteval LiteralString() : data_() {
             var n = size();
@@ -1520,9 +1565,10 @@ namespace tier0 {
             data_[n] = 0;
         }
 
+        [[nodiscard]] constexpr Size size() const { return N - 1; }
+
         template<Size begin, Size end = N>
-        [[nodiscard]]
-        consteval LiteralString<end - begin + 1> slice() const {
+        [[nodiscard]] consteval LiteralString<end - begin + 1> slice() const {
             const var n = end - begin;
             var ret = LiteralString<n + 1>();
             for (var i : Range<Size>::until(Size(0), n)) {

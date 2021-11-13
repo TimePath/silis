@@ -45,7 +45,7 @@ namespace scriptengine::jvm {
 #undef X
         };
 
-        static constexpr Constant internalConstant(JVMConstant c) {
+        static consteval Constant internalConstant(JVMConstant c) {
             switch (c) {
 #define X(name, _2, _3, _4) case JVMConstant::name: return Constant::name;
                 CONSTANTS(X)
@@ -157,7 +157,12 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
-    ClassHandle load_class(mut_ref<VM> vm, DynArray<Byte> data) {
+    Optional<ClassHandle> load_class(mut_ref<VM> vm, StringSpan name) {
+        vm.classLoader.resolve(vm, name);
+        return vm.classLoader.get(name);
+    }
+
+    ClassHandle load_class_internal(mut_ref<VM> vm, DynArray<Byte> data) {
         var reader = StreamReader{data.asSpan(), 0};
         var ret = reader.read<Class>(move(data));
         let pool = ret.constantPool;
@@ -171,8 +176,7 @@ namespace scriptengine::jvm {
         return {new(AllocInfo::of<Class>()) Class(move(ret))};
     }
 
-    void ClassHandle::release() {
-        var ret = handle_.data_;
-        delete ret;
+    void unload_class(ClassHandle cls) {
+        delete cls.handle_.data_;
     }
 }

@@ -12,22 +12,49 @@ using namespace test;
 struct TestClassLoader : scriptengine::jvm::ClassLoader {
     tier2::SlowMap<StringSpan, Optional<scriptengine::jvm::ClassHandle>> classes_;
 
+    ~TestClassLoader() override {
+        for (let clsOpt : classes_.values()) {
+            if (!clsOpt.hasValue()) {
+                continue;
+            }
+            let cls = clsOpt.value();
+            scriptengine::jvm::unload_class(cls);
+        }
+    }
+
+    Optional<scriptengine::jvm::ClassHandle> get(StringSpan name) override {
+        let clsOptOpt = classes_.get(name);
+        if (!clsOptOpt.hasValue()) {
+            return Optional<scriptengine::jvm::ClassHandle>::empty();
+        }
+        let clsOpt = clsOptOpt.value();
+        if (!clsOpt.hasValue()) {
+            return Optional<scriptengine::jvm::ClassHandle>::empty();
+        }
+        let ret = clsOpt.value();
+        return Optional<scriptengine::jvm::ClassHandle>::of(ret);
+    }
+
     void resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls) override;
 };
 
 void TestClassLoader::resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls) {
-    var ret = classes_.get(cls);
-    if (ret.hasValue()) {
+    var cached = classes_.get(cls);
+    if (cached.hasValue()) {
         return;
     }
     classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::empty());
     if (cls == "Hello") {
         var data = file_read("modules/scriptengine-jvm/tests/Hello.class");
-        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(scriptengine::jvm::load_class(vm, move(data))));
+        var ret = scriptengine::jvm::load_class_internal(vm, move(data));
+        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(ret));
+        return;
     }
     if (cls == "java/lang/Object") {
         var data = file_read("modules/scriptengine-jvm/rt/" "java/lang/Object" ".class");
-        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(scriptengine::jvm::load_class(vm, move(data))));
+        var ret = scriptengine::jvm::load_class_internal(vm, move(data));
+        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(ret));
+        return;
     }
 }
 
@@ -38,17 +65,16 @@ TEST("load_class") {
     var vm = VM{
             .classLoader=classLoader,
     };
-    var data = file_read("modules/scriptengine-jvm/tests/Hello.class");
-    var cls = load_class(vm, move(data));
-    let mh = find_method(vm, cls, "main");
+    var cls = load_class(vm, "Hello");
+    assert(cls.hasValue());
+    let mh = find_method(vm, cls.value(), "main");
     load_code(vm, mh);
-    cls.release();
     printf("load_class\n");
 }
 
-void eval(cstring path);
+void eval(cstring mainClass);
 
-TEST("eval_hello") { eval("modules/scriptengine-jvm/tests/Hello.class"); }
+TEST("eval_hello") { eval("Hello"); }
 
 struct UniqueAnyPtr {
     Optional<ptr<void>> ref_;
@@ -69,15 +95,16 @@ struct UniqueAnyPtr {
     }
 };
 
-void eval(cstring path) {
+void eval(cstring mainClass) {
     using namespace scriptengine::jvm;
 
     var classLoader = TestClassLoader();
     var vm = VM{
             .classLoader=classLoader,
     };
-    var data = file_read(path);
-    var cls = load_class(vm, move(data));
+    var clsOpt = load_class(vm, mainClass);
+    assert(clsOpt.hasValue());
+    let cls = clsOpt.value();
 
     struct PrintStream {
         void println(StringSpan line) {
@@ -131,7 +158,9 @@ void eval(cstring path) {
             if (cls == "java/lang/System" && name == "out") {
                 return Stack::Value::of<Stack::ValueKind::Reference>(&systemStatics.out_);
             }
-            return move(statics.get(Tuple(cls, name)).value());
+            var val = statics.get(Tuple(cls, name));
+            assert(val.hasValue());
+            return move(val.value());
         }
 
         void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) override {
@@ -189,7 +218,9 @@ void eval(cstring path) {
         }
 
         Stack::Value getinstance(ptr<void> self, StringSpan name) override {
-            return move(members.get(Tuple(self, name)).value());
+            var val = members.get(Tuple(self, name));
+            assert(val.hasValue());
+            return move(val.value());
         }
 
         Stack::Value _newarray(StringSpan cls, Int count) override {
@@ -222,5 +253,4 @@ void eval(cstring path) {
     }
     let mhMain = find_method(vm, cls, "main");
     eval(vm, mhMain, evaluator, Frame());
-    cls.release();
 }

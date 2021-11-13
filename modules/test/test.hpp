@@ -29,13 +29,13 @@ namespace test {
     struct CompileTest : Test {
         cstring_t code_;
 
-        CompileTest(cstring_t file, int_t id, cstring_t name, cstring_t code) noexcept;
+        explicit CompileTest(cstring_t file, int_t id, cstring_t name, cstring_t code) noexcept;
     };
 
     struct RunTest : Test {
         runnable_t run_;
 
-        RunTest(cstring_t file, int_t id, cstring_t name, runnable_t run) noexcept;
+        explicit RunTest(cstring_t file, int_t id, cstring_t name, runnable_t run) noexcept;
     };
 
     [[gnu::format(printf, 1, 2)]]

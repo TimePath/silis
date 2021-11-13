@@ -15,8 +15,6 @@ namespace scriptengine::jvm {
 
     struct ClassHandle {
         ptr<Class> handle_;
-
-        void release();
     };
 
     struct MethodHandle {
@@ -27,10 +25,16 @@ namespace scriptengine::jvm {
     struct ClassLoader {
         virtual ~ClassLoader();
 
+        virtual Optional<scriptengine::jvm::ClassHandle> get(StringSpan name) = 0;
+
         virtual void resolve(mut_ref<VM> vm, StringSpan cls) = 0;
     };
 
-    ClassHandle load_class(mut_ref<VM> vm, DynArray<Byte> data);
+    Optional<ClassHandle> load_class(mut_ref<VM> vm, StringSpan name);
+
+    ClassHandle load_class_internal(mut_ref<VM> vm, DynArray<Byte> data);
+
+    void unload_class(ClassHandle cls);
 
     MethodHandle find_method(mut_ref<VM> vm, ClassHandle cls, StringSpan name);
 
@@ -55,17 +59,13 @@ namespace scriptengine::jvm {
         Int sp_ = Int(0);
         List<Value> stack_ = List<Value>();
 
-        Int size() const { return sp_; }
+        mut_ref<Value> peek() { return stack_.get(sp_ - 1); }
 
         void push(Value v) {
             stack_.ensure(sp_ + 1);
             stack_.set(sp_, move(v));
             sp_ = sp_ + 1;
             stack_._size(sp_);
-        }
-
-        mut_ref<Value> peek() {
-            return stack_.get(sp_ - 1);
         }
 
         Value pop() {

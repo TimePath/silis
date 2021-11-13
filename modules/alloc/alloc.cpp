@@ -17,8 +17,6 @@ namespace {
         IntrusiveLinks<MemoryBlock> links_;
         AllocInfo info_;
 
-        ~MemoryBlock() = default;
-
         explicit MemoryBlock(AllocInfo info) : id_(ids_ = ids_ + 1), links_(), info_(move(info)) {}
     };
 
