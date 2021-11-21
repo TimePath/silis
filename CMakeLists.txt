@@ -17,16 +17,20 @@ project(silis
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>")
 
 set(BUILD_SHARED_LIBS ON)
 
-add_compile_options("-g3")
-add_compile_options("$<$<CONFIG:DEBUG>:-Og>")
+add_compile_options("$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-g3>")
+add_compile_options("$<$<AND:$<CONFIG:DEBUG>,$<CXX_COMPILER_ID:AppleClang,Clang,GNU>>:-Og>")
 
 add_compile_options("$<$<CONFIG:RELEASE>:-Os>")
 # set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
+
+message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
+add_compile_definitions(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 enable_testing()
 
@@ -40,25 +44,53 @@ set(LINT_CLANG_TIDY ON)
 set(LINT_CPPCHECK ON)
 set(LINT_CPPLINT ON)
 set(LINT_IWYU ON)
+
+if (WIN32)
+    set(LINT_CLANG_TIDY OFF)
+endif ()
+
 if (LINT)
-    add_compile_options("-Werror")
     add_compile_options(
-            "-Wall"
-            "-Wextra"
-            "-pedantic"
-    )
-    add_compile_options(
-            "$<$<CXX_COMPILER_ID:Clang>:-Weverything>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wconsumed>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Werror>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/WX>"
+
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wall>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wextra>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Weverything>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/Wall>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-pedantic>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/permissive->"
+
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wconsumed>"
 
             "$<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat-pedantic>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat-pedantic>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-c++98-compat-pedantic>"
             "$<$<CXX_COMPILER_ID:Clang>:-Wno-deprecated-copy>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-exit-time-destructors>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-global-constructors>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-header-hygiene>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-padded>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-exit-time-destructors>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-global-constructors>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-header-hygiene>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-padded>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4820>" # padded
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4371>" # layout may have changed due to better packing
+            "$<$<CXX_COMPILER_ID:GNU>:-Wno-deprecated-copy>" # fixme
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wno-unknown-pragmas>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4068>" # unknown pragma
+            "$<$<CXX_COMPILER_ID:MSVC>:/D_CRT_SECURE_NO_WARNINGS>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4291>" # operator new matching operator delete
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4464>" # relative include path contains '..'
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>" # unreachable code (occurs in recursive templates)
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5030>" # unrecognized attribute
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4623>" # default constructor was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4625>" # copy constructor was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4626>" # assignment operator was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5027>" # move assignment operator was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4643>" # forward declaring in namespace std
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4514>" # unreferenced inline function
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5045>" # spectre mitigation
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4711>" # selected for automatic inline expansion
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4710>" # function not inlined
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5105>" # macro expansion producing 'defined'
 
             "$<$<CXX_COMPILER_ID:GNU>:-pedantic-errors>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wcast-align=strict>"
@@ -71,17 +103,14 @@ if (LINT)
             "$<$<CXX_COMPILER_ID:GNU>:-Wtrampolines>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wuninitialized>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wunused>"
-
-            "$<$<CXX_COMPILER_ID:GNU>:-Wno-deprecated-copy>"
-            "$<$<CXX_COMPILER_ID:GNU>:-Wno-unknown-pragmas>"
     )
 
     set(CMAKE_LINK_WHAT_YOU_USE OFF)
 
     add_link_options(
-            "LINKER:-z,defs"
-            "LINKER:--no-undefined"
-            "LINKER:--no-allow-shlib-undefined"
+            "$<$<PLATFORM_ID:Linux>:LINKER:-z,defs>"
+            "$<$<PLATFORM_ID:Linux>:LINKER:--no-undefined>"
+            "$<$<PLATFORM_ID:Linux>:LINKER:--no-allow-shlib-undefined>"
     )
 
     find_program(PATH_CLANG_TIDY NAMES clang-tidy)
@@ -119,8 +148,6 @@ if (LINT)
     endif ()
 endif ()
 
-add_compile_definitions(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
-
 # main
 
 add_executable(silis-dummy
@@ -146,6 +173,7 @@ target_link_libraries(liballoc PUBLIC libtier0)
 add_library(libtier0 OBJECT
         modules/tier0/tier0.hpp
         )
+set_target_properties(libtier0 PROPERTIES LINKER_LANGUAGE CXX)
 
 add_executable(libtier0-tests)
 target_link_libraries(libtier0-tests PRIVATE libtest)
@@ -161,6 +189,7 @@ target_sources(libtier0-tests
 add_library(libtier1 OBJECT
         modules/tier1/tier1.hpp
         )
+set_target_properties(libtier1 PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(libtier1 PUBLIC libtier0)
 target_link_libraries(libtier1 PUBLIC liballoc)
 
@@ -179,6 +208,7 @@ target_sources(libtier1-tests
 add_library(libtier2 OBJECT
         modules/tier2/tier2.hpp
         )
+set_target_properties(libtier2 PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(libtier2 PUBLIC libtier1)
 
 add_executable(libtier2-tests)
@@ -196,6 +226,7 @@ target_sources(libtier2-tests
 add_library(libkernel OBJECT
         modules/kernel/kernel.hpp
         )
+set_target_properties(libkernel PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(libkernel PUBLIC libtier1)
 
 # kernel linux impl
@@ -210,6 +241,7 @@ target_link_libraries(libkernel-linux PUBLIC libtier2)
 add_library(libnet OBJECT
         modules/net/net.hpp
         )
+set_target_properties(libnet PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(libnet PUBLIC libtier0)
 
 # test-libnet
@@ -239,6 +271,7 @@ add_library(scriptengine-jvm OBJECT
 target_link_libraries(scriptengine-jvm PRIVATE libtier2)
 
 add_executable(scriptengine-jvm-tests)
+install(TARGETS scriptengine-jvm-tests DESTINATION .)
 target_link_libraries(scriptengine-jvm-tests PRIVATE libtest)
 target_link_libraries(scriptengine-jvm-tests PRIVATE scriptengine-jvm)
 target_link_libraries(scriptengine-jvm-tests PRIVATE liballoc)
@@ -249,7 +282,7 @@ target_sources(scriptengine-jvm-tests
         modules/scriptengine-jvm/tests/tests.cpp
         )
 
-find_package(Java REQUIRED)
+find_package(Java 11 REQUIRED)
 function(target_java_source target srcfile)
     string(REGEX REPLACE "[.]java$" ".class" dstfile ${srcfile})
     string(REGEX REPLACE "[^A-Za-z0-9_.+-]" "_" classtarget ${dstfile})
@@ -292,7 +325,7 @@ add_custom_command(
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm/rt"
         OUTPUT "${JRT}"
         DEPENDS "${JRT}.jar"
-        COMMAND "unzip" "${JRT}.jar"
+        COMMAND "${CMAKE_COMMAND}" -E tar xf "${JRT}.jar"
 )
 add_dependencies("scriptengine-jvm-tests" "rt")
 

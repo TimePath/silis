@@ -86,9 +86,10 @@ namespace scriptengine::jvm {
 
         static void patch(mut_ref<InstructionInfo> instruction, Int index, Int byteIndex, ref<DynArray<Int>> byteMap) {
 #pragma clang diagnostic push
+#pragma warning(push)
 #pragma clang diagnostic ignored "-Wswitch-enum"
+#pragma warning(disable : 4061)
             switch (instruction.variant_.index()) {
-#pragma clang diagnostic pop
                 default:
                     break;
 #define X(prefix, name, _3, _4, _5) \
@@ -100,6 +101,8 @@ namespace scriptengine::jvm {
                 INSTRUCTIONS_BRANCH_BASIC(X)
 #undef X
             }
+#pragma clang diagnostic pop
+#pragma warning(pop)
         }
     };
 }

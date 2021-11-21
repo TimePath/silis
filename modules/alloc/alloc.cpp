@@ -36,7 +36,7 @@ namespace {
         info.size_ = size;
         var &block = *new(header) MemoryBlock(info);
         if (DEBUG) {
-            fprintf(stderr, "alloc_ctor %p = %lu %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
+            fprintf(stderr, "alloc_ctor %p = %" PRIuZ " %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
                     info.name_);
         }
         g_blocks.add(block);
@@ -49,7 +49,7 @@ namespace {
         var &block = *header;
         if (DEBUG) {
             let info = block.info_;
-            fprintf(stderr, "alloc_dtor %p = %lu %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
+            fprintf(stderr, "alloc_dtor %p = %" PRIuZ " %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
                     info.name_);
         }
         g_blocks.remove(block);

@@ -10,11 +10,26 @@
 #elif defined(__clang__)
 #define COMPILER_IS_CLANG 1
 #define COMPILER_IS_GCC 0
-#elif defined(__GNUG__)
+#define COMPILER_IS_MSVC 0
+#elif defined(__GNUC__)
 #define COMPILER_IS_CLANG 0
 #define COMPILER_IS_GCC 1
+#define COMPILER_IS_MSVC 0
+#elif defined(_MSC_VER)
+#define COMPILER_IS_CLANG 0
+#define COMPILER_IS_GCC 0
+#define COMPILER_IS_MSVC 1
 #else
 #error "Unknown compiler"
+#endif
+
+#ifndef USE_PRIMITIVE_WRAPPERS
+#define USE_PRIMITIVE_WRAPPERS 1
+#endif
+
+#if COMPILER_IS_MSVC
+#undef USE_PRIMITIVE_WRAPPERS
+#define USE_PRIMITIVE_WRAPPERS 0
 #endif
 
 #if COMPILER_IS_CLANG
@@ -47,15 +62,18 @@ namespace tier0 {
         using type = val; \
     };
 
+// #define METAFUNC_VALUE_DEF concept
+#define METAFUNC_VALUE_DEF static constexpr auto
+
 #define METAFUNC_VALUE(name, args) \
     template <MAP(METAFUNC_IMPL_DECLARE_ARGS, METAFUNC_IMPL_DELIMITER_COMMA, args)> \
     struct name##_s; \
     template <MAP(METAFUNC_IMPL_DECLARE_ARGS, METAFUNC_IMPL_DELIMITER_COMMA, args)> \
-    concept name = name##_s<MAP(METAFUNC_IMPL_DECLARE_FORWARD, METAFUNC_IMPL_DELIMITER_COMMA, args)>::value;
+    METAFUNC_VALUE_DEF name = name##_s<MAP(METAFUNC_IMPL_DECLARE_FORWARD, METAFUNC_IMPL_DELIMITER_COMMA, args)>::value;
 #define METAFUNC_VALUE_IMPL(name, spec, args, val) \
     template <MAP(METAFUNC_IMPL_DECLARE_ARGS, METAFUNC_IMPL_DELIMITER_COMMA, args)> \
     struct name##_s IF_EMPTY(spec, METAFUNC_IMPL_SPECIALIZE_0, METAFUNC_IMPL_SPECIALIZE_1)(spec) { \
-        static constexpr auto value = val; \
+        METAFUNC_VALUE_DEF value = val; \
     };
 
 #define METAFUNC_IMPL_DELIMITER_COMMA() ,
@@ -155,7 +173,9 @@ namespace tier0 {
     }
 
     template<typename T>
-    struct native_s;
+    struct native_s {
+        using type = T;
+    };
 
     template<typename T>
     using Native = typename native_s<T>::type;
@@ -172,18 +192,64 @@ namespace tier0 {
 
 // primitives
 namespace tier0 {
+    using Boolean_t = bool;
+
+    using Char_t = char;
+    using UChar_t = unsigned char;
+    using SChar_t = signed char;
+
+    using Byte_t = UChar_t;
+    using Int8_t = SChar_t;
+
+    using Short_t = short signed int;
+    using UShort_t = short unsigned int;
+
+    using Int_t = signed int;
+    using UInt_t = unsigned int;
+#if defined(_WIN64)
+    // ILP32 || LLP64
+#define extra_long long
+#else
+#define extra_long
+#endif
+    using Long_t = extra_long long signed int;
+    using ULong_t = extra_long long unsigned int;
+
+    using Float_t = float;
+
+    using Double_t = double;
+
+#if COMPILER_IS_MSVC
+    using Size_t = size_t;
+#else
+    using Size_t = ULong_t;
+#endif
+
+#define PRIdZ "zd"
+#define PRIuZ "zu"
+
+    static_assert(sizeof(Boolean_t) == 1);
+    static_assert(sizeof(Char_t) == 1);
+    static_assert(sizeof(Short_t) == 2);
+    static_assert(sizeof(Int_t) == 4);
+    static_assert(sizeof(Long_t) == 8);
+    static_assert(sizeof(Float_t) == 4);
+    static_assert(sizeof(Double_t) == 8);
+    static_assert(sizeof(Size_t) == sizeof(void *));
+
     namespace detail {
         METAFUNC_VALUE(is_arithmetic, ((T, typename)))
 
         template<typename T>
         struct is_arithmetic_s {
-            static constexpr auto value = is_same < bool, T>
-            || is_same<char, T> || is_same<unsigned char, T> || is_same<signed char, T>
-            || is_same<short int, T> || is_same<short unsigned int, T> || is_same<short signed int, T>
-            || is_same<int, T> || is_same<unsigned int, T> || is_same<signed int, T>
-            || is_same<long int, T> || is_same<long unsigned int, T> || is_same<long signed int, T>
-            || is_same<float, T>
-            || is_same<double, T>;
+            METAFUNC_VALUE_DEF value = is_same < Boolean_t, T>
+            || is_same <Char_t, T> || is_same <UChar_t, T> || is_same <SChar_t, T>
+            || is_same <Short_t, T> || is_same <UShort_t, T>
+            || is_same <Int_t, T> || is_same <UInt_t, T>
+            || is_same<long signed int, T> || is_same<long unsigned int, T>
+            || is_same <Long_t, T> || is_same <ULong_t, T>
+            || is_same <Float_t, T>
+            || is_same<Double_t, T>;
         };
 
         template<typename T>
@@ -215,7 +281,7 @@ namespace tier0 {
             /** Cast from */
             template<typename Other>
             requires (WordTraits<Other>::isWord && !is_same < Other, Word >)
-            explicit Word(Other word) : Word(Native<Other>(word)) {}
+            explicit constexpr Word(Other word) : Word(Native<Other>(word)) {}
 
             /** Cast to */
             implicit constexpr operator T() const { return data_; }
@@ -224,8 +290,8 @@ namespace tier0 {
 
             constexpr bool operator==(ref<Word> other) const { return (*this).data_ == other.data_; }
 
-            constexpr Order compareTo(ref<Word> other) const {
-                let a = this->data_;
+            static constexpr Order compareTo(ref<Word> self, ref<Word> other) {
+                let a = self.data_;
                 let b = other.data_;
                 if (a < b) {
                     return Order::Before;
@@ -253,44 +319,61 @@ namespace tier0 {
         explicit Unit() = default;
     };
 
-    struct Boolean : detail::Word<bool> {
+    struct Boolean : detail::Word<Boolean_t> {
         using Word::Word;
     };
-    struct Char : detail::Word<char> {
+    struct Char : detail::Word<Char_t> {
         using Word::Word;
     };
-    struct Byte : detail::Word<unsigned char> {
+    struct Byte : detail::Word<Byte_t> {
         using Word::Word;
     };
-    struct Int8 : detail::Word<signed char> {
+    struct Int8 : detail::Word<Int8_t> {
         using Word::Word;
     };
-    struct Short : detail::Word<short signed int> {
+    struct Short : detail::Word<Short_t> {
         using Word::Word;
     };
-    struct UShort : detail::Word<short unsigned int> {
+    struct UShort : detail::Word<UShort_t> {
         using Word::Word;
     };
-    struct Int : detail::Word<signed int> {
+    struct Int : detail::Word<Int_t> {
         using Word::Word;
     };
-    struct UInt : detail::Word<unsigned int> {
+    struct UInt : detail::Word<UInt_t> {
         using Word::Word;
     };
-    struct Long : detail::Word<long signed int> {
+    struct Long : detail::Word<Long_t> {
         using Word::Word;
     };
-    struct ULong : detail::Word<long unsigned int> {
+    struct ULong : detail::Word<ULong_t> {
         using Word::Word;
     };
-    struct Float : detail::Word<float> {
+    struct Float : detail::Word<Float_t> {
         using Word::Word;
     };
-    struct Double : detail::Word<double> {
+    struct Double : detail::Word<Double_t> {
         using Word::Word;
     };
-    using Size = ULong;
+    struct Size : detail::Word<Size_t> {
+        using Word::Word;
+    };
 
+#if !USE_PRIMITIVE_WRAPPERS
+#define Boolean Boolean_t
+#define Char Char_t
+#define Byte Byte_t
+#define Int8 Int8_t
+#define Short Short_t
+#define UShort UShort_t
+#define Int Int_t
+#define UInt UInt_t
+#define Long Long_t
+#define ULong ULong_t
+#define Float Float_t
+#define Double Double_t
+#define Size Size_t
+#else
 #pragma GCC poison signed
 #pragma GCC poison unsigned
 #pragma GCC poison bool
@@ -300,6 +383,7 @@ namespace tier0 {
 #pragma GCC poison long
 #pragma GCC poison float
 #pragma GCC poison double
+#endif
 }
 
 // assert
@@ -372,7 +456,7 @@ namespace tier0 {
 
         implicit constexpr operator native() const { return value(); }
 
-        explicit constexpr operator Native<Boolean>() { return value(); }
+        explicit constexpr operator Native<Boolean>() { return check(), true; }
 
         constexpr native operator->() const { return value(); }
 
@@ -382,7 +466,7 @@ namespace tier0 {
 
     template<typename T>
     Order operator<=>(ref<ptr<T>> a, ref<ptr<T>> b) {
-        return Size(Native<Size>(a.data_)).compareTo(Size(Native<Size>(b.data_)));
+        return detail::Word<Native<Size>>::compareTo(Size(Native<Size>(a.data_)), Size(Native<Size>(b.data_)));
     }
 
     template<typename T>
@@ -424,40 +508,50 @@ namespace tier0 {
 
         constexpr mut_ref<T> operator*() { return *super()->value(); }
     };
+
+    template<typename F>
+    struct thunk {
+        ptr<F> f_;
+
+        explicit constexpr thunk(ptr<F> f) : f_(f) {}
+
+        template<typename... Ts>
+        constexpr auto call(Ts... args) const { return f_(args...); }
+    };
 }
 
 // placement new
 
 constexpr tier0::Native<tier0::ptr<void>>
-operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
+operator new(tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept;
 
 constexpr tier0::Native<tier0::ptr<void>>
-operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept;
+operator new[](tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept;
 
-void operator delete(tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept;
+void operator delete(tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept;
 
-void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept;
+void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept;
 
 #define IMPLEMENTS_PLACEMENT 1
 
 #if IMPLEMENTS_PLACEMENT
 
-constexpr inline tier0::Native<tier0::ptr<void>> operator new(tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
+constexpr inline tier0::Native<tier0::ptr<void>> operator new(tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) count;
     return place;
 }
 
-constexpr inline tier0::Native<tier0::ptr<void>> operator new[](tier0::Native<tier0::Size> count, tier0::ptr<void> place) noexcept {
+constexpr inline tier0::Native<tier0::ptr<void>> operator new[](tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) count;
     return place;
 }
 
-inline void operator delete(tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept {
+inline void operator delete(tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) ptr;
     (void) place;
 }
 
-inline void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::ptr<void> place) noexcept {
+inline void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) ptr;
     (void) place;
 }
@@ -521,7 +615,13 @@ namespace tier0 {
     template<typename T, T... values>
     struct ValueList;
 
-#if !__has_builtin(__make_integer_seq)
+#if defined __has_builtin
+#if __has_builtin(__make_integer_seq)
+#define HAS_MAKE_INTEGER_SEQ
+#endif
+#endif
+
+#ifndef HAS_MAKE_INTEGER_SEQ
     namespace detail {
         template<Native<Size> n>
         struct make_seq_s;
@@ -648,9 +748,16 @@ namespace tier0 {
 
     template<template<typename X, X...> typename C, typename T, T n>
     using __make_integer_seq = typename detail::make_seq<n>::template transform<C>;
+#define HAS_MAKE_INTEGER_SEQ
 #endif
 
-#if !__has_builtin(__type_pack_element)
+#if defined __has_builtin
+#if __has_builtin(__type_pack_element)
+#define HAS_TYPE_PACK_ELEMENT
+#endif
+#endif
+
+#ifndef HAS_TYPE_PACK_ELEMENT
 #define TYPE_PACK_ELEMENT_FALLBACK 2
 #if TYPE_PACK_ELEMENT_FALLBACK == 1
     namespace detail {
@@ -694,6 +801,7 @@ namespace tier0 {
             detail::IndexedTypes<TypeList<Ts...>, __make_integer_seq<ValueList, Native<Size>, sizeof...(Ts)>>{}
     ))::type;
 #endif
+#define HAS_TYPE_PACK_ELEMENT
 #endif
 
     template<typename... Ts>
@@ -740,7 +848,7 @@ namespace tier0 {
         constexpr static auto hasNext = true;
         using next = CounterIterator<i + 1>;
 
-        constexpr static auto value = i;
+        METAFUNC_VALUE_DEF value = i;
     };
 
     template<typename... Ts>
@@ -763,18 +871,22 @@ namespace tier0 {
         using second = Second;
     };
 
-#if __has_builtin(__make_integer_seq)
-    template <typename... Ts>
+#ifdef HAS_MAKE_INTEGER_SEQ
+    template<typename... Ts>
     struct EnumerateContainer {
         using list = TypeList<Ts...>;
 
-        template <Native<Size> i>
+        template<Native<Size> i>
         struct EnumerateElement {
-            struct first { static constexpr var value = i; };
-            struct second { using type = typename list::template get<i>; };
+            struct first {
+                METAFUNC_VALUE_DEF value = i;
+            };
+            struct second {
+                using type = typename list::template get<i>;
+            };
         };
 
-        template <typename T, T... Is>
+        template<typename T, T... Is>
         struct EnumerateList {
             using combined = TypeList<EnumerateElement<Is>...>;
         };
@@ -782,7 +894,7 @@ namespace tier0 {
         using type = typename __make_integer_seq<EnumerateList, Native<Size>, sizeof...(Ts)>::combined;
     };
 
-    template <typename... Ts>
+    template<typename... Ts>
     using Enumerate = typename EnumerateContainer<Ts...>::type;
 #else
     template<typename... Ts>
@@ -794,7 +906,7 @@ namespace tier0 {
 
     template<typename T>
     struct ToIndex {
-        static constexpr auto value = T::first::value;
+        METAFUNC_VALUE_DEF value = T::first::value;
     };
 
     template<typename... Ts>
@@ -909,7 +1021,7 @@ namespace std {
 
 template<typename T>
 struct std::tuple_size {
-    static constexpr tier0::Native<tier0::Size> value = tier0::tuple_traits<T>::size;
+    METAFUNC_VALUE_DEF value = tier0::Native<tier0::Size>(tier0::tuple_traits<T>::size);
 };
 
 template<tier0::Native<tier0::Size> i, typename T>
@@ -1100,11 +1212,11 @@ namespace tier0 {
 
 // span
 namespace tier0 {
-    constexpr Size unbounded = Size(0xffffffff);
+    constexpr Size unbounded = Size(0x7fffffff);
 
     template<typename T, Size N = unbounded>
     struct Span {
-        using array_type = T[N];
+        using array_type = T[N / sizeof(T)];
         Native<ptr<T>> data_;
         Size size_;
     private:
@@ -1142,7 +1254,7 @@ namespace tier0 {
                 }
                 i = i + 1;
             }
-            return nA.compareTo(nB);
+            return detail::Word<Native<Size>>::compareTo(nA, nB);
         }
 
     public:
@@ -1215,6 +1327,14 @@ namespace tier0 {
 // array
 namespace tier0 {
     template<typename T, Size N>
+    struct Array;
+
+    template<typename T, Size N>
+    struct native_s<Array<T, N>> {
+        using type = Native<T>[];
+    };
+
+    template<typename T, Size N>
     struct Array {
         using array_type = T[N];
         array_type data_;
@@ -1269,10 +1389,13 @@ namespace tier0 {
 // union
 namespace tier0 {
     namespace detail {
-        template<Size n>
-        constexpr Size max(Array<Size, n> values) {
+        template<typename... Ts>
+        constexpr Native<Size> max(Ts... invalues) {
+            Native<Size> values[] = {invalues...};
+            var n = Size(sizeof...(Ts));
             var ret = Size(0);
-            for (var it : values) {
+            for (var i : Range<Size>::until(Size(0), n)) {
+                var it = Size(values[i]);
                 ret = it > ret ? it : ret;
             }
             return ret;
@@ -1286,8 +1409,8 @@ namespace tier0 {
 
     template<typename... Ts>
     struct AlignedUnionStorage : AlignedStorage<
-            detail::max(Array<Size, Size(sizeof...(Ts))>({sizeof(Ts)...})),
-            detail::max(Array<Size, Size(sizeof...(Ts))>({alignof(Ts)...}))
+            detail::max(sizeof(Ts)...),
+            detail::max(alignof(Ts)...)
     > {
         // fixme: constexpr
         template<typename T>
@@ -1534,7 +1657,7 @@ namespace tier0 {
         ~Variant() { destroy(); }
 
     private:
-        explicit Variant() {}
+        explicit Variant() : active_(0) {}
 
     public:
         implicit Variant(movable<Variant> other) : data_(move(other.data_)), active_(other.active_) {}
@@ -1606,9 +1729,15 @@ namespace tier0 {
         struct destructors {
             using U = decltype(data_);
 
-            static constexpr mptr<U, void()> funcs[] = {&U::template destroy<Us::first::value>...};
+            static constexpr ptr<void(mut_ref<U>)> funcs[] = {
+                    (+[](mut_ref<U> self) {
+                        self.template destroy<Us::first::value>();
+                    })...
+            };
 
-            static constexpr void invoke(mut_ref<Variant> self) { funcs[self.active_ - 1].call(self.data_); }
+            static constexpr void invoke(mut_ref<Variant> self) {
+                (*funcs[self.active_ - 1])(self.data_);
+            }
         };
     };
 }
@@ -1619,37 +1748,74 @@ namespace tier0 {
     struct LiteralString;
 
     template<Native<Size> N>
-    LiteralString(ref<Native<Char>[N]>) -> LiteralString<N>;
+    LiteralString(ref<Native<Char>[N]>) -> LiteralString<N - 1>;
 
     template<Size N>
     struct LiteralString {
-        using array_type = Native<Char>[N];
+        using array_type = Native<Char>[N + 1];
         array_type data_;
 
         explicit consteval LiteralString() : data_() {
-            var n = size();
+            const var n = N;
             for (var i : Range<Size>::until(Size(0), n)) {
                 data_[i] = 0;
             }
             data_[n] = 0;
         }
 
-        implicit consteval LiteralString(ref<Native<Char>[N]> str) : data_() {
-            var n = size();
+        implicit consteval LiteralString(ref<Native<Char>[N + 1]> str) : data_() {
+            const var n = N;
             for (var i : Range<Size>::until(Size(0), n)) {
                 data_[i] = str[i];
             }
             data_[n] = 0;
         }
 
-        [[nodiscard]] constexpr Size size() const { return N - 1; }
+        template<Size M>
+        constexpr Boolean operator==(ref<LiteralString<M>> other) const { return compare(other) == Order::Undefined; }
+
+        template<Size M>
+        constexpr Order compare(ref<LiteralString<M>> b) const {
+            let a = *this;
+            var i = Size(0);
+            var nA = a.size();
+            var nB = b.size();
+            while (i < nA && i < nB) {
+                let iA = a.get(Int(i));
+                let iB = b.get(Int(i));
+                if (iA < iB) {
+                    return Order::Before;
+                }
+                if (iA > iB) {
+                    return Order::After;
+                }
+                i = i + 1;
+            }
+            return detail::Word<Native<Size>>::compareTo(nA, nB);
+        }
+
+        [[nodiscard]] consteval Size size() const { return N; }
 
         template<Size begin, Size end = N>
-        [[nodiscard]] consteval LiteralString<end - begin + 1> slice() const {
+        [[nodiscard]] consteval LiteralString<end - begin> slice() const {
             const var n = end - begin;
-            var ret = LiteralString<n + 1>();
+            var ret = LiteralString<n>();
             for (var i : Range<Size>::until(Size(0), n)) {
                 ret.data_[i] = data_[begin + i];
+            }
+            ret.data_[n] = 0;
+            return ret;
+        }
+
+        template<Size M>
+        [[nodiscard]] consteval LiteralString<N + M> concat(LiteralString<M> other) const {
+            const var n = N + M;
+            var ret = LiteralString<n>();
+            for (var i : Range<Size>::until(Size(0), N)) {
+                ret.data_[0 + i] = data_[i];
+            }
+            for (var i : Range<Size>::until(Size(0), M)) {
+                ret.data_[N + i] = other.data_[i];
             }
             ret.data_[n] = 0;
             return ret;
@@ -1676,7 +1842,7 @@ namespace tier0 {
                 Int line = Native<Int>(__builtin_LINE())
         ) {
             return {
-                    file + sizeof(PROJECT_SOURCE_DIR) - 1,
+                    file + (sizeof(PROJECT_SOURCE_DIR) - 1),
                     function,
                     line,
             };
@@ -1692,7 +1858,11 @@ namespace tier0 {
     namespace detail {
         template<typename T>
         consteval auto &RawTypeName() {
+#if COMPILER_IS_MSVC
+            return __FUNCSIG__;
+#else
             return __PRETTY_FUNCTION__;
+#endif
         }
 
         struct TypeNameFormat {
@@ -1730,12 +1900,15 @@ namespace tier0 {
             const auto n = (sizeof(raw) - 1) - (format.leading_ + format.trailing_);
             auto ret = Array<Native<Char>, n + 1>();
             auto o = 0;
+#pragma warning(push)
+#pragma warning(disable : 4555) // result of expression not used
             for (auto i : Range<remove_const < decltype(n)>>::until(0, n)) {
                 auto c = raw[i + format.leading_];
                 if (c == ' ' && raw[i + format.leading_ - 1] == '>') continue; // GCC avoids emitting `>>`
                 ret.data_[o++] = c;
             }
-            return ret;
+#pragma warning(pop)
+            return LiteralString(ret.data_);
         }
     }
 
@@ -1791,7 +1964,7 @@ namespace tier0::strtok {
             ret.data_[0] = f.template operator()<Range{offset + 0, offset + size}>();
             if constexpr (n > 1) {
                 var next = forEachRange<str, T, n - 1, F, offset + size + 2>(f);
-                return ret.template concat(next);
+                return ret.concat(next);
             } else {
                 return ret;
             }

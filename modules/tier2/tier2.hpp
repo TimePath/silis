@@ -216,6 +216,8 @@ namespace tier2 {
         List<V> vals_;
         Index<K, Comparator<K>> index_;
     public:
+        implicit SlowMap() {}
+
         ref<List<K>> keys() const { return keys_; }
 
         ref<List<V>> values() const { return vals_; }

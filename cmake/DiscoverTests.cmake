@@ -58,6 +58,10 @@ function(target_discover_tests target)
     else ()
         set(ctest_tests_file "${ctest_file_base}.tests.$<CONFIG>.cmake")
     endif ()
+    set(DISCOVER_TESTS_EXECUTOR_INTERPRETER "")
+    if (WIN32)
+        set(DISCOVER_TESTS_EXECUTOR_INTERPRETER "sh")
+    endif ()
     string(CONCAT ctest_include_content
             "if (NOT EXISTS \"$<TARGET_FILE:${target}>\")" "\n"
             "    add_test(${target}_NOT_BUILT ${target}_NOT_BUILT)" "\n"
@@ -68,11 +72,13 @@ function(target_discover_tests target)
             "        OR NOT \"${ctest_tests_file}\" IS_NEWER_THAN \"${DISCOVER_TESTS_SCRIPT}\")" "\n"
             "    include(\"${DISCOVER_TESTS_SCRIPT}\")" "\n"
             "    discover_tests(" "\n"
+            "            CMAKE_GENERATOR" " [[" "${CMAKE_GENERATOR}" "]]" "\n"
             "            TEST_TARGET" " [[" "${target}" "]]" "\n"
             "            TEST_PREFIX" " [[" "${DISCOVER_TESTS_TEST_PREFIX}" "]]" "\n"
             "            CTEST_FILE" " [[" "${ctest_tests_file}" "]]" "\n"
             "            TEST_SOURCE_DIR" " [[" "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "]]" "\n"
             "            TEST_WORKING_DIR" " [[" "${DISCOVER_TESTS_WORKING_DIRECTORY}" "]]" "\n"
+            "            TEST_EXECUTOR_INTERPRETER" " [[" "${DISCOVER_TESTS_EXECUTOR_INTERPRETER}" "]]" "\n"
             "            TEST_EXECUTOR" " [[" "${CMAKE_CURRENT_LIST_DIR}/cmake/testrunner.sh" "]]" "\n"
             "            TEST_EMULATOR" " [[" "${DISCOVER_TESTS_CROSSCOMPILING_EMULATOR}" "]]" "\n"
             "            TEST_EXECUTABLE" " [[" "$<TARGET_FILE:${target}>" "]]" "\n"
@@ -101,7 +107,7 @@ function(discover_tests)
             # options
             ""
             # oneValueArgs
-            "TEST_TARGET;TEST_PREFIX;CTEST_FILE;TEST_SOURCE_DIR;TEST_WORKING_DIR;TEST_EXECUTOR;TEST_EMULATOR;TEST_EXECUTABLE;TEST_DISCOVERY_TIMEOUT;TEST_LIST"
+            "CMAKE_GENERATOR;TEST_TARGET;TEST_PREFIX;CTEST_FILE;TEST_SOURCE_DIR;TEST_WORKING_DIR;TEST_EXECUTOR_INTERPRETER;TEST_EXECUTOR;TEST_EMULATOR;TEST_EXECUTABLE;TEST_DISCOVERY_TIMEOUT;TEST_LIST"
             # multiValueArgs
             ""
             ${ARGN}
@@ -177,6 +183,7 @@ function(discover_tests)
         set(tests_buffer "" PARENT_SCOPE)
     endmacro()
 
+    string(STRIP "${output}" output)
     string(REPLACE [[;]] [[\\;]] output "${output}")
     string(REPLACE "\n" [[;]] output "${output}")
     list(SORT output)
@@ -194,8 +201,8 @@ function(discover_tests)
 
         if (mode MATCHES "^C$")
             set(target "${DISCOVER_TESTS_TEST_TARGET}")
-            file(WRITE "${DISCOVER_TESTS_TEST_WORKING_DIR}/compiletests/${testid}/CMakeLists.txt" "cmake_minimum_required(VERSION 3.19)
-project(CompileTests)
+            file(WRITE "${DISCOVER_TESTS_TEST_WORKING_DIR}/compiletests/${testid}/CMakeLists.txt" "cmake_minimum_required(VERSION 3.18)
+project(CompileTests LANGUAGES CXX)
 add_subdirectory(../../.. build)
 target_compile_definitions(${target} PRIVATE __TEST_COMPILE __TEST_${id}=1)
 ")
@@ -203,7 +210,7 @@ target_compile_definitions(${target} PRIVATE __TEST_COMPILE __TEST_${id}=1)
             set(dir compiletests/${testid})
             script_append(add_test "${testname}"
                     ctest --build-and-test ${dir} ${dir}
-                    --build-generator "Unix Makefiles"
+                    --build-generator "${DISCOVER_TESTS_CMAKE_GENERATOR}"
                     --build-target "${target}"
                     --test-command true
                     )
@@ -212,7 +219,7 @@ target_compile_definitions(${target} PRIVATE __TEST_COMPILE __TEST_${id}=1)
             tests_append("${testname}")
         elseif (mode MATCHES "^R$")
             script_append(add_test "${testname}"
-                    ${DISCOVER_TESTS_TEST_EXECUTOR} "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "${testid}"
+                    ${DISCOVER_TESTS_TEST_EXECUTOR_INTERPRETER} ${DISCOVER_TESTS_TEST_EXECUTOR} "${DISCOVER_TESTS_TEST_SOURCE_DIR}" "${testid}"
                     --
                     ${DISCOVER_TESTS_TEST_EMULATOR} "${DISCOVER_TESTS_TEST_EXECUTABLE}" "${testid}"
                     )

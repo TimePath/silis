@@ -1,6 +1,10 @@
+#define ENABLE_EXTRAS 0
+
+#if ENABLE_EXTRAS
 #include <net/if.h>
 #include <netinet/if_ether.h>
 #include <netpacket/packet.h>
+#endif
 
 #include <cerrno>
 #include <cstdio>
@@ -9,17 +13,25 @@
 #include "../kernel/kernel.hpp"
 
 DynArray<Byte> file_read(cstring path) {
-    var fd = fopen(path, "r");
+    var fd = fopen(path, "rb");
+    if (!fd) {
+        var err = strerror(errno);
+        assert(!err);
+    }
     fseek(fd, 0, SEEK_END);
     var size = ftell(fd);
     fseek(fd, 0, SEEK_SET);
     var ret = DynArray<Byte>(Int(size));
     var readRet = fread(&ret.get(0), 1, Native<Size>(size), fd);
-    (void) readRet;
+    assert(Size(readRet) == Size(size));
+    fclose(fd);
     return ret;
 }
 
 Int interface_open(cstring name) {
+    (void) name;
+    return -1;
+#if ENABLE_EXTRAS
     var interfaces = if_nameindex();
     if (!interfaces) {
         perror("if_nameindex");
@@ -63,9 +75,14 @@ Int interface_open(cstring name) {
 
     printf("handle: %d\n", handle);
     return handle;
+#endif
 }
 
 Int interface_read(Int handle, Span<Byte, Size(0xffff + 1)> span) {
+    (void) handle;
+    (void) span;
+    return -1;
+#if ENABLE_EXTRAS
     var addr = sockaddr_ll();
     static_assert(sizeof(addr) <= sizeof(sockaddr_storage));
     var addrSize = socklen_t(sizeof(addr));
@@ -83,4 +100,5 @@ Int interface_read(Int handle, Span<Byte, Size(0xffff + 1)> span) {
         return -1;
     }
     return Int(size);
+#endif
 }
