@@ -1,0 +1,196 @@
+# https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions
+# https://docs.github.com/en/actions/creating-actions/metadata-syntax-for-github-actions
+# https://github.com/actions/virtual-environments
+
+name: Build
+
+on:
+  push:
+  pull_request:
+
+env:
+  CMAKE_GENERATOR: Ninja
+  NINJA_VERSION: 1.10.2
+  NINJA_STATUS: "[%f/%t %o/sec] "
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    defaults:
+      run:
+        shell: cmake -P {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release]
+        config:
+          - name: "Windows MSVC"
+            artifact: "Windows-MSVC"
+            os: windows-2022
+            shell: cmd
+            cc: "cl"
+            cxx: "cl"
+            environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat"
+          - name: "Windows MinGW"
+            artifact: "Windows-MinGW"
+            os: windows-2019
+            shell: bash
+            cc: "C:/msys64/mingw64/bin/gcc"
+            cxx: "C:/msys64/mingw64/bin/g++"
+          - name: "Ubuntu GCC"
+            artifact: "Linux"
+            os: ubuntu-20.04
+            shell: bash
+            cc: "gcc-10"
+            cxx: "g++-10"
+          - name: "macOS Clang"
+            artifact: "macOS"
+            os: macos-11
+            shell: bash
+            # $(brew --prefix llvm)/bin/clang
+            cc: "/usr/local/opt/llvm/bin/clang"
+            cxx: "/usr/local/opt/llvm/bin/clang++"
+
+    steps:
+      - name: MSYS2 setup
+        if: startsWith(matrix.config.os, 'windows') && matrix.config.cxx != 'cl'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-toolchain
+
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Download Ninja
+        run: |
+          set(runner_os "${{ runner.os }}")
+          set(ninja_version "$ENV{NINJA_VERSION}")
+          if (runner_os STREQUAL "Windows")
+            set(ninja_suffix "win.zip")
+          elseif (runner_os STREQUAL "Linux")
+            set(ninja_suffix "linux.zip")
+          elseif (runner_os STREQUAL "macOS")
+            set(ninja_suffix "mac.zip")
+          endif ()
+          set(ninja_url "https://github.com/ninja-build/ninja/releases/download/v${ninja_version}/ninja-${ninja_suffix}")
+          file(DOWNLOAD "${ninja_url}" ./ninja.zip SHOW_PROGRESS)
+          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xf ./ninja.zip)
+          if (NOT runner_os STREQUAL "Windows")
+            execute_process(COMMAND chmod +x ninja)
+          endif ()
+          execute_process(COMMAND ./ninja --version)
+          file(APPEND "$ENV{GITHUB_PATH}" "$ENV{GITHUB_WORKSPACE}")
+
+      - name: Configure
+        run: |
+          if (NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+            if ("${{ runner.os }}" STREQUAL "Windows")
+              execute_process(
+                COMMAND "${{ matrix.config.environment_script }}" && set
+                OUTPUT_FILE environment_script_output.txt
+              )
+            endif ()
+          endif ()
+          if (NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+            file(STRINGS environment_script_output.txt output_lines)
+            foreach(line IN LISTS output_lines)
+              if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+                set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+              endif ()
+            endforeach()
+          endif ()
+          set(ENV{CC} "${{ matrix.config.cc }}")
+          set(ENV{CXX} "${{ matrix.config.cxx }}")
+          set(ENV{JAVA_HOME} "$ENV{JAVA_HOME_11_X64}")
+
+          execute_process(
+            COMMAND cmake
+              -S .
+              -B build
+              -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+            RESULT_VARIABLE result
+          )
+          if (NOT result EQUAL 0)
+            message(FATAL_ERROR "Configure failed")
+          endif ()
+
+      - name: Build
+        run: |
+          if (NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+            file(STRINGS environment_script_output.txt output_lines)
+            foreach(line IN LISTS output_lines)
+              if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+                set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+              endif ()
+            endforeach()
+          endif ()
+          set(ENV{CC} "${{ matrix.config.cc }}")
+          set(ENV{CXX} "${{ matrix.config.cxx }}")
+          set(ENV{JAVA_HOME} "$ENV{JAVA_HOME_11_X64}")
+
+          execute_process(
+            COMMAND cmake --build build
+            RESULT_VARIABLE result
+            OUTPUT_VARIABLE output
+            ERROR_VARIABLE output
+            ECHO_OUTPUT_VARIABLE ECHO_ERROR_VARIABLE
+          )
+          if (NOT result EQUAL 0)
+            string(REGEX MATCH "FAILED:.*$" error_message "${output}")
+            string(REPLACE "\n" "%0A" error_message "${error_message}")
+            message("::error::${error_message}")
+            message(FATAL_ERROR "Build failed")
+          endif ()
+
+      - name: Check
+        run: |
+          if (NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
+            file(STRINGS environment_script_output.txt output_lines)
+            foreach(line IN LISTS output_lines)
+              if (line MATCHES "^([a-zA-Z0-9_-]+)=(.*)$")
+                set(ENV{${CMAKE_MATCH_1}} "${CMAKE_MATCH_2}")
+              endif ()
+            endforeach()
+          endif ()
+          set(ENV{CC} "${{ matrix.config.cc }}")
+          set(ENV{CXX} "${{ matrix.config.cxx }}")
+          set(ENV{JAVA_HOME} "$ENV{JAVA_HOME_11_X64}")
+
+          include(ProcessorCount)
+          ProcessorCount(nproc)
+
+          set(ENV{CTEST_OUTPUT_ON_FAILURE} "ON")
+          execute_process(
+            COMMAND ctest -j ${nproc} --verbose
+            WORKING_DIRECTORY build
+            RESULT_VARIABLE result
+            OUTPUT_VARIABLE output
+            ERROR_VARIABLE output
+            ECHO_OUTPUT_VARIABLE ECHO_ERROR_VARIABLE
+          )
+          if (NOT result EQUAL 0)
+            string(REGEX MATCH "[0-9]+% tests.*[0-9.]+ sec.*$" test_results "${output}")
+            string(REPLACE "\n" "%0A" test_results "${test_results}")
+            message("::error::${test_results}")
+            message(FATAL_ERROR "Check failed")
+          endif ()
+
+      - name: Install
+        run: |
+          execute_process(COMMAND cmake --install build --prefix result --strip)
+
+      - name: Archive
+        working-directory: result
+        run: |
+          execute_process(COMMAND cmake -E tar cf ../${{ matrix.config.artifact }}.zip --format=zip .)
+
+      - name: Upload
+        uses: actions/upload-artifact@v2
+        with:
+          retention-days: 90
+          name: ${{ matrix.config.artifact }}
+          path: ./${{ matrix.config.artifact }}.zip
