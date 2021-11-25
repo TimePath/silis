@@ -40,17 +40,26 @@ namespace tier1 {
             }
         }
 
-        constexpr Int size() const { return size_; }
+        [[nodiscard]] constexpr Int size() const { return size_; }
 
-        constexpr ref<T> get(Int index) const { return data_[index]; }
+        [[nodiscard]] constexpr ref<T> get(Int index) const {
+            assert(Range<Int>::until(0, size()).contains(index));
+            return data_[index];
+        }
 
-        constexpr mut_ref<T> get(Int index) { return data_[index]; }
+        constexpr mut_ref<T> get(Int index) {
+            assert(Range<Int>::until(0, size()).contains(index));
+            return data_[index];
+        }
 
-        constexpr void set(Int index, T value) { new(&data_[index]) T(move(value)); }
+        constexpr void set(Int index, T value) {
+            assert(Range<Int>::until(0, size()).contains(index));
+            new(&data_[index]) T(move(value));
+        }
 
-        constexpr Span<const T> asSpan() const { return Span<const T>::unsafe(data_, Size(size_)); }
+        [[nodiscard]] constexpr Span<const T> asSpan() const { return Span<const T>::unsafe(data_, Int(size_)); }
 
-        constexpr Span<T> asSpan() { return Span<T>::unsafe(data_, Size(size_)); }
+        constexpr Span<T> asSpan() { return Span<T>::unsafe(data_, Int(size_)); }
 
     private:
         void acquire() {
@@ -106,7 +115,7 @@ namespace tier1 {
 
     inline String operator ""_s(cstring chars, Native<Size> N) {
         return String(DynArray<Char>(Native<Int>(N + 1), [=](Int i) {
-            return Size(i) < N ? chars[i] : '\0';
+            return i < Int(N) ? chars[i] : '\0';
         }));
     }
 }
@@ -127,7 +136,7 @@ namespace tier1 {
 
     template<>
     struct FormatTraits<StringSpan> {
-        static Size size(ref<StringSpan> self) { return self.size(); }
+        static constexpr Int size(ref<StringSpan> self) { return self.size(); }
 
         static void write(ref<StringSpan> self, mut_ref<FormatWriter> writer) {
             for (var c : self.data_.iterator()) {
@@ -142,7 +151,7 @@ namespace tier1 {
         const Tuple<Ts...> values_;
 
         String operator()() const {
-            auto calculateSize = [&]<typename T>(Size acc, ref<T> it, Size i) -> Size {
+            auto calculateSize = [&]<typename T>(Int acc, ref<T> it, Int i) -> Int {
                 var s1 = FormatTraits<T>::size(it);
                 var s2 = FormatTraits<StringSpan>::size(strings_.get(Int(1 + i)));
                 return acc + s1 + s2;
@@ -151,12 +160,12 @@ namespace tier1 {
             var arr = DynArray<Char>(Int(size + 1));
             var writer = FormatWriter{arr, 0};
             FormatTraits<StringSpan>::write(strings_.get(0), writer);
-            auto write = [&]<typename T>(Size acc, ref<T> it, Size i) -> Size {
+            auto write = [&]<typename T>(Int acc, ref<T> it, Int i) -> Int {
                 FormatTraits<T>::write(it, writer);
                 FormatTraits<StringSpan>::write(strings_.get(Int(1 + i)), writer);
                 return acc;
             };
-            forEach(values_, write, Size(0));
+            forEach(values_, write, Int(0));
             writer.write(Char(0));
             var ret = String(move(arr));
             return ret;

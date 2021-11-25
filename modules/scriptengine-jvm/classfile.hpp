@@ -16,7 +16,7 @@ namespace scriptengine::jvm {
     struct Utf8String {
         StringSpan value_;
 
-        implicit Utf8String() : value_(StringSpan{Span<const Byte>::unsafe(nullptr, Size(0))}) {}
+        implicit Utf8String() : value_(StringSpan{Span<const Byte>::unsafe(nullptr, 0)}) {}
 
         explicit Utf8String(StringSpan string) : value_(string) {}
     };
@@ -57,11 +57,48 @@ namespace scriptengine::jvm {
         DynArray<AttributeInfo> attributes;
     };
 
+    enum class AccessFlag {
+        Public,
+        Private,
+        Protected,
+        Static,
+        Final,
+        Synchronized,
+        Bridge,
+        Varargs,
+        Native,
+        Reserved_,
+        Abstract,
+        Strict,
+        Synthetic,
+    };
+
     struct MethodInfo {
         UShort accessFlags;
         UShort nameIndex;
         UShort descriptorIndex;
         DynArray<AttributeInfo> attributes;
+    };
+
+    struct ConstantPool {
+        DynArray<ConstantInfo> constants_;
+
+        [[nodiscard]] Span<const ConstantInfo> asSpan() const {
+            return constants_.asSpan();
+        }
+
+        [[nodiscard]] ref<ConstantInfo> getAny(UShort id) const {
+            return constants_.get(id - 1);
+        }
+
+        [[nodiscard]] StringSpan getName(UShort id) const {
+            return getAny(id).variant_.get<scriptengine::jvm::Constant::Utf8>().string.value_;
+        }
+
+        [[nodiscard]] StringSpan getClassName(UShort id) const {
+            let refClass = getAny(id).variant_.get<scriptengine::jvm::Constant::Class>();
+            return getAny(refClass.nameIndex).variant_.get<scriptengine::jvm::Constant::Utf8>().string.value_;
+        }
     };
 
     struct Class {
@@ -70,7 +107,7 @@ namespace scriptengine::jvm {
         UInt magic;
         UShort minorVersion;
         UShort majorVersion;
-        DynArray<ConstantInfo> constantPool;
+        ConstantPool constantPool;
         UShort accessFlags;
         UShort thisClass;
         UShort superClass;

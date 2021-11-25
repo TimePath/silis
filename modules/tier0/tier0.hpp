@@ -1033,7 +1033,7 @@ namespace tier0 {
     template<Size i = Size(0), typename T, Size n = tuple_traits<T>::size, typename F, typename A>
     constexpr A forEach(ref<T> tuple, F f, A acc) {
         if constexpr (i < n) {
-            acc = f(acc, tuple.template get<i>(), i);
+            acc = f(acc, tuple.template get<i>(), Int(i));
             return forEach<i + 1, T, n, F>(tuple, f, acc);
         }
         return acc;
@@ -1197,7 +1197,7 @@ namespace tier0 {
     template<typename T, typename E>
     struct ContiguousIterator {
         ptr<const T> self_;
-        Size index_;
+        Int index_;
 
         [[nodiscard]]
         constexpr Boolean hasNext() const { return index_ < self_->size(); }
@@ -1218,12 +1218,12 @@ namespace tier0 {
     struct Span {
         using array_type = T[N / sizeof(T)];
         Native<ptr<T>> data_;
-        Size size_;
+        Int size_;
     private:
-        explicit Span(Native<ptr<T>> addr, Size size) : data_(addr), size_(size) {}
+        explicit Span(Native<ptr<T>> addr, Int size) : data_(addr), size_(size) {}
 
     public:
-        static Span empty() { return Span(Native<ptr<T>>(), Size(0)); }
+        static Span empty() { return Span(Native<ptr<T>>(), 0); }
 
         explicit Span(mut_ref<array_type> array) : data_(array), size_(N) {}
 
@@ -1235,12 +1235,12 @@ namespace tier0 {
         requires (M >= N)
         implicit Span(ref<Span<T, M>> span) : data_(span.data_), size_(N) {}
 
-        static Span unsafe(Native<ptr<T>> addr, Size size) { return Span(addr, size); }
+        static Span unsafe(Native<ptr<T>> addr, Int size) { return Span(addr, size); }
 
         constexpr Boolean operator==(ref<Span> other) const { return compare(*this, other) == Order::Undefined; }
 
         static constexpr Order compare(ref<Span> a, ref<Span> b) {
-            var i = Size(0);
+            var i = Int(0);
             var nA = a.size();
             var nB = b.size();
             while (i < nA && i < nB) {
@@ -1254,39 +1254,41 @@ namespace tier0 {
                 }
                 i = i + 1;
             }
-            return detail::Word<Native<Size>>::compareTo(nA, nB);
+            return detail::Word<Native<Int>>::compareTo(nA, nB);
         }
 
     public:
 
-        [[nodiscard]]
-        constexpr Size size() const { return size_; }
+        [[nodiscard]] constexpr Int size() const { return size_; }
 
-        constexpr ref<T> get(Int index) const {
+        [[nodiscard]] constexpr ref<T> get(Int index) const {
+            assert(Range<Int>::until(0, size()).contains(index));
             return data_[index];
         }
 
         constexpr mut_ref<T> get(Int index) {
+            assert(Range<Int>::until(0, size()).contains(index));
             return data_[index];
         }
 
         constexpr void set(Int index, T value) {
+            assert(Range<Int>::until(0, size()).contains(index));
             new(&data_[index]) T(move(value));
         }
 
         template<typename E>
         using Iterator = ContiguousIterator<Span, E>;
 
-        constexpr Iterator<const T> iterator() const { return {this, Size(0)}; }
+        constexpr Iterator<const T> iterator() const { return {this, 0}; }
 
-        constexpr Iterator<T> iterator() { return {this, Size(0)}; }
+        constexpr Iterator<T> iterator() { return {this, 0}; }
 
         ENABLE_FOREACH_ITERABLE()
 
         template<Size I>
         requires (I < N)
         [[nodiscard]]
-        Span<T, N - I> offset() const { return Span<T, N - I>::unsafe(data_ + I, N - I); }
+        Span<T, N - I> offset() const { return Span<T, N - I>::unsafe(data_ + I, Int(N - I)); }
 
         [[nodiscard]] Span<T, unbounded> limit(Size limit) const {
             return Span<T, unbounded>::unsafe(data_, limit);
@@ -1310,10 +1312,10 @@ namespace tier0 {
 
         constexpr Boolean operator==(ref<StringSpan> other) const { return (*this).data_ == other.data_; }
 
-        Size size() const { return data_.size(); }
+        [[nodiscard]] constexpr Int size() const { return data_.size(); }
 
-        static Size strlen(cstring str) {
-            var ret = Size(0);
+        static Int strlen(cstring str) {
+            var ret = Int(0);
             while (str[ret] != 0) {
                 ret = ret + 1;
             }
@@ -1684,11 +1686,13 @@ namespace tier0 {
 
         template<E i>
         ref<typename types::template get<Native<Size>(i) - 1>> get() const {
+            assert(i == index());
             return data_.template get<Native<Size>(i) - 1>();
         }
 
         template<E i>
         mut_ref<typename types::template get<Native<Size>(i) - 1>> get() {
+            assert(i == index());
             return data_.template get<Native<Size>(i) - 1>();
         }
 
@@ -1696,16 +1700,16 @@ namespace tier0 {
         void set(movable<typename types::template get<Native<Size>(i) - 1>> value) {
             using T = typename types::template get<Native<Size>(i) - 1>;
             destroy();
-            new(&get<i>()) T(move(value));
             active_ = Byte(Native<Size>(i));
+            new(&get<i>()) T(move(value));
         }
 
         template<E i>
         void set(ref<typename types::template get<Native<Size>(i) - 1>> value) {
             using T = typename types::template get<Native<Size>(i) - 1>;
             destroy();
-            new(&get<i>()) T(value);
             active_ = Byte(Native<Size>(i));
+            new(&get<i>()) T(value);
         }
 
     private:

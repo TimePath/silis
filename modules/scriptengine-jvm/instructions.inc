@@ -183,9 +183,9 @@
     X(l, div, 0x6d, {}, ()) \
     X(l, load, 0x16, { Byte index; }, (self.index)) \
     X(l, load_0, 0x1e, {}, ()) \
-    X(l, load_2, 0x1f, {}, ()) \
-    X(l, load_3, 0x20, {}, ()) \
-    X(l, load_4, 0x21, {}, ()) \
+    X(l, load_1, 0x1f, {}, ()) \
+    X(l, load_2, 0x20, {}, ()) \
+    X(l, load_3, 0x21, {}, ()) \
     X(l, mul, 0x69, {}, ()) \
     X(l, neg, 0x75, {}, ()) \
     X(l, or, 0x81, {}, ()) \

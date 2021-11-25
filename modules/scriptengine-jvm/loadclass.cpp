@@ -17,7 +17,7 @@ namespace scriptengine::jvm {
         static Utf8String decode(mut_ref<StreamReader> reader) {
             let length = reader.read<UShort>();
             var offset = reader.offset;
-            let bytes = Span<const Byte>::unsafe(&reader.data.get(offset), Size(length));
+            let bytes = Span<const Byte>::unsafe(&reader.data.get(offset), Int(length));
             reader.offset = offset + length;
             return Utf8String(StringSpan(bytes));
         }
@@ -77,7 +77,7 @@ namespace scriptengine::jvm {
         static AttributeInfo decode(mut_ref<StreamReader> reader) {
             let attributeNameIndex = reader.read<UShort>();
             let attributeLength = reader.read<UInt>();
-            let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset), Size(attributeLength));
+            let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset), Int(attributeLength));
             reader.offset = Int(UInt(reader.offset) + attributeLength);
             return {
                     .attributeNameIndex = attributeNameIndex,
@@ -147,7 +147,7 @@ namespace scriptengine::jvm {
                     .magic = magic,
                     .minorVersion = minorVersion,
                     .majorVersion = majorVersion,
-                    .constantPool = move(constantPool),
+                    .constantPool = {move(constantPool)},
                     .accessFlags = accessFlags,
                     .thisClass = thisClass,
                     .superClass = superClass,
@@ -162,29 +162,18 @@ namespace scriptengine::jvm {
 
 namespace scriptengine::jvm {
     Optional<ClassHandle> load_class(mut_ref<VM> vm, StringSpan name) {
-        vm.classLoader.resolve(vm, name);
+        vm.classLoader.load(vm, name);
         return vm.classLoader.get(name);
     }
 
-    ClassHandle load_class_internal(mut_ref<VM> vm, DynArray<Byte> data) {
+    ClassHandle define_class(mut_ref<VM> vm, DynArray<Byte> data) {
+        (void) vm;
         var reader = StreamReader{data.asSpan(), 0};
         var ret = reader.read<Class>(move(data));
-        let pool = ret.constantPool;
-        for (let it : pool.asSpan()) {
-            if (it.variant_.index() == Constant::Class) {
-                let refClass = it.variant_.get<Constant::Class>();
-                let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                var descriptorString = refClassName.string.value_;
-                if (descriptorString.data_.get(0) == Char('[')) {
-                    continue;
-                }
-                vm.classLoader.resolve(vm, descriptorString);
-            }
-        }
         return {new(AllocInfo::of<Class>()) Class(move(ret))};
     }
 
-    void unload_class(ClassHandle cls) {
-        delete cls.handle_.data_;
+    void unload_class(ClassHandle ch) {
+        delete ch.handle_.data_;
     }
 }

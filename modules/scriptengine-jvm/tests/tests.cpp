@@ -5,20 +5,22 @@
 
 #include "../../kernel/kernel.hpp"
 #include "../scriptengine.hpp"
+#include "../classfile.hpp"
 #include "../descriptor.hpp"
 
 using namespace test;
 
 struct TestClassLoader : scriptengine::jvm::ClassLoader {
     tier2::SlowMap<StringSpan, Optional<scriptengine::jvm::ClassHandle>> classes_;
+    tier2::SlowMap<StringSpan, Unit> classesInitialized_;
 
     ~TestClassLoader() override {
-        for (let clsOpt : classes_.values()) {
-            if (!clsOpt.hasValue()) {
+        for (let chOpt : classes_.values()) {
+            if (!chOpt.hasValue()) {
                 continue;
             }
-            let cls = clsOpt.value();
-            scriptengine::jvm::unload_class(cls);
+            let ch = chOpt.value();
+            scriptengine::jvm::unload_class(ch);
         }
     }
 
@@ -35,43 +37,70 @@ struct TestClassLoader : scriptengine::jvm::ClassLoader {
         return Optional<scriptengine::jvm::ClassHandle>::of(ret);
     }
 
-    void resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls) override;
+    void load(mut_ref<scriptengine::jvm::VM> vm, StringSpan className) override;
+
+    void init(mut_ref<scriptengine::jvm::VM> vm, scriptengine::jvm::ClassHandle ch) override;
 };
 
-void TestClassLoader::resolve(mut_ref<scriptengine::jvm::VM> vm, StringSpan cls) {
-    var cached = classes_.get(cls);
+template<typename F>
+void for_each_class(scriptengine::jvm::ClassHandle ch, F block) {
+    let pool = ch.handle_->constantPool;
+    let f = [&](ref<scriptengine::jvm::constant::ClassInfo> refClass) {
+        let className = pool.getName(refClass.nameIndex);
+        if (className.data_.get(0) == Char('[')) {
+            return;
+        }
+        block(className);
+    };
+    if (ch.handle_->superClass) {
+        f(pool.getAny(ch.handle_->superClass).variant_.get<scriptengine::jvm::Constant::Class>());
+    }
+    for (let it : pool.asSpan()) {
+        if (it.variant_.index() == scriptengine::jvm::Constant::Class) {
+            f(it.variant_.get<scriptengine::jvm::Constant::Class>());
+        }
+    }
+}
+
+void TestClassLoader::load(mut_ref<scriptengine::jvm::VM> vm, StringSpan className) {
+    var cached = classes_.get(className);
     if (cached.hasValue()) {
         return;
     }
-    classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::empty());
-    if (cls == "Hello") {
-        var data = file_read("modules/scriptengine-jvm/tests/Hello.class");
-        var ret = scriptengine::jvm::load_class_internal(vm, move(data));
-        classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(ret));
+    var data = file_read(cstring((className == "Hello" ? format<"modules/scriptengine-jvm/tests/{}.class">(className)
+                                                       : format<"modules/scriptengine-jvm/rt/{}.class">(className))()));
+    var ch = scriptengine::jvm::define_class(vm, move(data));
+    classes_.set(className, Optional<scriptengine::jvm::ClassHandle>::of(ch));
+
+    for_each_class(ch, [&](StringSpan descriptorString) {
+        load(vm, descriptorString);
+    });
+}
+
+void TestClassLoader::init(mut_ref<scriptengine::jvm::VM> vm, scriptengine::jvm::ClassHandle ch) {
+    let pool = ch.handle_->constantPool;
+    let className = pool.getClassName(ch.handle_->thisClass);
+    var cached = classesInitialized_.get(className);
+    if (cached.hasValue()) {
         return;
     }
-    var data = file_read(cstring(format<"modules/scriptengine-jvm/rt/{}.class">(cls)()));
-    var ret = scriptengine::jvm::load_class_internal(vm, move(data));
-    classes_.set(cls, Optional<scriptengine::jvm::ClassHandle>::of(ret));
+    classesInitialized_.set(className, Unit());
+
+    for_each_class(ch, [&](StringSpan descriptorString) {
+        var chNext = vm.classLoader.get(descriptorString);
+        assert(chNext.hasValue());
+        // init(vm, chNext.value());
+    });
+
+    let mhStaticInit = find_method(vm, ch, "<clinit>");
+    if (mhStaticInit.hasValue()) {
+        eval(vm, mhStaticInit.value(), scriptengine::jvm::Frame());
+    }
 }
 
-TEST("load_class") {
-    using namespace scriptengine::jvm;
+void exec(cstring mainClass);
 
-    var classLoader = TestClassLoader();
-    var vm = VM{
-            .classLoader=classLoader,
-    };
-    var cls = load_class(vm, "Hello");
-    assert(cls.hasValue());
-    let mh = find_method(vm, cls.value(), "main");
-    load_code(vm, mh);
-    printf("load_class\n");
-}
-
-void eval(cstring mainClass);
-
-TEST("eval_hello") { eval("Hello"); }
+TEST("exec_hello") { exec("Hello"); }
 
 struct UniqueAnyPtr {
     Optional<ptr<void>> ref_;
@@ -92,16 +121,8 @@ struct UniqueAnyPtr {
     }
 };
 
-void eval(cstring mainClass) {
+void exec(cstring mainClass) {
     using namespace scriptengine::jvm;
-
-    var classLoader = TestClassLoader();
-    var vm = VM{
-            .classLoader=classLoader,
-    };
-    var clsOpt = load_class(vm, mainClass);
-    assert(clsOpt.hasValue());
-    let cls = clsOpt.value();
 
     struct PrintStream {
         void println(StringSpan line) {
@@ -109,34 +130,22 @@ void eval(cstring mainClass) {
         }
     };
 
+    struct Object {
+        StringSpan type;
+        SlowMap<StringSpan, Stack::Value> fields;
+    };
+
+    struct ArrayObject : DynArray<Stack::Value> {
+        using DynArray::DynArray;
+    };
+
     struct SystemStatics {
         PrintStream out_;
     };
 
     struct EvaluatorState {
-        mut_ref<VM> vm;
-        ClassHandle mainClass;
         SystemStatics systemStatics;
         SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value> statics;
-        SlowMap<Tuple<ptr<void>, StringSpan>, Stack::Value> members;
-    };
-
-    var state = EvaluatorState{
-            .vm = vm,
-            .mainClass = cls,
-            .systemStatics = {
-                    .out_ = PrintStream(),
-            },
-            .statics = SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value>(),
-            .members = SlowMap<Tuple<ptr<void>, StringSpan>, Stack::Value>(),
-    };
-
-    struct Object {
-
-    };
-
-    struct ArrayObject : DynArray<ptr<void>> {
-        using DynArray::DynArray;
     };
 
     struct MyEvaluator : Evaluator, EvaluatorState {
@@ -144,110 +153,178 @@ void eval(cstring mainClass) {
 
         explicit MyEvaluator(movable<EvaluatorState> state) : EvaluatorState(move(state)) {}
 
-        void putstatic(StringSpan cls, StringSpan name, Stack::Value value) override {
-            if (cls == "java/lang/System" && name == "out") {
+        void putstatic(mut_ref<VM> vm, StringSpan className, StringSpan name, Stack::Value value) override {
+            (void) vm;
+            if (className == "java/lang/System" && name == "out") {
                 return;
             }
-            statics.set(Tuple(cls, name), move(value));
+            statics.set(Tuple(className, name), move(value));
         }
 
-        Stack::Value getstatic(StringSpan cls, StringSpan name) override {
-            if (cls == "java/lang/System" && name == "out") {
+        Stack::Value getstatic(mut_ref<VM> vm, StringSpan className, StringSpan name) override {
+            (void) vm;
+            if (className == "java/lang/System" && name == "out") {
                 return Stack::Value::of<Stack::ValueKind::Reference>(&systemStatics.out_);
             }
-            var val = statics.get(Tuple(cls, name));
+            var val = statics.get(Tuple(className, name));
             assert(val.hasValue());
             return move(val.value());
         }
 
-        void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) override {
-            (void) cls;
+        void invokestatic(mut_ref<VM> vm, StringSpan className, StringSpan name, StringSpan signature,
+                          mut_ref<Frame> frame) override {
+            if (className == "java/lang/Class" && name == "getPrimitiveClass") {
+                frame.stack.push(Stack::Value::of<Stack::ValueKind::Int>(0));
+                return;
+            }
+            if (className == "java/util/concurrent/atomic/AtomicLong" && name == "VMSupportsCS8") {
+                frame.stack.push(Stack::Value::of<Stack::ValueKind::Int>(0));
+                return;
+            }
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
             var locals = frame.stack.take(argc);
-            let mh = find_method(vm, mainClass, name);
-            eval(vm, mh, *this, Frame{
+            let ch = vm.classLoader.get(className);
+            assert(ch.hasValue());
+            let mh = find_method(vm, ch.value(), name);
+            assert(mh.hasValue());
+            eval(vm, mh.value(), Frame{
                     .parent=Optional<ptr<Frame>>::of(&frame),
                     .locals=move(locals),
             });
         }
 
-        void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) override {
-            if (cls == "java/lang/Object" && name == "<init>") {
-                return;
-            }
+        void invokespecial(mut_ref<VM> vm, StringSpan className, StringSpan name, StringSpan signature,
+                           mut_ref<Frame> frame) override {
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
             var locals = frame.stack.take(1 + argc);
-            let mh = find_method(vm, mainClass, name);
-            eval(vm, mh, *this, Frame{
+            let ch = vm.classLoader.get(className);
+            assert(ch.hasValue());
+            let mh = find_method(vm, ch.value(), name);
+            assert(mh.hasValue());
+            eval(vm, mh.value(), Frame{
                     .parent=Optional<ptr<Frame>>::of(&frame),
                     .locals=move(locals),
             });
         }
 
-        void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) override {
-            if (cls == "java/io/PrintStream" && name == "println" && signature == "(Ljava/lang/String;)V") {
-                var arg = frame.stack.pop().get<Stack::ValueKind::String>();
+        void invokevirtual(mut_ref<VM> vm, StringSpan className, StringSpan name, StringSpan signature,
+                           mut_ref<Frame> frame) override {
+            if (className == "java/lang/Class" && name == "desiredAssertionStatus") {
+                frame.stack.push(Stack::Value::of<Stack::ValueKind::Int>(1));
+                return;
+            }
+            if (className == "java/io/PrintStream" && name == "println" && signature == "(Ljava/lang/String;)V") {
+                var arg = frame.stack.pop().get<Stack::ValueKind::Reference>();
+                var arr = getinstance(vm, arg, "value").get<Stack::ValueKind::Reference>();
                 var out = ptr<PrintStream>(frame.stack.pop().get<Stack::ValueKind::Reference>());
-                out->println(arg);
+                var size = arraysize(vm, arr).get<Stack::ValueKind::Int>();
+                let str = DynArray<Byte>(size, [&](Int i) {
+                    return Byte(arrayget(vm, arr, i).get<Stack::ValueKind::Int>());
+                });
+                out->println(StringSpan(str.asSpan()));
                 return;
             }
             var sig = DescriptorParser::parseMethod(signature);
             var argc = sig.size() - 1;
             var locals = frame.stack.take(1 + argc);
-            let mh = find_method(vm, mainClass, name);
-            eval(vm, mh, *this, Frame{
+            let ch = vm.classLoader.get(className);
+            assert(ch.hasValue());
+            let mh = find_method(vm, ch.value(), name);
+            assert(mh.hasValue());
+            eval(vm, mh.value(), Frame{
                     .parent=Optional<ptr<Frame>>::of(&frame),
                     .locals=move(locals),
             });
         }
 
-        Stack::Value _new(StringSpan cls) override {
-            (void) cls;
-            var ret = ptr<Object>(new(AllocInfo::of<Object>()) Object());
+        Stack::Value _new(mut_ref<VM> vm, StringSpan className) override {
+            (void) vm;
+            (void) className;
+            var ret = ptr<Object>(new(AllocInfo::of<Object>()) Object{
+                    .type = className,
+                    .fields = {},
+            });
             objects.add(ret);
+            let fill = [&]() {
+                var y = [&](StringSpan _cls, var &rec) mutable -> void {
+                    let chOpt = vm.classLoader.get(_cls);
+                    let ch = chOpt.value();
+                    let pool = ch.handle_->constantPool;
+                    if (ch.handle_->superClass) {
+                        let superClassName = pool.getClassName(ch.handle_->superClass);
+                        rec(superClassName, rec);
+                    }
+                    for (let field : ch.handle_->fields.asSpan()) {
+                        let refFieldNameString = pool.getName(field.nameIndex);
+                        ret->fields.set(refFieldNameString, Stack::Value::of<Stack::ValueKind::Int>(0));
+                    }
+                };
+                y(className, y);
+            };
+            fill();
             return Stack::Value::of<Stack::ValueKind::Reference>(ret);
         }
 
-        void putinstance(ptr<void> self, StringSpan name, Stack::Value value) override {
-            members.set(Tuple(self, name), move(value));
+        void putinstance(mut_ref<VM> vm, ptr<void> self, StringSpan name, Stack::Value value) override {
+            (void) vm;
+            ptr<Object>(self)->fields.set(name, move(value));
         }
 
-        Stack::Value getinstance(ptr<void> self, StringSpan name) override {
-            var val = members.get(Tuple(self, name));
+        Stack::Value getinstance(mut_ref<VM> vm, ptr<void> self, StringSpan name) override {
+            (void) vm;
+            var val = ptr<Object>(self)->fields.get(name);
             assert(val.hasValue());
             return move(val.value());
         }
 
-        Stack::Value _newarray(StringSpan cls, Int count) override {
-            (void) cls;
+        Stack::Value _newarray(mut_ref<VM> vm, StringSpan className, Int count) override {
+            (void) vm;
+            (void) className;
             var arr = ptr<ArrayObject>(new(AllocInfo::of<ArrayObject>()) ArrayObject(count));
             objects.add(arr);
             return Stack::Value::of<Stack::ValueKind::Reference>(arr);
         }
 
-        Stack::Value arraysize(ptr<void> self) override {
+        Stack::Value arraysize(mut_ref<VM> vm, ptr<void> self) override {
+            (void) vm;
             var arr = ptr<ArrayObject>(self);
             return Stack::Value::of<Stack::ValueKind::Int>(arr->size());
         }
 
-        void arrayset(ptr<void> self, Int index, Stack::Value value) override {
+        void arrayset(mut_ref<VM> vm, ptr<void> self, Int index, Stack::Value value) override {
+            (void) vm;
             var arr = ptr<ArrayObject>(self);
-            arr->set(index, value.get<Stack::ValueKind::Reference>());
+            arr->set(index, move(value));
         }
 
-        Stack::Value arrayget(ptr<void> self, Int index) override {
+        Stack::Value arrayget(mut_ref<VM> vm, ptr<void> self, Int index) override {
+            (void) vm;
             var arr = ptr<ArrayObject>(self);
-            return Stack::Value::of<Stack::ValueKind::Reference>(arr->get(index));
+            return arr->get(index).copy();
         }
     };
 
-    var evaluator = MyEvaluator(move(state));
-    let mhStaticInit = find_method(vm, cls, "<clinit>");
-    if (mhStaticInit.index_ >= 0) {
-        eval(vm, mhStaticInit, evaluator, Frame());
-    }
-    let mhMain = find_method(vm, cls, "main");
-    eval(vm, mhMain, evaluator, Frame());
+    var classLoader = TestClassLoader();
+    var evaluator = MyEvaluator({
+                                        .systemStatics = {
+                                                .out_ = PrintStream(),
+                                        },
+                                        .statics = SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value>(),
+                                });
+    var vm = VM{
+            .classLoader=classLoader,
+            .evaluator=evaluator,
+    };
+
+    var chOpt = load_class(vm, mainClass);
+    assert(chOpt.hasValue());
+    let ch = chOpt.value();
+
+    vm.classLoader.init(vm, ch);
+
+    let mhMain = find_method(vm, ch, "main");
+    assert(mhMain.hasValue());
+    eval(vm, mhMain.value(), Frame());
 }

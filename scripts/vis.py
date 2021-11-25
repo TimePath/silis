@@ -48,7 +48,7 @@ class TuplePrinter(Printer):
         self._data = val["data_"]
 
     def repr(self):
-        return f"Tuple"
+        return f"Tuple<{', '.join(str(t) for t in self.Ts)}>"
 
     def children(self):
         for i, t in enumerate(self.Ts):
@@ -105,7 +105,7 @@ class VariantPrinter(Printer):
             yield f"active", self._active
             return
         t = self.Ts[i - 1]
-        yield f"[{i}:{t}]", self._data.cast(t)
+        yield f"[{i}:{str(t) or '<unnamed>'}]", self._data.cast(t)
 
 
 class SpanPrinter(Printer):

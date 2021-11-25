@@ -27,16 +27,18 @@ namespace scriptengine::jvm {
 
         virtual Optional<scriptengine::jvm::ClassHandle> get(StringSpan name) = 0;
 
-        virtual void resolve(mut_ref<VM> vm, StringSpan cls) = 0;
+        virtual void load(mut_ref<VM> vm, StringSpan className) = 0;
+
+        virtual void init(mut_ref<VM> vm, scriptengine::jvm::ClassHandle ch) = 0;
     };
 
     Optional<ClassHandle> load_class(mut_ref<VM> vm, StringSpan name);
 
-    ClassHandle load_class_internal(mut_ref<VM> vm, DynArray<Byte> data);
+    ClassHandle define_class(mut_ref<VM> vm, DynArray<Byte> data);
 
-    void unload_class(ClassHandle cls);
+    void unload_class(ClassHandle ch);
 
-    MethodHandle find_method(mut_ref<VM> vm, ClassHandle cls, StringSpan name);
+    Optional<MethodHandle> find_method(mut_ref<VM> vm, ClassHandle ch, StringSpan name);
 
     struct CodeAttribute {
         UShort maxStack_;
@@ -44,17 +46,17 @@ namespace scriptengine::jvm {
         List<InstructionInfo> code_;
     };
 
-    CodeAttribute load_code(mut_ref<VM> vm, MethodHandle handle);
+    Optional<CodeAttribute> load_code(mut_ref<VM> vm, MethodHandle handle);
 
     struct Stack {
         enum class ValueKind {
             Invalid,
             Reference,
-            String,
             Int,
+            Long,
         };
 
-        using Value = Variant<ValueKind, ptr<void>, StringSpan, Int>;
+        using Value = Variant<ValueKind, ptr<void>, Int, Long>;
 
         Int sp_ = Int(0);
         List<Value> stack_ = List<Value>();
@@ -96,34 +98,41 @@ namespace scriptengine::jvm {
     struct Evaluator {
         virtual ~Evaluator();
 
-        virtual void putstatic(StringSpan cls, StringSpan name, Stack::Value) = 0;
+        virtual void putstatic(mut_ref<VM> vm, StringSpan className, StringSpan name, Stack::Value) = 0;
 
-        virtual Stack::Value getstatic(StringSpan cls, StringSpan name) = 0;
+        virtual Stack::Value getstatic(mut_ref<VM> vm, StringSpan className, StringSpan name) = 0;
 
-        virtual void invokestatic(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) = 0;
+        virtual void
+        invokestatic(mut_ref<VM> vm, StringSpan className, StringSpan name, StringSpan signature,
+                     mut_ref<Frame> frame) = 0;
 
-        virtual void invokespecial(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) = 0;
+        virtual void
+        invokespecial(mut_ref<VM> vm, StringSpan className, StringSpan name, StringSpan signature,
+                      mut_ref<Frame> frame) = 0;
 
-        virtual void invokevirtual(StringSpan cls, StringSpan name, StringSpan signature, mut_ref<Frame> frame) = 0;
+        virtual void
+        invokevirtual(mut_ref<VM> vm, StringSpan className, StringSpan name, StringSpan signature,
+                      mut_ref<Frame> frame) = 0;
 
-        virtual Stack::Value _new(StringSpan cls) = 0;
+        virtual Stack::Value _new(mut_ref<VM> vm, StringSpan className) = 0;
 
-        virtual void putinstance(ptr<void> self, StringSpan name, Stack::Value) = 0;
+        virtual void putinstance(mut_ref<VM> vm, ptr<void> self, StringSpan name, Stack::Value) = 0;
 
-        virtual Stack::Value getinstance(ptr<void> self, StringSpan name) = 0;
+        virtual Stack::Value getinstance(mut_ref<VM> vm, ptr<void> self, StringSpan name) = 0;
 
-        virtual Stack::Value _newarray(StringSpan cls, Int count) = 0;
+        virtual Stack::Value _newarray(mut_ref<VM> vm, StringSpan className, Int count) = 0;
 
-        virtual Stack::Value arraysize(ptr<void> self) = 0;
+        virtual Stack::Value arraysize(mut_ref<VM> vm, ptr<void> self) = 0;
 
-        virtual void arrayset(ptr<void> self, Int index, Stack::Value value) = 0;
+        virtual void arrayset(mut_ref<VM> vm, ptr<void> self, Int index, Stack::Value value) = 0;
 
-        virtual Stack::Value arrayget(ptr<void> self, Int index) = 0;
+        virtual Stack::Value arrayget(mut_ref<VM> vm, ptr<void> self, Int index) = 0;
     };
 
-    void eval(mut_ref<VM> vm, MethodHandle handle, mut_ref<Evaluator> evaluator, Frame frame);
+    void eval(mut_ref<VM> vm, MethodHandle handle, Frame frame);
 
     struct VM {
         mut_ref<ClassLoader> classLoader;
+        mut_ref<Evaluator> evaluator;
     };
 }

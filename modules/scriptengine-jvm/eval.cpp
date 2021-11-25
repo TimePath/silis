@@ -11,9 +11,23 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
-    void eval(mut_ref<VM> vm, MethodHandle mh, mut_ref<Evaluator> evaluator, Frame frame) {
-        let pool = mh.handle_.handle_->constantPool;
-        let code = load_code(vm, mh);
+    void eval(mut_ref<VM> vm, MethodHandle mh, Frame frame) {
+        var &evaluator = vm.evaluator;
+        let ch = mh.handle_;
+        let pool = ch.handle_->constantPool;
+
+        let selfMethod = ch.handle_->methods.get(mh.index_);
+        let selfClassName = pool.getClassName(ch.handle_->thisClass);
+        let selfMethodName = pool.getName(selfMethod.nameIndex);
+        var selfRef = Tuple(selfClassName, selfMethodName);
+        (void) selfRef;
+
+        let codeOpt = load_code(vm, mh);
+        if (!codeOpt.hasValue()) {
+            // native
+            return;
+        }
+        let code = codeOpt.value();
         var &stack = frame.stack;
         var &locals = frame.locals;
         stack.stack_.ensure(Int(code.maxStack_));
@@ -61,48 +75,49 @@ namespace scriptengine::jvm {
                 case Instruction::anewarray: {
                     let instruction = _instruction.get<Instruction::anewarray>();
                     var count = stack.pop().get<Stack::ValueKind::Int>();
-                    let refClass = pool.get(instruction.index - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    stack.push(evaluator._newarray(refClassName.string.value_, count));
+                    let className = pool.getClassName(instruction.index);
+                    stack.push(evaluator._newarray(vm, className, count));
                     break;
                 }
                 case Instruction::arraylength: {
                     var self = stack.pop().get<Stack::ValueKind::Reference>();
-                    stack.push(evaluator.arraysize(self));
+                    stack.push(evaluator.arraysize(vm, self));
                     break;
                 }
                 case Instruction::checkcast: {
-                    unimplemented();
+                    var objectref = stack.pop().get<Stack::ValueKind::Reference>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Reference>(objectref));
                     break;
                 }
                 case Instruction::getfield: {
                     let instruction = _instruction.get<Instruction::getfield>();
-                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
-                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
-                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
-                    (void) refClassName;
+                    let ref = pool.getAny(instruction.index).variant_.get<Constant::Fieldref>();
+                    let className = pool.getClassName(ref.classIndex);
+                    let refNameAndType = pool.getAny(ref.nameAndTypeIndex).variant_.get<Constant::NameAndType>();
+                    let refName = pool.getName(refNameAndType.nameIndex);
+                    let refType = pool.getName(refNameAndType.descriptorIndex);
+                    (void) className;
                     (void) refType;
                     var self = stack.pop().get<Stack::ValueKind::Reference>();
-                    stack.push(evaluator.getinstance(self, refName.string.value_));
+                    stack.push(evaluator.getinstance(vm, self, refName));
                     break;
                 }
                 case Instruction::getstatic: {
                     let instruction = _instruction.get<Instruction::getstatic>();
-                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
-                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
-                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    let ref = pool.getAny(instruction.index).variant_.get<Constant::Fieldref>();
+                    let className = pool.getClassName(ref.classIndex);
+                    let refNameAndType = pool.getAny(ref.nameAndTypeIndex).variant_.get<Constant::NameAndType>();
+                    let refName = pool.getName(refNameAndType.nameIndex);
+                    let refType = pool.getName(refNameAndType.descriptorIndex);
                     (void) refType;
-                    stack.push(evaluator.getstatic(refClassName.string.value_, refName.string.value_));
+                    stack.push(evaluator.getstatic(vm, className, refName));
                     break;
                 }
                 case Instruction::instanceof: {
-                    unimplemented();
+                    // let instruction = _instruction.get<Instruction::instanceof>();
+                    var objectref = stack.pop().get<Stack::ValueKind::Reference>();
+                    (void) objectref;
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(1));
                     break;
                 }
                 case Instruction::multianewarray: {
@@ -111,40 +126,41 @@ namespace scriptengine::jvm {
                 }
                 case Instruction::_new: {
                     let instruction = _instruction.get<Instruction::_new>();
-                    let refClass = pool.get(instruction.index - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    stack.push(evaluator._new(refClassName.string.value_));
+                    let className = pool.getClassName(instruction.index);
+                    stack.push(evaluator._new(vm, className));
                     break;
                 }
                 case Instruction::newarray: {
-                    unimplemented();
+                    let instruction = _instruction.get<Instruction::newarray>();
+                    var type = instruction.atype;
+                    (void) type;
+                    var count = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(evaluator._newarray(vm, "<primitive>", count));
                     break;
                 }
                 case Instruction::putfield: {
                     let instruction = _instruction.get<Instruction::putfield>();
-                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
-                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
-                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
-                    (void) refClassName;
+                    let ref = pool.getAny(instruction.index).variant_.get<Constant::Fieldref>();
+                    let className = pool.getClassName(ref.classIndex);
+                    let refNameAndType = pool.getAny(ref.nameAndTypeIndex).variant_.get<Constant::NameAndType>();
+                    let refName = pool.getName(refNameAndType.nameIndex);
+                    let refType = pool.getName(refNameAndType.descriptorIndex);
+                    (void) className;
                     (void) refType;
                     var value = stack.pop();
                     var self = stack.pop().get<Stack::ValueKind::Reference>();
-                    evaluator.putinstance(self, refName.string.value_, move(value));
+                    evaluator.putinstance(vm, self, refName, move(value));
                     break;
                 }
                 case Instruction::putstatic: {
                     let instruction = _instruction.get<Instruction::putstatic>();
-                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Fieldref>();
-                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
-                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    let ref = pool.getAny(instruction.index).variant_.get<Constant::Fieldref>();
+                    let className = pool.getClassName(ref.classIndex);
+                    let refNameAndType = pool.getAny(ref.nameAndTypeIndex).variant_.get<Constant::NameAndType>();
+                    let refName = pool.getName(refNameAndType.nameIndex);
+                    let refType = pool.getName(refNameAndType.descriptorIndex);
                     (void) refType;
-                    evaluator.putstatic(refClassName.string.value_, refName.string.value_, stack.pop());
+                    evaluator.putstatic(vm, className, refName, stack.pop());
                     break;
                 }
                     // INVOKE
@@ -158,42 +174,42 @@ namespace scriptengine::jvm {
                 }
                 case Instruction::invokespecial: {
                     let instruction = _instruction.get<Instruction::invokespecial>();
-                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Methodref>();
-                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
-                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    let ref = pool.getAny(instruction.index).variant_.get<Constant::Methodref>();
+                    let className = pool.getClassName(ref.classIndex);
+                    let refNameAndType = pool.getAny(ref.nameAndTypeIndex).variant_.get<Constant::NameAndType>();
+                    let refName = pool.getName(refNameAndType.nameIndex);
+                    let refType = pool.getName(refNameAndType.descriptorIndex);
                     evaluator.invokespecial(
-                            refClassName.string.value_, refName.string.value_, refType.string.value_,
+                            vm,
+                            className, refName, refType,
                             frame
                     );
                     break;
                 }
                 case Instruction::invokestatic: {
                     let instruction = _instruction.get<Instruction::invokestatic>();
-                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Methodref>();
-                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
-                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    let ref = pool.getAny(instruction.index).variant_.get<Constant::Methodref>();
+                    let className = pool.getClassName(ref.classIndex);
+                    let refNameAndType = pool.getAny(ref.nameAndTypeIndex).variant_.get<Constant::NameAndType>();
+                    let refName = pool.getName(refNameAndType.nameIndex);
+                    let refType = pool.getName(refNameAndType.descriptorIndex);
                     evaluator.invokestatic(
-                            refClassName.string.value_, refName.string.value_, refType.string.value_,
+                            vm,
+                            className, refName, refType,
                             frame
                     );
                     break;
                 }
                 case Instruction::invokevirtual: {
                     let instruction = _instruction.get<Instruction::invokevirtual>();
-                    let ref = pool.get(instruction.index - 1).variant_.get<Constant::Methodref>();
-                    let refClass = pool.get(ref.classIndex - 1).variant_.get<Constant::Class>();
-                    let refClassName = pool.get(refClass.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refNameAndType = pool.get(ref.nameAndTypeIndex - 1).variant_.get<Constant::NameAndType>();
-                    let refName = pool.get(refNameAndType.nameIndex - 1).variant_.get<Constant::Utf8>();
-                    let refType = pool.get(refNameAndType.descriptorIndex - 1).variant_.get<Constant::Utf8>();
+                    let ref = pool.getAny(instruction.index).variant_.get<Constant::Methodref>();
+                    let className = pool.getClassName(ref.classIndex);
+                    let refNameAndType = pool.getAny(ref.nameAndTypeIndex).variant_.get<Constant::NameAndType>();
+                    let refName = pool.getName(refNameAndType.nameIndex);
+                    let refType = pool.getName(refNameAndType.descriptorIndex);
                     evaluator.invokevirtual(
-                            refClassName.string.value_, refName.string.value_, refType.string.value_,
+                            vm,
+                            className, refName, refType,
                             frame
                     );
                     break;
@@ -227,18 +243,27 @@ namespace scriptengine::jvm {
                     unimplemented();
                     break;
                 }
-                case Instruction::ldc: {
-                    let instruction = _instruction.get<Instruction::ldc>();
-                    let constant = pool.get(instruction.index - 1).variant_.get<Constant::String>();
-                    let constantValue = pool.get(constant.stringIndex - 1).variant_.get<Constant::Utf8>();
-                    stack.push(Stack::Value::of<Stack::ValueKind::String>(constantValue.string.value_));
-                    break;
-                }
+                case Instruction::ldc:
                 case Instruction::ldc_w: {
-                    let instruction = _instruction.get<Instruction::ldc_w>();
-                    let constant = pool.get(instruction.index - 1).variant_.get<Constant::String>();
-                    let constantValue = pool.get(constant.stringIndex - 1).variant_.get<Constant::Utf8>();
-                    stack.push(Stack::Value::of<Stack::ValueKind::String>(constantValue.string.value_));
+                    var index = _instruction.index() == Instruction::ldc
+                                ? UShort(_instruction.get<Instruction::ldc>().index)
+                                : UShort(_instruction.get<Instruction::ldc_w>().index);
+                    let _constant = pool.getAny(index);
+                    var tag = _constant.variant_.index();
+                    if (tag == Constant::String) {
+                        let constant = _constant.variant_.get<Constant::String>();
+                        let str = pool.getName(constant.stringIndex);
+                        var arr = evaluator._newarray(vm, "<primitive>", str.size()).get<Stack::ValueKind::Reference>();
+                        for (let i : Range<Int>::until(0, str.size())) {
+                            evaluator.arrayset(vm, arr, i,
+                                               Stack::Value::of<Stack::ValueKind::Int>(Int(str.data_.get(i))));
+                        }
+                        var ret = evaluator._new(vm, "java/lang/String").get<Stack::ValueKind::Reference>();
+                        evaluator.putinstance(vm, ret, "value", Stack::Value::of<Stack::ValueKind::Reference>(arr));
+                        stack.push(Stack::Value::of<Stack::ValueKind::Reference>(ret));
+                    } else {
+                        stack.push(Stack::Value::of<Stack::ValueKind::Int>(0));
+                    }
                     break;
                 }
                 case Instruction::ldc2_w: {
@@ -395,18 +420,42 @@ namespace scriptengine::jvm {
                 }
                 case Instruction::ifnonnull: {
                     let instruction = _instruction.get<Instruction::ifnonnull>();
-                    var value = stack.pop();
-                    var intValue = value.get<Stack::ValueKind::Int>();
-                    if (intValue != Int(0)) {
+                    var ret = Boolean(false);
+                    var _value = stack.pop();
+                    switch (_value.index()) {
+                        case Stack::ValueKind::Reference: {
+                            let value = _value.get<Stack::ValueKind::Reference>();
+                            ret = value.value() != nullptr;
+                            break;
+                        }
+                        case Stack::ValueKind::Invalid:
+                        case Stack::ValueKind::Int:
+                        case Stack::ValueKind::Long: {
+                            die();
+                        }
+                    }
+                    if (ret) {
                         jump(Int(instruction.branch));
                     }
                     break;
                 }
                 case Instruction::ifnull: {
                     let instruction = _instruction.get<Instruction::ifnull>();
-                    var value = stack.pop();
-                    var intValue = value.get<Stack::ValueKind::Int>();
-                    if (intValue == Int(0)) {
+                    var ret = Boolean(false);
+                    var _value = stack.pop();
+                    switch (_value.index()) {
+                        case Stack::ValueKind::Reference: {
+                            let value = _value.get<Stack::ValueKind::Reference>();
+                            ret = value.value() == nullptr;
+                            break;
+                        }
+                        case Stack::ValueKind::Invalid:
+                        case Stack::ValueKind::Int:
+                        case Stack::ValueKind::Long: {
+                            die();
+                        }
+                    }
+                    if (ret) {
                         jump(Int(instruction.branch));
                     }
                     break;
@@ -435,14 +484,14 @@ namespace scriptengine::jvm {
                 case Instruction::aaload: {
                     var index = stack.pop().get<Stack::ValueKind::Int>();
                     var self = stack.pop().get<Stack::ValueKind::Reference>();
-                    stack.push(evaluator.arrayget(self, index));
+                    stack.push(evaluator.arrayget(vm, self, index));
                     break;
                 }
                 case Instruction::aastore: {
                     var value = stack.pop();
                     var index = stack.pop().get<Stack::ValueKind::Int>();
                     var self = stack.pop().get<Stack::ValueKind::Reference>();
-                    evaluator.arrayset(self, index, move(value));
+                    evaluator.arrayset(vm, self, index, move(value));
                     break;
                 }
                 case Instruction::aconst_null: {
@@ -500,7 +549,9 @@ namespace scriptengine::jvm {
                 }
                     // BYTE
                 case Instruction::baload: {
-                    unimplemented();
+                    var index = stack.pop().get<Stack::ValueKind::Int>();
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    stack.push(evaluator.arrayget(vm, self, index));
                     break;
                 }
                 case Instruction::bastore: {
@@ -541,7 +592,8 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::i2c: {
-                    unimplemented();
+                    var value = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(Int(UShort(value))));
                     break;
                 }
                 case Instruction::i2d: {
@@ -553,11 +605,13 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::i2l: {
-                    unimplemented();
+                    var value = stack.pop().get<Stack::ValueKind::Long>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Long>(Long(value)));
                     break;
                 }
                 case Instruction::i2s: {
-                    unimplemented();
+                    var value = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(Int(Short(value))));
                     break;
                 }
                 case Instruction::iadd: {
@@ -567,15 +621,22 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::iaload: {
-                    unimplemented();
+                    var index = stack.pop().get<Stack::ValueKind::Int>();
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    stack.push(evaluator.arrayget(vm, self, index));
                     break;
                 }
                 case Instruction::iand: {
-                    unimplemented();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(value1 & value2));
                     break;
                 }
                 case Instruction::iastore: {
-                    unimplemented();
+                    var value = stack.pop();
+                    var index = stack.pop().get<Stack::ValueKind::Int>();
+                    var self = stack.pop().get<Stack::ValueKind::Reference>();
+                    evaluator.arrayset(vm, self, index, move(value));
                     break;
                 }
                 case Instruction::iconst_0: {
@@ -651,7 +712,9 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::ior: {
-                    unimplemented();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(value1 | value2));
                     break;
                 }
                 case Instruction::irem: {
@@ -659,15 +722,22 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::ireturn: {
-                    unimplemented();
+                    var ret = stack.pop();
+                    var &parentFrame = *frame.parent.value();
+                    parentFrame.stack.push(move(ret));
+                    run = false;
                     break;
                 }
                 case Instruction::ishl: {
-                    unimplemented();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(value1 << value2));
                     break;
                 }
                 case Instruction::ishr: {
-                    unimplemented();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(value1 >> value2));
                     break;
                 }
                 case Instruction::istore: {
@@ -692,7 +762,9 @@ namespace scriptengine::jvm {
                     break;
                 }
                 case Instruction::isub: {
-                    unimplemented();
+                    var value2 = stack.pop().get<Stack::ValueKind::Int>();
+                    var value1 = stack.pop().get<Stack::ValueKind::Int>();
+                    stack.push(Stack::Value::of<Stack::ValueKind::Int>(value1 - value2));
                     break;
                 }
                 case Instruction::iushr: {
@@ -714,12 +786,31 @@ namespace scriptengine::jvm {
                 case Instruction::lcmp:
                 case Instruction::lconst_0:
                 case Instruction::lconst_1:
-                case Instruction::ldiv:
-                case Instruction::lload:
-                case Instruction::lload_0:
-                case Instruction::lload_2:
-                case Instruction::lload_3:
-                case Instruction::lload_4:
+                case Instruction::ldiv: {
+                    unimplemented();
+                    break;
+                }
+                case Instruction::lload: {
+                    let instruction = _instruction.get<Instruction::lload>();
+                    stack.push(locals.get(Int(instruction.index)).copy());
+                    break;
+                }
+                case Instruction::lload_0: {
+                    stack.push(locals.get(0).copy());
+                    break;
+                }
+                case Instruction::lload_1: {
+                    stack.push(locals.get(1).copy());
+                    break;
+                }
+                case Instruction::lload_2: {
+                    stack.push(locals.get(2).copy());
+                    break;
+                }
+                case Instruction::lload_3: {
+                    stack.push(locals.get(3).copy());
+                    break;
+                }
                 case Instruction::lmul:
                 case Instruction::lneg:
                 case Instruction::lor:

@@ -29,12 +29,10 @@ namespace tier2 {
         void _size(Int size) { size_ = size; }
 
         ref<T> get(Int index) const {
-            assert(Range<Int>::until(0, size()).contains(index));
             return data_.get(index).get();
         }
 
         mut_ref<T> get(Int index) {
-            assert(Range<Int>::until(0, size()).contains(index));
             return data_.get(index).get();
         }
 
@@ -44,13 +42,17 @@ namespace tier2 {
         }
 
         constexpr Span<const T> asSpan() const {
-            if (size_ == Size(0)) return Span<const T>::empty();
-            return Span<const T>::unsafe(ptr<const T>::reinterpret(data_.asSpan().data_), Size(size_));
+            if (size_ == Int(0)) {
+                return Span<const T>::empty();
+            }
+            return Span<const T>::unsafe(ptr<const T>::reinterpret(data_.asSpan().data_), Int(size_));
         }
 
         constexpr Span<T> asSpan() {
-            if (size_ == Size(0)) return Span<T>::empty();
-            return Span<T>::unsafe(ptr<T>::reinterpret(data_.asSpan().data_), Size(size_));
+            if (size_ == Int(0)) {
+                return Span<T>::empty();
+            }
+            return Span<T>::unsafe(ptr<T>::reinterpret(data_.asSpan().data_), Int(size_));
         }
 
         void add(T value) {
@@ -108,20 +110,20 @@ namespace tier2 {
 
     struct Result {
         Action action_;
-        Size index_;
+        Int index_;
     };
 
     template<typename T, typename T_cmp>
-    Result bsearch(Span<const Element<T>> values, ref<T> key, Size base) {
+    Result bsearch(Span<const Element<T>> values, ref<T> key, Int base) {
         var n = values.size();
         if (!n) {
-            return {Action::InsertFirst, Size(0)};
+            return {Action::InsertFirst, 0};
         }
         while (true) {
-            let half = n / 2;
-            let mid = base + half;
-            let result = T_cmp()(key, values.get(Int(mid)).key_);
-            if (n == 1) {
+            var half = n / 2;
+            var mid = base + half;
+            var result = T_cmp()(key, values.get(Int(mid)).key_);
+            if (n == Int(1)) {
                 switch (result) {
                     case Order::Undefined: {
                         return {Action::Replace, mid};
@@ -157,7 +159,7 @@ namespace tier2 {
 
         void add(ref<T> key, Int ptr) {
             let constElements = this->elements_;
-            var ret = bsearch<T, T_cmp>(constElements.asSpan(), key, Size(0));
+            var ret = bsearch<T, T_cmp>(constElements.asSpan(), key, 0);
             switch (ret.action_) {
                 case Action::InsertFirst: {
                     elements_.add({key, ptr});
@@ -178,7 +180,7 @@ namespace tier2 {
         }
 
         Optional<Int> find(ref<T> key) const {
-            var ret = bsearch<T, T_cmp>(elements_.asSpan(), key, Size(0));
+            var ret = bsearch<T, T_cmp>(elements_.asSpan(), key, 0);
             if (ret.action_ != Action::Replace) {
                 return Optional<Int>::empty();
             }
@@ -187,13 +189,13 @@ namespace tier2 {
         }
 
     private:
-        void splice(Size index, Element<T> element) {
-            var lastIndex = Size(elements_.size() - 1);
-            elements_.ensure(elements_.size() + 1);
-            elements_._size(elements_.size() + 1);
-            if (index <= lastIndex) {
-                for (var i : Range<Size>::until(Size(0), lastIndex - index + 1)) {
-                    var j = Int(lastIndex - i);
+        void splice(Int index, Element<T> element) {
+            let size = elements_.size();
+            elements_.ensure(size + 1);
+            elements_._size(size + 1);
+            if (index < size) {
+                for (var i : Range<Int>::until(0, size - index)) {
+                    var j = size - (i + 1);
                     elements_.set(j + 1, move(elements_.get(j)));
                 }
             }

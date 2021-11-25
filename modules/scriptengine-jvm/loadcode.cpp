@@ -108,27 +108,41 @@ namespace scriptengine::jvm {
 }
 
 namespace scriptengine::jvm {
-    MethodHandle find_method(mut_ref<VM> vm, ClassHandle cls, StringSpan name) {
+    Optional<MethodHandle> find_method(mut_ref<VM> vm, ClassHandle ch, StringSpan name) {
         (void) vm;
-        let pool = cls.handle_->constantPool;
+        let pool = ch.handle_->constantPool;
         var i = Int(0);
-        for (let it : cls.handle_->methods.asSpan()) {
-            let refName = pool.get(it.nameIndex - 1).variant_.get<Constant::Utf8>();
-            if (refName.string.value_ == name) {
-                return {cls, i};
+        for (let it : ch.handle_->methods.asSpan()) {
+            let methodName = pool.getName(it.nameIndex);
+            if (methodName == name) {
+                return Optional<MethodHandle>::of({ch, i});
             }
             i = i + 1;
         }
-        return {cls, -1};
+        return Optional<MethodHandle>::empty();
     }
 
-    CodeAttribute load_code(mut_ref<VM> vm, MethodHandle handle) {
+    Optional<CodeAttribute> load_code(mut_ref<VM> vm, MethodHandle handle) {
         (void) vm;
-        let ret = *handle.handle_.handle_;
-        let method = ret.methods.get(handle.index_);
+        let ch = handle.handle_;
+        let method = ch.handle_->methods.get(handle.index_);
+        if (method.accessFlags & (1 << Native<Int>(AccessFlag::Native))) {
+            let pool = ch.handle_->constantPool;
+            let className = pool.getClassName(ch.handle_->thisClass);
+            let methodName = pool.getName(method.nameIndex);
+            var it = Tuple(className, methodName);
+            if (false) {
+            } else if (it == Tuple<StringSpan, StringSpan>("java/lang/Object", "registerNatives")) {
+                return Optional<CodeAttribute>::empty();
+            } else if (it == Tuple<StringSpan, StringSpan>("java/net/Inet4Address", "init")) {
+                return Optional<CodeAttribute>::empty();
+            } else {
+                die();
+            }
+        }
         let attribute = method.attributes.get(0);
         var reader = StreamReader{attribute.bytes, 0};
         var code = reader.read<CodeAttribute>();
-        return code;
+        return Optional<CodeAttribute>::of(move(code));
     }
 }

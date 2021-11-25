@@ -115,15 +115,15 @@ struct Statement {
         printf("'");
         printf("/* %s */ ", loc.file_);
         printf("%s", strings.data_[0]);
-        auto printIdentifier = [&]<typename U>(Size acc, ref<U> it, Size) -> Size {
+        auto printIdentifier = [&]<typename U>(Int acc, ref<U> it, Int i) -> Int {
             printer<U>::print(false, it, false);
-            printf("%s", strings.data_[1 + acc]);
-            return acc + 1;
+            printf("%s", strings.data_[1 + i]);
+            return acc;
         };
-        forEach(values, printIdentifier, Size(0));
+        forEach(values, printIdentifier, Int(0));
         printf("'");
         printf(" -- ");
-        constexpr auto printValue = []<typename U>(Size acc, ref<U> it, Size) -> Size {
+        constexpr auto printValue = []<typename U>(Int acc, ref<U> it, Int) -> Int {
             if (!printer<U>::print(true, it, true)) {
                 return acc;
             }
@@ -133,7 +133,7 @@ struct Statement {
             printf("'");
             return acc + 1;
         };
-        forEach(values, printValue, Size(0));
+        forEach(values, printValue, Int(0));
     }
 };
 
