@@ -9,6 +9,24 @@
 using namespace tier0;
 
 namespace {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+    let DEBUG = Boolean([]() {
+        let p = getenv("DEBUG_ALLOC");
+        if (!p) {
+            return false;
+        }
+        return p[0] != '0';
+    }());
+    let RUNNING_ON_VALGRIND = Boolean([]() {
+        let p = getenv("LD_PRELOAD");
+        if (!p) {
+            return false;
+        }
+        return strstr(p, "/valgrind/") != nullptr || strstr(p, "/vgpreload") != nullptr;
+    }());
+#pragma clang diagnostic pop
+
     struct MemoryBlock {
     private:
         inline static Size ids_ = Size(0);
@@ -21,14 +39,6 @@ namespace {
     };
 
     IntrusiveList<MemoryBlock, &MemoryBlock::links_> g_blocks;
-
-    let DEBUG = Boolean([]() {
-        let p = getenv("DEBUG_ALLOC");
-        if (!p) {
-            return false;
-        }
-        return p[0] != '0';
-    }());
 
     ptr<Byte> alloc_ctor(ptr<MemoryBlock> allocation, Size size, AllocInfo info) {
         var header = allocation;
@@ -56,14 +66,6 @@ namespace {
         block.~MemoryBlock();
         return allocation;
     }
-
-    let RUNNING_ON_VALGRIND = Boolean([]() {
-        let p = getenv("LD_PRELOAD");
-        if (!p) {
-            return false;
-        }
-        return strstr(p, "/valgrind/") != nullptr || strstr(p, "/vgpreload") != nullptr;
-    }());
 }
 
 // https://en.cppreference.com/w/cpp/memory/new/operator_new

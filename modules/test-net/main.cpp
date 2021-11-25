@@ -6,6 +6,7 @@
 #include "../net/net.hpp"
 
 using namespace tier2;
+using namespace kernel;
 
 Native<Int> main(Native<Int> argc, Array<cstring, Size(1)>::array_type argv) {
     (void) argc;

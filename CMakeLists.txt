@@ -51,48 +51,21 @@ endif ()
 
 if (LINT)
     add_compile_options(
+            # warnings as errors
             "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Werror>"
             "$<$<CXX_COMPILER_ID:MSVC>:/WX>"
 
+            # base warnings
             "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wall>"
             "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wextra>"
             "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Weverything>"
             "$<$<CXX_COMPILER_ID:MSVC>:/Wall>"
             "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-pedantic>"
+            "$<$<CXX_COMPILER_ID:GNU>:-pedantic-errors>"
             "$<$<CXX_COMPILER_ID:MSVC>:/permissive->"
 
+            # extra warnings
             "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wconsumed>"
-
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat-pedantic>"
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-c++98-compat-pedantic>"
-            "$<$<CXX_COMPILER_ID:Clang>:-Wno-deprecated-copy>"
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-exit-time-destructors>"
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-global-constructors>"
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-header-hygiene>"
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-padded>"
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4820>" # padded
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4371>" # layout may have changed due to better packing
-            "$<$<CXX_COMPILER_ID:GNU>:-Wno-deprecated-copy>" # fixme
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wno-unknown-pragmas>"
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4068>" # unknown pragma
-            "$<$<CXX_COMPILER_ID:MSVC>:/D_CRT_SECURE_NO_WARNINGS>"
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4291>" # operator new matching operator delete
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4464>" # relative include path contains '..'
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>" # unreachable code (occurs in recursive templates)
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd5030>" # unrecognized attribute
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4623>" # default constructor was implicitly defined as deleted
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4625>" # copy constructor was implicitly defined as deleted
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4626>" # assignment operator was implicitly defined as deleted
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd5027>" # move assignment operator was implicitly defined as deleted
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4643>" # forward declaring in namespace std
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4514>" # unreferenced inline function
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd5045>" # spectre mitigation
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4711>" # selected for automatic inline expansion
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4710>" # function not inlined
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd5105>" # macro expansion producing 'defined'
-
-            "$<$<CXX_COMPILER_ID:GNU>:-pedantic-errors>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wcast-align=strict>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wmissing-declarations>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wredundant-decls>"
@@ -103,6 +76,34 @@ if (LINT)
             "$<$<CXX_COMPILER_ID:GNU>:-Wtrampolines>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wuninitialized>"
             "$<$<CXX_COMPILER_ID:GNU>:-Wunused>"
+
+            # accepted warnings
+            "$<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat-pedantic>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-c++98-compat-pedantic>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wno-unknown-pragmas>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4068>" # unknown pragma
+            "$<$<CXX_COMPILER_ID:MSVC>:/D_CRT_SECURE_NO_WARNINGS>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4291>" # operator new matching operator delete
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4371>" # layout may have changed due to better packing
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4464>" # relative include path contains '..'
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4514>" # unreferenced inline function
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4623>" # default constructor was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4625>" # copy constructor was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4626>" # assignment operator was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4643>" # forward declaring in namespace std
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4702>" # unreachable code (occurs in recursive templates)
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4710>" # function not inlined
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4711>" # selected for automatic inline expansion
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5027>" # move assignment operator was implicitly defined as deleted
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5030>" # unrecognized attribute
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5045>" # spectre mitigation
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd5105>" # macro expansion producing 'defined'
+
+            # fixme: rejected warnings
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
+            "$<$<CXX_COMPILER_ID:Clang,GNU>:-Wno-deprecated-copy>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-padded>"
+            "$<$<CXX_COMPILER_ID:MSVC>:/wd4820>" # padded
     )
 
     set(CMAKE_LINK_WHAT_YOU_USE OFF)

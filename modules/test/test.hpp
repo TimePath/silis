@@ -51,7 +51,10 @@ namespace test {
 #define TEST_COMPILE_1(name, id, code) TEST_COMPILE_2(name, id, code)
 #define TEST_COMPILE_2(name, id, code) \
     [[maybe_unused]] static void test##id(); \
+    _Pragma("clang diagnostic push") \
+    _Pragma("clang diagnostic ignored \"-Wglobal-constructors\"") \
     static CompileTest test##id##_global(__FILE__, id, name, #code); \
+    _Pragma("clang diagnostic pop") \
     void test##id() TEST_COMPILE_COND(id, code)
 
 #if !defined(__TEST_COMPILE)
@@ -68,5 +71,8 @@ namespace test {
 #define TEST_1(name, id) TEST_2(name, id)
 #define TEST_2(name, id) \
     static void test##id(); \
+    _Pragma("clang diagnostic push") \
+    _Pragma("clang diagnostic ignored \"-Wglobal-constructors\"") \
     static RunTest test##id##_global(__FILE__, id, name, test##id); \
+    _Pragma("clang diagnostic pop") \
     void test##id()

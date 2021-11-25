@@ -9,6 +9,7 @@
 #include "../descriptor.hpp"
 
 using namespace test;
+using namespace kernel;
 
 struct TestClassLoader : scriptengine::jvm::ClassLoader {
     tier2::SlowMap<StringSpan, Optional<scriptengine::jvm::ClassHandle>> classes_;
