@@ -400,6 +400,15 @@ namespace tier0 {
 #pragma GCC poison float
 #pragma GCC poison double
 #endif
+
+    template<typename T>
+    T min(T a, T b) { return (a < b) ? a : b; }
+
+    template<typename T>
+    T max(T a, T b) { return (a > b) ? a : b; }
+
+    template<typename T>
+    T clamp(T min, T it, T max) { return min(max(min, it), max); }
 }
 
 // assert
@@ -1268,7 +1277,8 @@ namespace tier0 {
             var i = Int(0);
             var nA = a.size();
             var nB = b.size();
-            while (i < nA && i < nB) {
+            var n = min(nA, nB);
+            while (i < n) {
                 let iA = a.get(Int(i));
                 let iB = b.get(Int(i));
                 if (iA < iB) {
@@ -1523,6 +1533,8 @@ namespace tier0 {
         ref<T> get() const { return data_.template get<Size(0)>(); }
 
         mut_ref<T> get() { return data_.template get<Size(0)>(); }
+
+        void set(movable<T> value) { return data_.template set<Size(0)>(move(value)); }
     };
 }
 

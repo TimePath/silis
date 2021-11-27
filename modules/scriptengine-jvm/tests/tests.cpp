@@ -63,19 +63,38 @@ void for_each_class(scriptengine::jvm::ClassHandle ch, F block) {
     }
 }
 
+static tier2::List<StringSpan>
+load_internal(mut_ref<TestClassLoader> self, mut_ref<scriptengine::jvm::VM> vm, Span<const StringSpan> classNames) {
+    var dependencies = tier2::List<StringSpan>();
+    for (let className : classNames) {
+        var data = file_read(
+                cstring((className == "Hello" ? format<"modules/scriptengine-jvm/tests/{}.class">(className)
+                                              : format<"modules/scriptengine-jvm/rt/{}.class">(className))()));
+        var ch = scriptengine::jvm::define_class(vm, move(data));
+        self.classes_.set(className, Optional<scriptengine::jvm::ClassHandle>::of(ch));
+        for_each_class(ch, [&](StringSpan nextClassName) {
+            var cached = self.classes_.get(nextClassName);
+            if (cached.hasValue()) {
+                return;
+            }
+            self.classes_.set(nextClassName, Optional<scriptengine::jvm::ClassHandle>::empty());
+            dependencies.add(nextClassName);
+        });
+    }
+    return dependencies;
+}
+
 void TestClassLoader::load(mut_ref<scriptengine::jvm::VM> vm, StringSpan className) {
     var cached = classes_.get(className);
     if (cached.hasValue()) {
         return;
     }
-    var data = file_read(cstring((className == "Hello" ? format<"modules/scriptengine-jvm/tests/{}.class">(className)
-                                                       : format<"modules/scriptengine-jvm/rt/{}.class">(className))()));
-    var ch = scriptengine::jvm::define_class(vm, move(data));
-    classes_.set(className, Optional<scriptengine::jvm::ClassHandle>::of(ch));
-
-    for_each_class(ch, [&](StringSpan descriptorString) {
-        load(vm, descriptorString);
-    });
+    const StringSpan classNames[] = {className};
+    var next = load_internal(*this, vm, Span<const StringSpan>::unsafe(classNames, 1));
+    while (next.size() > 0) {
+        let cNext = next;
+        operator_move_assign(next, load_internal(*this, vm, cNext.asSpan()));
+    }
 }
 
 void TestClassLoader::init(mut_ref<scriptengine::jvm::VM> vm, scriptengine::jvm::ClassHandle ch) {
@@ -309,12 +328,14 @@ void exec(cstring mainClass) {
     };
 
     var classLoader = TestClassLoader();
-    var evaluator = MyEvaluator({
-                                        .systemStatics = {
-                                                .out_ = PrintStream(),
-                                        },
-                                        .statics = SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value>(),
-                                });
+    var evaluator = MyEvaluator(
+            {
+                    .systemStatics = {
+                            .out_ = PrintStream(),
+                    },
+                    .statics = SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value>(),
+            }
+    );
     var vm = VM{
             .classLoader=classLoader,
             .evaluator=evaluator,

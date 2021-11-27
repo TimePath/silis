@@ -38,8 +38,9 @@ namespace tier2 {
         }
 
         void set(Int index, T value) {
-            data_.get(index).destroy();
-            data_.set(index, Unmanaged<T>(move(value)));
+            var &it = data_.get(index);
+            it.destroy();
+            it.set(move(value));
         }
 
         constexpr Span<const T> asSpan() const {
