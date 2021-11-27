@@ -20,10 +20,15 @@ namespace test {
 
     struct Test {
         Mode mode_;
+        PAD(4)
         Native<ptr<const Test>> next_;
         cstring_t file_;
         int_t id_;
+        PAD(4)
         cstring_t name_;
+
+        explicit Test(Mode mode, Native<ptr<const Test>> next, cstring_t file, int_t id, cstring_t name)
+                : mode_(mode), next_(next), file_(file), id_(id), name_(name) {}
     };
 
     struct CompileTest : Test {

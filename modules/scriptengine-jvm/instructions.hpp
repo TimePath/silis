@@ -21,9 +21,11 @@ namespace scriptengine::jvm {
     };
 
     namespace instruction {
+        PAD_BEGIN
 #define X(prefix, name, val, def, _5) struct prefix##name##Info def;
         INSTRUCTIONS(X)
 #undef X
+        PAD_END
     }
 
     struct InstructionInfo {

@@ -29,9 +29,11 @@ namespace scriptengine::jvm {
     };
 
     namespace constant {
+        PAD_BEGIN
 #define X(name, _2, def, fieldOrder) struct name##Info def;
         CONSTANTS(X)
 #undef X
+        PAD_END
     }
 
     struct ConstantInfo {
@@ -46,15 +48,31 @@ namespace scriptengine::jvm {
     };
 
     struct AttributeInfo {
-        UShort attributeNameIndex;
-        Span<Byte> bytes;
+        Span<Byte> bytes_;
+        UShort attributeNameIndex_;
+        PAD(6)
+
+        explicit AttributeInfo(UShort attributeNameIndex, Span<Byte> bytes)
+                : bytes_(bytes), attributeNameIndex_(attributeNameIndex) {}
     };
 
     struct FieldInfo {
-        UShort accessFlags;
-        UShort nameIndex;
-        UShort descriptorIndex;
-        DynArray<AttributeInfo> attributes;
+        UShort accessFlags_;
+        UShort nameIndex_;
+        UShort descriptorIndex_;
+        PAD(2)
+        DynArray<AttributeInfo> attributes_;
+
+        explicit FieldInfo(
+                UShort accessFlags,
+                UShort nameIndex,
+                UShort descriptorIndex,
+                DynArray<AttributeInfo> attributes
+        ) :
+                accessFlags_(accessFlags),
+                nameIndex_(nameIndex),
+                descriptorIndex_(descriptorIndex),
+                attributes_(move(attributes)) {}
     };
 
     enum class AccessFlag {
@@ -74,10 +92,22 @@ namespace scriptengine::jvm {
     };
 
     struct MethodInfo {
-        UShort accessFlags;
-        UShort nameIndex;
-        UShort descriptorIndex;
-        DynArray<AttributeInfo> attributes;
+        UShort accessFlags_;
+        UShort nameIndex_;
+        UShort descriptorIndex_;
+        PAD(2)
+        DynArray<AttributeInfo> attributes_;
+
+        explicit MethodInfo(
+                UShort accessFlags,
+                UShort nameIndex,
+                UShort descriptorIndex,
+                DynArray<AttributeInfo> attributes
+        ) :
+                accessFlags_(accessFlags),
+                nameIndex_(nameIndex),
+                descriptorIndex_(descriptorIndex),
+                attributes_(move(attributes)) {}
     };
 
     struct ConstantPool {
@@ -102,18 +132,46 @@ namespace scriptengine::jvm {
     };
 
     struct Class {
-        DynArray<Byte> data;
+        DynArray<Byte> data_;
 
-        UInt magic;
-        UShort minorVersion;
-        UShort majorVersion;
-        ConstantPool constantPool;
-        UShort accessFlags;
-        UShort thisClass;
-        UShort superClass;
-        DynArray<UShort> interfaces;
-        DynArray<FieldInfo> fields;
-        DynArray<MethodInfo> methods;
-        DynArray<AttributeInfo> attributes;
+        UInt magic_;
+        UShort minorVersion_;
+        UShort majorVersion_;
+        ConstantPool constantPool_;
+        UShort accessFlags_;
+        UShort thisClass_;
+        UShort superClass_;
+        PAD(2)
+        DynArray<UShort> interfaces_;
+        DynArray<FieldInfo> fields_;
+        DynArray<MethodInfo> methods_;
+        DynArray<AttributeInfo> attributes_;
+
+        explicit Class(
+                DynArray<Byte> data,
+                UInt magic,
+                UShort minorVersion,
+                UShort majorVersion,
+                ConstantPool constantPool,
+                UShort accessFlags,
+                UShort thisClass,
+                UShort superClass,
+                DynArray<UShort> interfaces,
+                DynArray<FieldInfo> fields,
+                DynArray<MethodInfo> methods,
+                DynArray<AttributeInfo> attributes
+        ) :
+                data_(move(data)),
+                magic_(magic),
+                minorVersion_(minorVersion),
+                majorVersion_(majorVersion),
+                constantPool_(move(constantPool)),
+                accessFlags_(accessFlags),
+                thisClass_(thisClass),
+                superClass_(superClass),
+                interfaces_(move(interfaces)),
+                fields_(move(fields)),
+                methods_(move(methods)),
+                attributes_(move(attributes)) {}
     };
 }

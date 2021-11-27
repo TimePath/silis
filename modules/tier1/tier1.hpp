@@ -13,6 +13,7 @@ namespace tier1 {
     struct DynArray : private DisableCopyConstructible {
     private:
         Int size_;
+        PAD(4)
         Native<ptr<T>> data_;
     public:
         constexpr ~DynArray() { release(); }
@@ -124,6 +125,10 @@ namespace tier1 {
     struct FormatWriter {
         mut_ref<DynArray<Char>> chars_;
         Int offset_;
+        PAD(4)
+
+        explicit FormatWriter(mut_ref<DynArray<Char>> chars, Int offset)
+                : chars_(chars), offset_(offset) {}
 
         void write(Char c) {
             chars_.set(offset_, c);

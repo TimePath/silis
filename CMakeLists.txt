@@ -102,8 +102,6 @@ if (LINT)
             # fixme: rejected warnings
             "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
             "$<$<CXX_COMPILER_ID:Clang,GNU>:-Wno-deprecated-copy>"
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-padded>"
-            "$<$<CXX_COMPILER_ID:MSVC>:/wd4820>" # padded
     )
 
     set(CMAKE_LINK_WHAT_YOU_USE OFF)

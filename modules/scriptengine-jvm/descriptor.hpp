@@ -25,13 +25,18 @@ namespace scriptengine::jvm {
 
         struct Atom {
             AtomKind kind_;
+            PAD(4)
             StringSpan value_;
             Int begin_;
             Int end_;
+
+            explicit Atom(AtomKind kind, StringSpan value, Int begin, Int end)
+                    : kind_(kind), value_(value), begin_(begin), end_(end) {}
         };
 
         StringSpan input;
         Int idx = 0;
+        PAD(4)
         List<Atom> output = List<Atom>();
 
         static List<Atom> parseMethod(StringSpan input) {
@@ -116,35 +121,35 @@ namespace scriptengine::jvm {
         Boolean baseType() {
             var begin = idx;
             if (require('B')) {
-                output.add({AtomKind::Byte, input, begin, idx});
+                output.add(Atom(AtomKind::Byte, input, begin, idx));
                 return true;
             }
             if (require('C')) {
-                output.add({AtomKind::Char, input, begin, idx});
+                output.add(Atom(AtomKind::Char, input, begin, idx));
                 return true;
             }
             if (require('D')) {
-                output.add({AtomKind::Double, input, begin, idx});
+                output.add(Atom(AtomKind::Double, input, begin, idx));
                 return true;
             }
             if (require('F')) {
-                output.add({AtomKind::Float, input, begin, idx});
+                output.add(Atom(AtomKind::Float, input, begin, idx));
                 return true;
             }
             if (require('I')) {
-                output.add({AtomKind::Int, input, begin, idx});
+                output.add(Atom(AtomKind::Int, input, begin, idx));
                 return true;
             }
             if (require('J')) {
-                output.add({AtomKind::Long, input, begin, idx});
+                output.add(Atom(AtomKind::Long, input, begin, idx));
                 return true;
             }
             if (require('S')) {
-                output.add({AtomKind::Short, input, begin, idx});
+                output.add(Atom(AtomKind::Short, input, begin, idx));
                 return true;
             }
             if (require('Z')) {
-                output.add({AtomKind::Boolean, input, begin, idx});
+                output.add(Atom(AtomKind::Boolean, input, begin, idx));
                 return true;
             }
             return false;
@@ -154,7 +159,7 @@ namespace scriptengine::jvm {
             if (!require('L')) return false;
             var begin = idx;
             if (!className()) return error();
-            output.add({AtomKind::Reference, input, begin, idx});
+            output.add(Atom(AtomKind::Reference, input, begin, idx));
             if (!require(';')) return error();
             return true;
         }
@@ -188,7 +193,7 @@ namespace scriptengine::jvm {
         Boolean voidDescriptor() {
             var begin = idx;
             if (!require('V')) return false;
-            output.add({AtomKind::Void, input, begin, idx});
+            output.add(Atom(AtomKind::Void, input, begin, idx));
             return true;
         }
     };

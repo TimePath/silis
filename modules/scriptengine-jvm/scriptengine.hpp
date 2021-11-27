@@ -20,6 +20,10 @@ namespace scriptengine::jvm {
     struct MethodHandle {
         ClassHandle handle_;
         Int index_;
+        PAD(4)
+
+        explicit MethodHandle(ClassHandle handle, Int index)
+                : handle_(handle), index_(index) {}
     };
 
     struct ClassLoader {
@@ -43,7 +47,17 @@ namespace scriptengine::jvm {
     struct CodeAttribute {
         UShort maxStack_;
         UShort maxLocals_;
+        PAD(4)
         List<InstructionInfo> code_;
+
+        explicit CodeAttribute(
+                UShort maxStack,
+                UShort maxLocals,
+                List<InstructionInfo> code
+        ) :
+                maxStack_(maxStack),
+                maxLocals_(maxLocals),
+                code_(move(code)) {}
     };
 
     Optional<CodeAttribute> load_code(mut_ref<VM> vm, MethodHandle handle);
@@ -59,6 +73,7 @@ namespace scriptengine::jvm {
         using Value = Variant<ValueKind, ptr<void>, Int, Long>;
 
         Int sp_ = Int(0);
+        PAD(4)
         List<Value> stack_ = List<Value>();
 
         mut_ref<Value> peek() { return stack_.get(sp_ - 1); }

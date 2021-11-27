@@ -27,7 +27,11 @@ TEST("Binding") {
     struct Test {
         Int i;
         Short j;
+        PAD(2)
         Int k;
+
+        explicit Test(Int i_, Short j_, Int k_) :
+                i(i_), j(j_), k(k_) {}
 
         using elements = tuple_elements_builder<>
         ::add<&Test::i>
@@ -37,18 +41,18 @@ TEST("Binding") {
     };
 
     var testVar = Test{
-            .i = 1,
-            .j = Short(2),
-            .k = 3,
+            1,
+            Short(2),
+            3,
     };
     auto &[_v1, _v2, _v3] = testVar;
     _v1 = _v1 + 1;
     printf("testVar: %d, %d, %d\n", Native<Int>(_v1), Native<Short>(_v2), Native<Int>(_v3));
 
     let testLet = Test{
-            .i = 1,
-            .j = Short(2),
-            .k = 3,
+            1,
+            Short(2),
+            3,
     };
     auto &[_l1, _l2, _l3] = testLet;
     printf("testLet: %d, %d, %d\n", Native<Int>(_l1), Native<Short>(_l2), Native<Int>(_l3));
@@ -163,6 +167,7 @@ Traced(T) -> Traced<T>;
 template<typename T>
 struct Traced {
     Boolean live_;
+    PAD(7)
     T value_;
 
     ~Traced() {

@@ -45,7 +45,7 @@ struct TestClassLoader : scriptengine::jvm::ClassLoader {
 
 template<typename F>
 void for_each_class(scriptengine::jvm::ClassHandle ch, F block) {
-    let pool = ch.handle_->constantPool;
+    let pool = ch.handle_->constantPool_;
     let f = [&](ref<scriptengine::jvm::constant::ClassInfo> refClass) {
         let className = pool.getName(refClass.nameIndex);
         if (className.data_.get(0) == Char('[')) {
@@ -53,8 +53,8 @@ void for_each_class(scriptengine::jvm::ClassHandle ch, F block) {
         }
         block(className);
     };
-    if (ch.handle_->superClass) {
-        f(pool.getAny(ch.handle_->superClass).variant_.get<scriptengine::jvm::Constant::Class>());
+    if (ch.handle_->superClass_) {
+        f(pool.getAny(ch.handle_->superClass_).variant_.get<scriptengine::jvm::Constant::Class>());
     }
     for (let it : pool.asSpan()) {
         if (it.variant_.index() == scriptengine::jvm::Constant::Class) {
@@ -79,8 +79,8 @@ void TestClassLoader::load(mut_ref<scriptengine::jvm::VM> vm, StringSpan classNa
 }
 
 void TestClassLoader::init(mut_ref<scriptengine::jvm::VM> vm, scriptengine::jvm::ClassHandle ch) {
-    let pool = ch.handle_->constantPool;
-    let className = pool.getClassName(ch.handle_->thisClass);
+    let pool = ch.handle_->constantPool_;
+    let className = pool.getClassName(ch.handle_->thisClass_);
     var cached = classesInitialized_.get(className);
     if (cached.hasValue()) {
         return;
@@ -146,6 +146,7 @@ void exec(cstring mainClass) {
 
     struct EvaluatorState {
         SystemStatics systemStatics;
+        PAD(7)
         SlowMap<Tuple<StringSpan, StringSpan>, Stack::Value> statics;
     };
 
@@ -252,13 +253,13 @@ void exec(cstring mainClass) {
                 var y = [&](StringSpan _cls, var &rec) mutable -> void {
                     let chOpt = vm.classLoader.get(_cls);
                     let ch = chOpt.value();
-                    let pool = ch.handle_->constantPool;
-                    if (ch.handle_->superClass) {
-                        let superClassName = pool.getClassName(ch.handle_->superClass);
+                    let pool = ch.handle_->constantPool_;
+                    if (ch.handle_->superClass_) {
+                        let superClassName = pool.getClassName(ch.handle_->superClass_);
                         rec(superClassName, rec);
                     }
-                    for (let field : ch.handle_->fields.asSpan()) {
-                        let refFieldNameString = pool.getName(field.nameIndex);
+                    for (let field : ch.handle_->fields_.asSpan()) {
+                        let refFieldNameString = pool.getName(field.nameIndex_);
                         ret->fields.set(refFieldNameString, Stack::Value::of<Stack::ValueKind::Int>(0));
                     }
                 };

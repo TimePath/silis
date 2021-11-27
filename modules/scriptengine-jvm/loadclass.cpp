@@ -16,9 +16,9 @@ namespace scriptengine::jvm {
     struct DecodeTrait<Utf8String> {
         static Utf8String decode(mut_ref<StreamReader> reader) {
             let length = reader.read<UShort>();
-            var offset = reader.offset;
-            let bytes = Span<const Byte>::unsafe(&reader.data.get(offset), Int(length));
-            reader.offset = offset + length;
+            var offset = reader.offset_;
+            let bytes = Span<const Byte>::unsafe(&reader.data_.get(offset), Int(length));
+            reader.offset_ = offset + length;
             return Utf8String(StringSpan(bytes));
         }
     };
@@ -77,12 +77,12 @@ namespace scriptengine::jvm {
         static AttributeInfo decode(mut_ref<StreamReader> reader) {
             let attributeNameIndex = reader.read<UShort>();
             let attributeLength = reader.read<UInt>();
-            let bytes = Span<Byte>::unsafe(&reader.data.get(reader.offset), Int(attributeLength));
-            reader.offset = Int(UInt(reader.offset) + attributeLength);
-            return {
-                    .attributeNameIndex = attributeNameIndex,
-                    .bytes = bytes,
-            };
+            let bytes = Span<Byte>::unsafe(&reader.data_.get(reader.offset_), Int(attributeLength));
+            reader.offset_ = Int(UInt(reader.offset_) + attributeLength);
+            return AttributeInfo(
+                    /*.attributeNameIndex =*/ attributeNameIndex,
+                    /*.bytes =*/ bytes
+            );
         }
     };
 
@@ -93,12 +93,12 @@ namespace scriptengine::jvm {
             let nameIndex = reader.read<UShort>();
             let descriptorIndex = reader.read<UShort>();
             var attributes = reader.read<Repeating<AttributeInfo, UShort>>();
-            return {
-                    .accessFlags = accessFlags,
-                    .nameIndex = nameIndex,
-                    .descriptorIndex = descriptorIndex,
-                    .attributes = move(attributes),
-            };
+            return FieldInfo(
+                    /*.accessFlags =*/ accessFlags,
+                    /*.nameIndex =*/ nameIndex,
+                    /*.descriptorIndex =*/ descriptorIndex,
+                    /*.attributes =*/ move(attributes)
+            );
         }
     };
 
@@ -109,12 +109,12 @@ namespace scriptengine::jvm {
             let nameIndex = reader.read<UShort>();
             let descriptorIndex = reader.read<UShort>();
             var attributes = reader.read<Repeating<AttributeInfo, UShort>>();
-            return {
-                    .accessFlags = accessFlags,
-                    .nameIndex = nameIndex,
-                    .descriptorIndex = descriptorIndex,
-                    .attributes = move(attributes),
-            };
+            return MethodInfo(
+                    /*.accessFlags =*/ accessFlags,
+                    /*.nameIndex =*/ nameIndex,
+                    /*.descriptorIndex =*/ descriptorIndex,
+                    /*.attributes =*/ move(attributes)
+            );
         }
     };
 
@@ -142,20 +142,20 @@ namespace scriptengine::jvm {
             var fields = reader.read<Repeating<FieldInfo, UShort>>();
             var methods = reader.read<Repeating<MethodInfo, UShort>>();
             var attributes = reader.read<Repeating<AttributeInfo, UShort>>();
-            return {
-                    .data = move(data),
-                    .magic = magic,
-                    .minorVersion = minorVersion,
-                    .majorVersion = majorVersion,
-                    .constantPool = {move(constantPool)},
-                    .accessFlags = accessFlags,
-                    .thisClass = thisClass,
-                    .superClass = superClass,
-                    .interfaces = move(interfaces),
-                    .fields = move(fields),
-                    .methods = move(methods),
-                    .attributes = move(attributes),
-            };
+            return Class(
+                    /*.data =*/ move(data),
+                    /*.magic =*/ magic,
+                    /*.minorVersion =*/ minorVersion,
+                    /*.majorVersion =*/ majorVersion,
+                    /*.constantPool =*/ {move(constantPool)},
+                    /*.accessFlags =*/ accessFlags,
+                    /*.thisClass =*/ thisClass,
+                    /*.superClass =*/ superClass,
+                    /*.interfaces =*/ move(interfaces),
+                    /*.fields =*/ move(fields),
+                    /*.methods =*/ move(methods),
+                    /*.attributes =*/ move(attributes)
+            );
         }
     };
 }
@@ -168,7 +168,7 @@ namespace scriptengine::jvm {
 
     ClassHandle define_class(mut_ref<VM> vm, DynArray<Byte> data) {
         (void) vm;
-        var reader = StreamReader{data.asSpan(), 0};
+        var reader = StreamReader(data.asSpan(), 0);
         var ret = reader.read<Class>(move(data));
         return {new(AllocInfo::of<Class>()) Class(move(ret))};
     }

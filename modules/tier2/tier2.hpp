@@ -12,6 +12,7 @@ namespace tier2 {
     struct List {
     private:
         Int size_;
+        PAD(4)
         DynArray<Unmanaged<T>> data_;
     public:
         ~List() {
@@ -64,22 +65,11 @@ namespace tier2 {
         }
 
         template<typename E>
-        struct Iterator {
-            ptr<const List> self_;
-            Int index_;
+        using Iterator = ContiguousIterator<List, E>;
 
-            constexpr Boolean hasNext() const { return index_ < self_->size(); }
+        constexpr Iterator<const T> iterator() const { return Iterator<const T>{this}; }
 
-            constexpr ref<E> get() const { return self_->get(index_); }
-
-            constexpr void next() { index_ = index_ + 1; }
-
-            ENABLE_FOREACH_ITERATOR(Iterator)
-        };
-
-        constexpr Iterator<const T> iterator() const { return {this, 0}; }
-
-        constexpr Iterator<T> iterator() { return {this, 0}; }
+        constexpr Iterator<T> iterator() { return Iterator<T>{this}; }
 
         ENABLE_FOREACH_ITERABLE()
 
@@ -99,6 +89,10 @@ namespace tier2 {
     struct Element {
         T key_;
         Int id_;
+        PAD(4)
+
+        explicit Element(T key, Int id)
+                : key_(key), id_(id) {}
     };
 
     enum class Action {
@@ -162,18 +156,18 @@ namespace tier2 {
             var ret = bsearch<T, T_cmp>(constElements.asSpan(), key, 0);
             switch (ret.action_) {
                 case Action::InsertFirst: {
-                    elements_.add({key, ptr});
+                    elements_.add(Element<T>(key, ptr));
                     break;
                 }
                 case Action::Replace: {
                     break;
                 }
                 case Action::InsertBefore: {
-                    splice(ret.index_, {key, ptr});
+                    splice(ret.index_, Element<T>(key, ptr));
                     break;
                 }
                 case Action::InsertAfter: {
-                    splice(ret.index_ + 1, {key, ptr});
+                    splice(ret.index_ + 1, Element<T>(key, ptr));
                     break;
                 }
             }

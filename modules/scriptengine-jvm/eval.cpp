@@ -14,11 +14,11 @@ namespace scriptengine::jvm {
     void eval(mut_ref<VM> vm, MethodHandle mh, Frame frame) {
         var &evaluator = vm.evaluator;
         let ch = mh.handle_;
-        let pool = ch.handle_->constantPool;
+        let pool = ch.handle_->constantPool_;
 
-        let selfMethod = ch.handle_->methods.get(mh.index_);
-        let selfClassName = pool.getClassName(ch.handle_->thisClass);
-        let selfMethodName = pool.getName(selfMethod.nameIndex);
+        let selfMethod = ch.handle_->methods_.get(mh.index_);
+        let selfClassName = pool.getClassName(ch.handle_->thisClass_);
+        let selfMethodName = pool.getName(selfMethod.nameIndex_);
         var selfRef = Tuple(selfClassName, selfMethodName);
         (void) selfRef;
 

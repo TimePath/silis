@@ -15,8 +15,12 @@ namespace scriptengine::jvm {
     struct DecodeTrait;
 
     struct StreamReader {
-        Span<Byte> data;
-        Int offset;
+        Span<Byte> data_;
+        Int offset_;
+        PAD(4)
+
+        explicit StreamReader(Span<Byte> data, Int offset)
+                : data_(data), offset_(offset) {}
 
         template<typename T, typename... Ts>
         auto read(Ts... args) { return DecodeTrait<T>::decode(*this, move(args)...); }
@@ -34,9 +38,9 @@ namespace scriptengine::jvm {
     template<>
     struct DecodeTrait<Byte> {
         static Byte decode(mut_ref<StreamReader> reader) {
-            var index = reader.offset;
-            reader.offset = reader.offset + 1;
-            return reader.data.get(index);
+            var index = reader.offset_;
+            reader.offset_ = reader.offset_ + 1;
+            return reader.data_.get(index);
         }
     };
 

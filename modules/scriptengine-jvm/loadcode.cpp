@@ -69,19 +69,19 @@ namespace scriptengine::jvm {
             var offsets = List<Int>();
             var byteMap = DynArray<Int>(Int(codeSize), [](Int) { return 0; });
             var code = List<InstructionInfo>();
-            for (var begin = reader.offset, end = Int(UInt(reader.offset) + codeSize); reader.offset < end;) {
-                offsets.add(reader.offset - begin);
-                byteMap.set(reader.offset - begin, code.size());
+            for (var begin = reader.offset_, end = Int(UInt(reader.offset_) + codeSize); reader.offset_ < end;) {
+                offsets.add(reader.offset_ - begin);
+                byteMap.set(reader.offset_ - begin, code.size());
                 code.add(move(reader.read<InstructionInfo>()));
             }
             for (var i : Range<Int>::until(Int(0), code.size())) {
                 patch(code.get(i), i, offsets.get(i), byteMap);
             }
-            return {
-                    .maxStack_ = maxStack,
-                    .maxLocals_ = maxLocals,
-                    .code_ = move(code),
-            };
+            return CodeAttribute(
+                    /*.maxStack_ =*/ maxStack,
+                    /*.maxLocals_ =*/ maxLocals,
+                    /*.code_ =*/ move(code)
+            );
         }
 
         static void patch(mut_ref<InstructionInfo> instruction, Int index, Int byteIndex, ref<DynArray<Int>> byteMap) {
@@ -110,12 +110,13 @@ namespace scriptengine::jvm {
 namespace scriptengine::jvm {
     Optional<MethodHandle> find_method(mut_ref<VM> vm, ClassHandle ch, StringSpan name) {
         (void) vm;
-        let pool = ch.handle_->constantPool;
+        let pool = ch.handle_->constantPool_;
         var i = Int(0);
-        for (let it : ch.handle_->methods.asSpan()) {
-            let methodName = pool.getName(it.nameIndex);
+        for (let it : ch.handle_->methods_.asSpan()) {
+            let methodName = pool.getName(it.nameIndex_);
             if (methodName == name) {
-                return Optional<MethodHandle>::of({ch, i});
+                let mh = MethodHandle(ch, i);
+                return Optional<MethodHandle>::of(mh);
             }
             i = i + 1;
         }
@@ -125,11 +126,11 @@ namespace scriptengine::jvm {
     Optional<CodeAttribute> load_code(mut_ref<VM> vm, MethodHandle handle) {
         (void) vm;
         let ch = handle.handle_;
-        let method = ch.handle_->methods.get(handle.index_);
-        if (method.accessFlags & (1 << Native<Int>(AccessFlag::Native))) {
-            let pool = ch.handle_->constantPool;
-            let className = pool.getClassName(ch.handle_->thisClass);
-            let methodName = pool.getName(method.nameIndex);
+        let method = ch.handle_->methods_.get(handle.index_);
+        if (method.accessFlags_ & (1 << Native<Int>(AccessFlag::Native))) {
+            let pool = ch.handle_->constantPool_;
+            let className = pool.getClassName(ch.handle_->thisClass_);
+            let methodName = pool.getName(method.nameIndex_);
             var it = Tuple(className, methodName);
             if (false) {
             } else if (it == Tuple<StringSpan, StringSpan>("java/lang/Object", "registerNatives")) {
@@ -140,8 +141,8 @@ namespace scriptengine::jvm {
                 die();
             }
         }
-        let attribute = method.attributes.get(0);
-        var reader = StreamReader{attribute.bytes, 0};
+        let attribute = method.attributes_.get(0);
+        var reader = StreamReader(attribute.bytes_, 0);
         var code = reader.read<CodeAttribute>();
         return Optional<CodeAttribute>::of(move(code));
     }

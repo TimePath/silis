@@ -44,6 +44,22 @@
 #define ATTR_TYPESTATE_ASSERTS(state)
 #endif
 
+#define PAD(n) PAD_1(__LINE__, n)
+#define PAD_1(uniq, n) PAD_2(uniq, n)
+#define PAD_2(uniq, n) decltype(' ') _padding##uniq[n] {};
+
+#define PAD_BEGIN \
+    _Pragma("clang diagnostic push") \
+    _Pragma("warning(push)") \
+    _Pragma("clang diagnostic ignored \"-Wpadded\"") \
+    _Pragma("warning(disable : 4820)") \
+    /**/
+
+#define PAD_END \
+    _Pragma("clang diagnostic pop") \
+    _Pragma("warning(pop)") \
+    /**/
+
 namespace tier0 {}
 
 // meta
@@ -605,9 +621,13 @@ namespace tier0 {
     template<typename... Ts>
     struct Structs;
 
+    PAD_BEGIN
+
     template<typename... Ts>
     struct Structs : Ts ... {
     };
+
+    PAD_END
 
     template<typename... Ts>
     struct TypeList;
@@ -1198,11 +1218,15 @@ namespace tier0 {
     struct ContiguousIterator {
         ptr<const T> self_;
         Int index_;
+        PAD(4)
+
+        explicit ContiguousIterator(ptr<const T> self)
+                : self_(self), index_(0) {}
 
         [[nodiscard]]
         constexpr Boolean hasNext() const { return index_ < self_->size(); }
 
-        constexpr ref<E> get() const { return self_->data_[index_]; }
+        constexpr ref<E> get() const { return self_->get(index_); }
 
         constexpr void next() { index_ = index_ + 1; }
 
@@ -1219,6 +1243,7 @@ namespace tier0 {
         using array_type = T[N / sizeof(T)];
         Native<ptr<T>> data_;
         Int size_;
+        PAD(4)
     private:
         explicit Span(Native<ptr<T>> addr, Int size) : data_(addr), size_(size) {}
 
@@ -1279,9 +1304,9 @@ namespace tier0 {
         template<typename E>
         using Iterator = ContiguousIterator<Span, E>;
 
-        constexpr Iterator<const T> iterator() const { return {this, 0}; }
+        constexpr Iterator<const T> iterator() const { return Iterator<const T>{this}; }
 
-        constexpr Iterator<T> iterator() { return {this, 0}; }
+        constexpr Iterator<T> iterator() { return Iterator<T>{this}; }
 
         ENABLE_FOREACH_ITERABLE()
 
@@ -1380,9 +1405,9 @@ namespace tier0 {
         template<typename E>
         using Iterator = ContiguousIterator<Array, E>;
 
-        constexpr Iterator<const T> iterator() const { return {this, Size(0)}; }
+        constexpr Iterator<const T> iterator() const { return Iterator<const T>{this}; }
 
-        constexpr Iterator<T> iterator() { return {this, Size(0)}; }
+        constexpr Iterator<T> iterator() { return Iterator<T>{this}; }
 
         ENABLE_FOREACH_ITERABLE()
     };
@@ -1508,6 +1533,7 @@ namespace tier0 {
     private:
         Union<T> data_;
         Boolean valueBit_;
+        PAD(4 + 3)
     public:
         constexpr ~Optional() {
             if (valueBit_) {
@@ -1572,6 +1598,7 @@ namespace tier0 {
     private:
         Union<T, E> data_;
         Boolean errorBit_;
+        PAD(3)
     public:
         ~Result() {
             if (!errorBit_) {
@@ -1633,6 +1660,7 @@ namespace tier0 {
     private:
         Union<Ts...> data_;
         Byte active_;
+        PAD(7)
         using types = TypeList<Ts...>;
 
         template<typename... Us>
@@ -1839,6 +1867,7 @@ namespace tier0 {
         const cstring file_;
         const cstring function_;
         const Int line_;
+        PAD(4)
 
         static SourceLocation current(
                 cstring file = __builtin_FILE(),
