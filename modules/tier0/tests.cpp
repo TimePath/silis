@@ -115,7 +115,7 @@ struct Statement {
     const Array<cstring, n> strings;
     const Tuple<Ts...> values;
 
-    constexpr void operator()(ref<SourceLocation> loc = SourceLocation::current()) const {
+    constexpr void operator_invoke(ref<SourceLocation> loc = SourceLocation::current()) const {
         printf("'");
         printf("/* %s */ ", loc.file_);
         printf("%s", strings.data_[0]);
@@ -169,21 +169,28 @@ struct Traced {
     Boolean live_;
     PAD(7)
     T value_;
+    using members = Members<&Traced::live_, &Traced::value_>;
 
     ~Traced() {
         if (!live_) return;
         printf("%s: dtor()\n", TypeName<Traced>());
     }
 
-    explicit Traced(T value) : live_(true), value_(move(value)) {
+private:
+    explicit Traced() : live_(false) {}
+
+public:
+
+    explicit constexpr Traced(T value) : live_(true), value_(move(value)) {
         printf("%s: ctor(%s)\n", TypeName<Traced>(), TypeName<T>());
     }
 
-    explicit Traced(movable<Traced> other) : live_(exchange(other.live_, false)), value_(move(other.value_)) {
+    implicit constexpr Traced(movable<Traced> other) : Traced() {
         printf("%s: ctor(%s &&)\n", TypeName<Traced>(), TypeName<T>());
+        members::swap(*this, other);
     }
 
-    explicit Traced(ref<Traced> other) : live_(other.live_), value_(other.value_) {
+    explicit constexpr Traced(ref<Traced> other) : live_(other.live_), value_(other.value_) {
         printf("%s: ctor(%s const &)\n", TypeName<Traced>(), TypeName<T>());
     }
 };

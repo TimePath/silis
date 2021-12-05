@@ -130,8 +130,10 @@ namespace scriptengine::jvm {
                     return (kind == Constant::Long || kind == Constant::Double) ? 2 : 1;
                 }
 
-                static void pad(ptr<ConstantInfo> out) {
-                    new(out) ConstantInfo(ConstantInfo::Storage::of<Constant::Integer>(constant::IntegerInfo{}));
+                static Unmanaged<ConstantInfo> pad() {
+                    return Unmanaged(
+                            ConstantInfo(ConstantInfo::Storage::of<Constant::Integer>(constant::IntegerInfo{}))
+                    );
                 }
             };
             var constantPool = reader.read<Repeating<ConstantInfo, UShort, -1, Skipper>>();

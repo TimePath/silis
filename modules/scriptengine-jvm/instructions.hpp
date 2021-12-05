@@ -31,11 +31,16 @@ namespace scriptengine::jvm {
     struct InstructionInfo {
 #define X(prefix, name, _2, _3, _5) , instruction::prefix##name##Info
         Variant<Instruction INSTRUCTIONS(X)> variant_;
+        using members = Members<&InstructionInfo::variant_>;
         using Storage = decltype(variant_);
 #undef X
 
+        explicit constexpr InstructionInfo() : variant_(Storage::empty()) {}
+
         explicit InstructionInfo(Storage v) : variant_(move(v)) {}
 
-        implicit InstructionInfo(movable<InstructionInfo> other) : variant_(move(other.variant_)) {}
+        implicit constexpr InstructionInfo(movable<InstructionInfo> other) : InstructionInfo() {
+            members::swap(*this, other);
+        }
     };
 }

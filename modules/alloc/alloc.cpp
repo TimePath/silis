@@ -70,17 +70,17 @@ namespace {
 
 // https://en.cppreference.com/w/cpp/memory/new/operator_new
 
-Native<ptr<void>> operator new(Native<Size> count, AllocInfo info) {
+Native<ptr<void>> operator_new(Native<Size> count, AllocInfo info) {
     if (RUNNING_ON_VALGRIND) {
-        return ::operator new(count);
+        return ::operator_new(count);
     }
     let memory = ptr<MemoryBlock>(::malloc(sizeof(MemoryBlock) + count));
     return alloc_ctor(memory, count, info);
 }
 
-Native<ptr<void>> operator new[](Native<Size> count, AllocInfo info) {
+Native<ptr<void>> operator_new[](Native<Size> count, AllocInfo info) {
     if (RUNNING_ON_VALGRIND) {
-        return ::operator new[](count);
+        return ::operator_new[](count);
     }
     let memory = ptr<MemoryBlock>(::malloc(sizeof(MemoryBlock) + count));
     return alloc_ctor(memory, count, info);
@@ -88,37 +88,37 @@ Native<ptr<void>> operator new[](Native<Size> count, AllocInfo info) {
 
 // https://en.cppreference.com/w/cpp/memory/new/operator_delete
 
-void operator delete(Native<ptr<void>> obj) noexcept {
+void operator_delete(Native<ptr<void>> obj) noexcept {
     if (RUNNING_ON_VALGRIND) {
-        return ::operator delete(obj);
+        return ::operator_delete(obj);
     }
     let memory = ptr<MemoryBlock>(obj);
     ::free(alloc_dtor(memory));
 }
 
-void operator delete[](Native<ptr<void>> obj) noexcept {
+void operator_delete[](Native<ptr<void>> obj) noexcept {
     if (RUNNING_ON_VALGRIND) {
-        return ::operator delete[](obj);
+        return ::operator_delete[](obj);
     }
     let memory = ptr<MemoryBlock>(obj);
     ::free(alloc_dtor(memory));
 }
 
-void operator delete(Native<ptr<void>> obj, Native<Size> sz) noexcept;
+void operator_delete(Native<ptr<void>> obj, Native<Size> sz) noexcept;
 
-void operator delete(Native<ptr<void>> obj, Native<Size> sz) noexcept {
+void operator_delete(Native<ptr<void>> obj, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
-        return ::operator delete(obj, sz);
+        return ::operator_delete(obj, sz);
     }
     let memory = ptr<MemoryBlock>(obj);
     ::free(alloc_dtor(memory));
 }
 
-void operator delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept;
+void operator_delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept;
 
-void operator delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept {
+void operator_delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
-        return ::operator delete[](obj, sz);
+        return ::operator_delete[](obj, sz);
     }
     let memory = ptr<MemoryBlock>(obj);
     ::free(alloc_dtor(memory));

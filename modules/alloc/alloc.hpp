@@ -14,6 +14,6 @@ namespace tier0 {
     };
 }
 
-tier0::Native<tier0::ptr<void>> operator new(tier0::Native<tier0::Size> count, tier0::AllocInfo info);
+tier0::Native<tier0::ptr<void>> operator_new(tier0::Native<tier0::Size> count, tier0::AllocInfo info);
 
-tier0::Native<tier0::ptr<void>> operator new[](tier0::Native<tier0::Size> count, tier0::AllocInfo info);
+tier0::Native<tier0::ptr<void>> operator_new[](tier0::Native<tier0::Size> count, tier0::AllocInfo info);

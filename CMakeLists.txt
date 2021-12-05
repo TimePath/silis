@@ -79,6 +79,7 @@ if (LINT)
 
             # accepted warnings
             "$<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat-pedantic>"
+            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments>" # c++20-compat
             "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-c++98-compat-pedantic>"
             "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-Wno-unknown-pragmas>"
             "$<$<CXX_COMPILER_ID:MSVC>:/wd4068>" # unknown pragma
@@ -98,10 +99,6 @@ if (LINT)
             "$<$<CXX_COMPILER_ID:MSVC>:/wd5030>" # unrecognized attribute
             "$<$<CXX_COMPILER_ID:MSVC>:/wd5045>" # spectre mitigation
             "$<$<CXX_COMPILER_ID:MSVC>:/wd5105>" # macro expansion producing 'defined'
-
-            # fixme: rejected warnings
-            "$<$<CXX_COMPILER_ID:AppleClang,Clang>:-Wno-gnu-zero-variadic-macro-arguments>"
-            "$<$<CXX_COMPILER_ID:Clang,GNU>:-Wno-deprecated-copy>"
     )
 
     set(CMAKE_LINK_WHAT_YOU_USE OFF)

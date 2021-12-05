@@ -14,6 +14,7 @@ namespace tier2 {
         Int size_;
         PAD(4)
         DynArray<Unmanaged<T>> data_;
+        using members = Members<&List::size_, &List::data_>;
     public:
         ~List() {
             for (var i : Range<Int>::until(0, size())) {
@@ -21,9 +22,16 @@ namespace tier2 {
             }
         }
 
-        implicit List() : size_(0), data_(0) {}
+        implicit constexpr List() : size_(0), data_() {}
 
-        implicit List(movable<List> other) : size_(exchange(other.size_, 0)), data_(move(other.data_)) {}
+        implicit constexpr List(movable<List> other) : List() {
+            members::swap(*this, other);
+        }
+
+        constexpr mut_ref<List> operator_assign(movable<List> other) {
+            members::swap(*this, other);
+            return *this;
+        }
 
         Int size() const { return size_; }
 
@@ -153,7 +161,7 @@ namespace tier2 {
         List<Element<T>> elements_;
 
         void add(ref<T> key, Int ptr) {
-            let constElements = this->elements_;
+            let constElements = elements_;
             var ret = bsearch<T, T_cmp>(constElements.asSpan(), key, 0);
             switch (ret.action_) {
                 case Action::InsertFirst: {
@@ -203,7 +211,7 @@ namespace tier2 {
 namespace tier2 {
     template<typename T>
     struct Comparator {
-        Order operator()(ref<T> a, ref<T> b) { return a <=> b; }
+        Order operator_invoke(ref<T> a, ref<T> b) { return a <=> b; }
     };
 
     template<typename K, typename V>
@@ -238,8 +246,7 @@ namespace tier2 {
                 index_.add(key, i);
                 return;
             }
-            var ptr = opt.value();
-            new(ptr) V(move(val));
+            *opt.value() = move(val);
         }
 
     private:

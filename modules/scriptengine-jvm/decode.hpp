@@ -85,7 +85,7 @@ namespace scriptengine::jvm {
     struct RepeatingNoSkip {
         static Int size(ref<T>) { return 1; }
 
-        static void pad(ptr<T>) {}
+        static Unmanaged<T> pad() { return Unmanaged<T>(); }
     };
 
     template<typename T, typename I, Native<Int> adjust = 0, typename Skip = RepeatingNoSkip<T>>
@@ -97,18 +97,18 @@ namespace scriptengine::jvm {
         static DynArray<T> decode(mut_ref<StreamReader> reader) {
             var skip = I(0);
             let size = I(reader.read<I>() + adjust);
-            var entries = DynArray<T>(Int(size));
+            var entries = DynArray<Unmanaged<T>>::uninitialized(Int(size));
             for (let i : Range<I>::until(I(0), size)) {
                 if (skip > 0) {
-                    Skip::pad(&entries.get(Int(i)));
+                    entries.set(Int(i), Skip::pad());
                 } else {
                     var value = reader.read<T>();
                     skip = I(Skip::size(value));
-                    entries.set(Int(i), move(value));
+                    entries.set(Int(i), Unmanaged(move(value)));
                 }
                 skip = I(skip - I(1));
             }
-            return entries;
+            return move(entries);
         }
     };
 }

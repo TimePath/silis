@@ -39,12 +39,22 @@ namespace scriptengine::jvm {
     struct ConstantInfo {
 #define X(name, _2, _3, _4) , constant::name##Info
         Variant<Constant CONSTANTS(X)> variant_;
+        using members = Members<&ConstantInfo::variant_>;
         using Storage = decltype(variant_);
 #undef X
 
+        explicit constexpr ConstantInfo() : variant_(Storage::empty()) {}
+
         explicit ConstantInfo(Storage v) : variant_(move(v)) {}
 
-        implicit ConstantInfo(movable<ConstantInfo> other) : variant_(move(other.variant_)) {}
+        implicit constexpr ConstantInfo(movable<ConstantInfo> other) : ConstantInfo() {
+            members::swap(*this, other);
+        }
+
+        constexpr mut_ref<ConstantInfo> operator_assign(movable<ConstantInfo> other) {
+            members::swap(*this, other);
+            return *this;
+        }
     };
 
     struct AttributeInfo {

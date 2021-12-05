@@ -9,35 +9,58 @@ namespace tier1 {
 
 // array
 namespace tier1 {
+    namespace detail {
+        struct tag_uninitialized {
+        };
+    }
+
     template<typename T>
     struct DynArray : private DisableCopyConstructible {
-    private:
+        // private:
         Int size_;
         PAD(4)
         Native<ptr<T>> data_;
+        using members = Members<&DynArray::size_, &DynArray::data_>;
+        using tag_uninitialized = detail::tag_uninitialized;
     public:
         constexpr ~DynArray() { release(); }
 
-        explicit DynArray() : DisableCopyConstructible(Unit()), size_(0) {}
+        explicit constexpr DynArray() : DisableCopyConstructible(Unit()), size_(0), data_(nullptr) {}
 
         constexpr DynArray copy() const {
             return DynArray(size_, [this](Int i) { return get(i); });
         }
 
-        implicit constexpr DynArray(movable<DynArray> other) : DisableCopyConstructible(Unit()),
-                                                               size_(exchange(other.size_, 0)),
-                                                               data_(exchange(other.data_, nullptr)) {}
-
-        constexpr mut_ref<DynArray> operator=(movable<DynArray> other) {
-            return operator_move_assign(*this, move(other));
+        implicit constexpr DynArray(movable<DynArray> other) : DynArray() {
+            members::swap(*this, other);
         }
 
-        explicit constexpr DynArray(Int size) : DisableCopyConstructible(Unit()), size_(size) { acquire(); }
+        constexpr mut_ref<DynArray> operator_assign(movable<DynArray> other) {
+            members::swap(*this, other);
+            return *this;
+        }
+
+        static constexpr DynArray uninitialized(Int size) {
+            var ret = DynArray<Unmanaged<T>>(tag_uninitialized(), size);
+            return move(ret);
+        }
+
+        explicit constexpr DynArray(tag_uninitialized, Int size) : DisableCopyConstructible(Unit()),
+                                                                   size_(size) {
+            acquire();
+        }
+
+        implicit constexpr DynArray(movable<DynArray<Unmanaged<T>>> other) :
+                DisableCopyConstructible(Unit()),
+                size_(exchange(other.size_, 0)),
+                data_(Native<ptr<T>>(Native<ptr<void>>(exchange(other.data_, nullptr)))) {
+            static_assert(sizeof(Unmanaged<T>) == sizeof(T));
+        }
 
         template<typename F>
-        [[gnu::always_inline]] constexpr DynArray(Int size, F f) : DynArray(size) {
+        [[gnu::always_inline]] constexpr DynArray(Int size, F f) : DynArray(tag_uninitialized(), size) {
             for (var i : Range<Int>::until(0, size)) {
-                set(i, f(i));
+                emplace<T>(&get(i), f(i));
             }
         }
 
@@ -55,7 +78,7 @@ namespace tier1 {
 
         constexpr void set(Int index, T value) {
             assert(Range<Int>::until(0, size()).contains(index));
-            new(&data_[index]) T(move(value));
+            data_[index] = move(value);
         }
 
         [[nodiscard]] constexpr Span<const T> asSpan() const { return Span<const T>::unsafe(data_, Int(size_)); }
@@ -68,7 +91,7 @@ namespace tier1 {
                 data_ = nullptr;
                 return;
             }
-            var m = operator new[](Size(size_) * sizeof(T), AllocInfo::of<T>());
+            var m = operator_new[](Size(size_) * sizeof(T), AllocInfo::of<T>());
             var m2 = Native<ptr<T>>(m);
             data_ = m2;
         }
@@ -83,7 +106,7 @@ namespace tier1 {
             for (var i : Range<Int>::until(Int(0), size_)) {
                 m2[size_ - 1 - i].~T();
             }
-            operator delete[](m);
+            operator_delete[](m);
         }
     };
 }
@@ -94,7 +117,7 @@ namespace tier1 {
     private:
         DynArray<Char> data_;
     public:
-        explicit String() : String(DynArray<Char>(0)) {}
+        explicit String() : String(DynArray<Char>()) {}
 
         String copy() const { return String(data_.copy()); }
 
@@ -111,10 +134,10 @@ namespace tier1 {
 
         constexpr Int size() const { return data_.size() - 1; }
 
-        explicit operator cstring() const { return cstring(&data_.get(0)); }
+        explicit operator_convert(cstring)() const { return cstring(&data_.get(0)); }
     };
 
-    inline String operator ""_s(cstring chars, Native<Size> N) {
+    inline String operator_udl(_s)(cstring chars, Native<Size> N) {
         return String(DynArray<Char>(Native<Int>(N + 1), [=](Int i) {
             return i < Int(N) ? chars[i] : '\0';
         }));
@@ -155,14 +178,14 @@ namespace tier1 {
         const Array<cstring, n> strings_;
         const Tuple<Ts...> values_;
 
-        String operator()() const {
+        String operator_invoke() const {
             auto calculateSize = [&]<typename T>(Int acc, ref<T> it, Int i) -> Int {
                 var s1 = FormatTraits<T>::size(it);
                 var s2 = FormatTraits<StringSpan>::size(strings_.get(Int(1 + i)));
                 return acc + s1 + s2;
             };
             var size = forEach(values_, calculateSize, FormatTraits<StringSpan>::size(strings_.get(0)));
-            var arr = DynArray<Char>(Int(size + 1));
+            var arr = DynArray<Char>::uninitialized(Int(size + 1));
             var writer = FormatWriter{arr, 0};
             FormatTraits<StringSpan>::write(strings_.get(0), writer);
             auto write = [&]<typename T>(Int acc, ref<T> it, Int i) -> Int {

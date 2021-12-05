@@ -93,7 +93,7 @@ void TestClassLoader::load(mut_ref<scriptengine::jvm::VM> vm, StringSpan classNa
     var next = load_internal(*this, vm, Span<const StringSpan>::unsafe(classNames, 1));
     while (next.size() > 0) {
         let cNext = next;
-        operator_move_assign(next, load_internal(*this, vm, cNext.asSpan()));
+        next = load_internal(*this, vm, cNext.asSpan());
     }
 }
 
@@ -125,15 +125,20 @@ TEST("exec_hello") { exec("Hello"); }
 struct UniqueAnyPtr {
     Optional<ptr<void>> ref_;
     ptr<void(ptr<void>)> delete_;
+    using members = Members<&UniqueAnyPtr::ref_, &UniqueAnyPtr::delete_>;
+
+    explicit constexpr UniqueAnyPtr() :
+            ref_(Optional<ptr<void>>::empty()),
+            delete_(+[](ptr<void>) {}) {}
 
     template<typename T>
     implicit UniqueAnyPtr(ptr<T> self) :
             ref_(Optional<ptr<void>>::of(self)),
             delete_(+[](ptr<void> ref) { delete ptr<T>(ref); }) {}
 
-    implicit UniqueAnyPtr(movable<UniqueAnyPtr> other) :
-            ref_(move(other.ref_)),
-            delete_(other.delete_) {}
+    implicit constexpr UniqueAnyPtr(movable<UniqueAnyPtr> other) : UniqueAnyPtr() {
+        members::swap(*this, other);
+    }
 
     ~UniqueAnyPtr() {
         if (!ref_.hasValue()) return;
@@ -155,8 +160,23 @@ void exec(cstring mainClass) {
         SlowMap<StringSpan, Stack::Value> fields;
     };
 
-    struct ArrayObject : DynArray<Stack::Value> {
-        using DynArray::DynArray;
+    struct ArrayObject {
+        DynArray<Stack::Value> values_;
+
+        explicit ArrayObject(Int size) :
+                values_(DynArray<Stack::Value>(size, [](Int) { return Stack::Value::empty(); })) {}
+
+        [[nodiscard]] constexpr Int size() const {
+            return values_.size();
+        }
+
+        [[nodiscard]] constexpr ref<Stack::Value> get(Int index) const {
+            return values_.get(index);
+        }
+
+        void set(Int index, Stack::Value value) {
+            values_.set(index, move(value));
+        }
     };
 
     struct SystemStatics {
@@ -172,7 +192,7 @@ void exec(cstring mainClass) {
     struct MyEvaluator : Evaluator, EvaluatorState {
         List<UniqueAnyPtr> objects;
 
-        explicit MyEvaluator(movable<EvaluatorState> state) : EvaluatorState(move(state)) {}
+        explicit MyEvaluator(EvaluatorState state) : EvaluatorState(move(state)) {}
 
         void putstatic(mut_ref<VM> vm, StringSpan className, StringSpan name, Stack::Value value) override {
             (void) vm;

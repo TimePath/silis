@@ -22,7 +22,7 @@ namespace kernel {
         fseek(fd, 0, SEEK_END);
         var size = ftell(fd);
         fseek(fd, 0, SEEK_SET);
-        var ret = DynArray<Byte>(Int(size));
+        var ret = DynArray<Byte>::uninitialized(Int(size));
         var readRet = fread(&ret.get(0), 1, Native<Size>(size), fd);
         assert(Size(readRet) == Size(size));
         fclose(fd);

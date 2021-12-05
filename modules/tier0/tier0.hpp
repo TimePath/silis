@@ -6,6 +6,16 @@
 
 #define implicit
 
+#define operator_assign operator =
+#define operator_convert(T) operator T
+#define operator_delete operator delete
+#define operator_get operator *
+#define operator_get_at operator []
+#define operator_get_ptr operator ->
+#define operator_invoke operator ()
+#define operator_new operator new
+#define operator_udl(_t) operator ""_t
+
 #if 0
 #elif defined(__clang__)
 #define COMPILER_IS_CLANG 1
@@ -180,21 +190,84 @@ namespace tier0 {
     }
 
     template<typename T>
-    constexpr mut_ref<T> operator_move_assign(mut_ref<T> self, movable<T> other) {
-        if (&self != &other) {
-            self.~T();
-            new(&self) T(move(other));
-        }
-        return self;
-    }
-
-    template<typename T>
     struct native_s {
         using type = T;
     };
 
     template<typename T>
     using Native = typename native_s<T>::type;
+}
+
+// mptr
+namespace tier0 {
+    template<typename T, typename R>
+    struct mptr;
+
+    template<typename T, typename R>
+    mptr(R T::*) -> mptr<T, R>;
+
+    template<typename T, typename R>
+    struct mptr {
+        using native = R T::*;
+        native data_;
+
+        implicit constexpr mptr(native data) : data_(data) {}
+
+        constexpr ref<R> get(ref<T> obj) const { return obj.*data_; }
+
+        constexpr mut_ref<R> get(mut_ref<T> obj) const { return obj.*data_; }
+
+        template<typename... Ts>
+        constexpr auto call(mut_ref<T> obj, Ts... args) const { return (obj.*data_)(args...); }
+    };
+}
+
+// members
+namespace tier0 {
+    namespace detail {
+        template<auto... members>
+        struct mptr_first_class_s;
+
+        template<typename T, typename R, R T::*v, auto... rest>
+        struct mptr_first_class_s<v, rest...> {
+            using type = T;
+        };
+
+        template<typename E>
+        struct mptr_expect_class_s {
+            template<auto v>
+            struct test;
+
+            template<typename R, R E::*v>
+            struct test<v> {
+                METAFUNC_VALUE_DEF value = v;
+            };
+        };
+
+        template<typename T, auto... members>
+        struct Members;
+
+        template<auto... members>
+        struct members_s {
+            using Base = typename mptr_first_class_s<members...>::type;
+            using type = Members<Base, mptr_expect_class_s<Base>::template test<members>::value...>;
+        };
+
+        template<typename T, auto... members>
+        struct Members {
+            static constexpr void swap(mut_ref<T> a, mut_ref<T> b) {
+                ([&]() {
+                    var member = mptr(members);
+                    var tmp = move(member.get(a));
+                    member.get(a) = move(member.get(b));
+                    member.get(b) = move(tmp);
+                }(), ...);
+            }
+        };
+    }
+
+    template<auto... members>
+    using Members = typename detail::members_s<members...>::type;
 }
 
 // order
@@ -284,6 +357,11 @@ namespace tier0 {
             /** Copy */
             implicit constexpr Word(ref<Word> other) : data_(other.data_) {}
 
+            constexpr mut_ref<Word> operator_assign(Word other) {
+                (*this).data_ = other.data_;
+                return *this;
+            }
+
             /** Exact primitive match */
             template<typename T2>
             requires is_same<T, T2>
@@ -300,7 +378,7 @@ namespace tier0 {
             explicit constexpr Word(Other word) : Word(Native<Other>(word)) {}
 
             /** Cast to */
-            implicit constexpr operator T() const { return data_; }
+            implicit constexpr operator_convert(T)() const { return data_; }
 
             // operators
 
@@ -425,27 +503,6 @@ namespace tier0 {
     template<typename T>
     using _ptr = T *;
 
-    template<typename T, typename R>
-    struct mptr;
-
-    template<typename T, typename R>
-    mptr(R T::*) -> mptr<T, R>;
-
-    template<typename T, typename R>
-    struct mptr {
-        using native = R T::*;
-        native data_;
-
-        implicit constexpr mptr(native data) : data_(data) {}
-
-        constexpr ref<R> get(ref<T> obj) const { return obj.*data_; }
-
-        constexpr mut_ref<R> get(mut_ref<T> obj) const { return obj.*data_; }
-
-        template<typename... Ts>
-        constexpr auto call(mut_ref<T> obj, Ts... args) const { return (obj.*data_)(args...); }
-    };
-
     template<typename T>
     struct ptr;
 
@@ -479,11 +536,11 @@ namespace tier0 {
 
         constexpr mut_ref<native> value() { return check(), data_; }
 
-        implicit constexpr operator native() const { return value(); }
+        implicit constexpr operator_convert(native)() const { return value(); }
 
-        explicit constexpr operator Native<Boolean>() { return check(), true; }
+        explicit constexpr operator_convert(Native<Boolean>)() { return check(), true; }
 
-        constexpr native operator->() const { return value(); }
+        constexpr native operator_get_ptr() const { return value(); }
 
     private:
         constexpr void check() const { assert(!!data_); }
@@ -521,17 +578,17 @@ namespace tier0 {
     public:
         constexpr ptr_mixin_s() = default;
 
-        explicit constexpr ptr_mixin_s(ptr<void> p) { super()->data_ = Self::reinterpret(p.operator->()); }
+        explicit constexpr ptr_mixin_s(ptr<void> p) { super()->data_ = Self::reinterpret(p.operator_get_ptr()); }
 
-        implicit constexpr operator ptr<void>() const { return ptr<void>::reinterpret(super()->value()); }
+        implicit constexpr operator_convert(ptr<void>)() const { return ptr<void>::reinterpret(super()->value()); }
 
-        constexpr ref<T> operator[](Int index) const { return super()->value()[index]; }
+        constexpr ref<T> operator_get_at(Int index) const { return super()->value()[index]; }
 
-        constexpr ref<T> operator*() const { return *super()->value(); }
+        constexpr ref<T> operator_get() const { return *super()->value(); }
 
-        constexpr mut_ref<T> operator[](Int index) { return super()->value()[index]; }
+        constexpr mut_ref<T> operator_get_at(Int index) { return super()->value()[index]; }
 
-        constexpr mut_ref<T> operator*() { return *super()->value(); }
+        constexpr mut_ref<T> operator_get() { return *super()->value(); }
     };
 
     template<typename F>
@@ -561,27 +618,35 @@ void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0:
 
 #if IMPLEMENTS_PLACEMENT
 
-constexpr inline tier0::Native<tier0::ptr<void>> operator new(tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept {
+constexpr inline tier0::Native<tier0::ptr<void>> operator_new(tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) count;
     return place;
 }
 
-constexpr inline tier0::Native<tier0::ptr<void>> operator new[](tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept {
+constexpr inline tier0::Native<tier0::ptr<void>> operator_new[](tier0::Native<tier0::Size> count, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) count;
     return place;
 }
 
-inline void operator delete(tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept {
+inline void operator_delete(tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) ptr;
     (void) place;
 }
 
-inline void operator delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept {
+inline void operator_delete[](tier0::Native<tier0::ptr<void>> ptr, tier0::Native<tier0::ptr<void>> place) noexcept {
     (void) ptr;
     (void) place;
 }
 
 #endif
+
+namespace tier0 {
+    // fixme: constexpr
+    template<typename T>
+    constexpr void emplace(ptr<T> place, auto &&... args) {
+        new(place) T(move(args)...);
+    }
+}
 
 // https://en.cppreference.com/w/cpp/named_req
 namespace tier0 {
@@ -608,12 +673,12 @@ namespace tier0 {
 
     struct DisableCopyAssignable {
     private:
-        mut_ref<DisableCopyAssignable> operator=(ref<DisableCopyAssignable>) = delete;
+        mut_ref<DisableCopyAssignable> operator_assign(ref<DisableCopyAssignable>) = delete;
     };
 
     struct DisableMoveConstructible {
     private:
-        DisableMoveConstructible(movable<DisableMoveConstructible>) = delete;
+        implicit constexpr DisableMoveConstructible(movable<DisableMoveConstructible> other) = delete;
 
     protected:
         DisableMoveConstructible(Unit) {}
@@ -621,7 +686,7 @@ namespace tier0 {
 
     struct DisableMoveAssignable {
     private:
-        mut_ref<DisableMoveAssignable> operator=(movable<DisableMoveAssignable>) = delete;
+        constexpr mut_ref<DisableMoveAssignable> operator_assign(movable<DisableMoveAssignable> other) = delete;
     };
 }
 
@@ -1174,16 +1239,18 @@ namespace tier0 {
 
 template<typename T>
 requires tier0::Iterator<T>
-inline constexpr tier0::Boolean
-operator!=(tier0::ref<T> self, tier0::Native<tier0::ptr<void>>) { return self.hasNext(); }
+inline constexpr
+tier0::Boolean operator!=(tier0::ref<T> self, tier0::Native<tier0::ptr<void>>) { return self.hasNext(); }
 
 template<typename T>
 requires tier0::Iterator<T>
-inline constexpr auto &operator*(tier0::ref<T> self) { return self.get(); }
+inline constexpr
+auto &operator*(tier0::ref<T> self) { return self.get(); }
 
 template<typename T>
 requires tier0::Iterator<T>
-inline constexpr void operator++(tier0::mut_ref<T> self) { self.next(); }
+inline constexpr
+void operator++(tier0::mut_ref<T> self) { self.next(); }
 
 // range
 namespace tier0 {
@@ -1254,6 +1321,8 @@ namespace tier0 {
         Int size_;
         PAD(4)
     private:
+        using members = Members<&Span::data_, &Span::size_>;
+
         explicit Span(Native<ptr<T>> addr, Int size) : data_(addr), size_(size) {}
 
     public:
@@ -1263,7 +1332,12 @@ namespace tier0 {
 
         explicit Span(ptr<array_type> array) : data_(*array), size_(N) {}
 
-        implicit Span(ref<Span> span) : data_(span.data_), size_(span.size_) {}
+        implicit constexpr Span(ref<Span> other) : data_(other.data_), size_(other.size_) {}
+
+        constexpr mut_ref<Span> operator_assign(Span other) {
+            members::swap(*this, other);
+            return *this;
+        }
 
         template<Size M>
         requires (M >= N)
@@ -1301,14 +1375,14 @@ namespace tier0 {
             return data_[index];
         }
 
-        constexpr mut_ref<T> get(Int index) {
+        constexpr mut_ref <T> get(Int index) {
             assert(Range<Int>::until(0, size()).contains(index));
             return data_[index];
         }
 
         constexpr void set(Int index, T value) {
             assert(Range<Int>::until(0, size()).contains(index));
-            new(&data_[index]) T(move(value));
+            data_[index] = move(value);
         }
 
         template<typename E>
@@ -1409,7 +1483,7 @@ namespace tier0 {
         }
 
         constexpr void set(Int index, T value) {
-            new(&data_[index]) T(move(value));
+            data_[index] = move(value);
         }
 
         template<typename E>
@@ -1453,14 +1527,15 @@ namespace tier0 {
         template<typename T>
         constexpr ref<T> get() const {
             Native<ptr<const T>> out;
-            new(&out) Native<ptr<const void>>(&this->data_);
+            new(&out) Native<ptr<const void>>(&(*this).data_);
             return *out;
         }
 
+        // fixme: constexpr
         template<typename T>
         constexpr mut_ref<T> get() {
             Native<ptr<T>> out;
-            new(&out) Native<ptr<void>>(&this->data_);
+            new(&out) Native<ptr<void>>(&(*this).data_);
             return *out;
         }
     };
@@ -1469,6 +1544,7 @@ namespace tier0 {
     struct Union {
     private:
         AlignedUnionStorage<Ts...> data_;
+        using members = Members<&Union::data_>;
         using types = TypeList<Ts...>;
     public:
         constexpr ~Union() {}
@@ -1481,11 +1557,18 @@ namespace tier0 {
 
         explicit constexpr Union() {}
 
-        implicit constexpr Union(movable<Union> other) : data_(move(other.data_)) {}
+        implicit constexpr Union(movable<Union> other) : Union() {
+            members::swap(*this, other);
+        }
+
+        constexpr mut_ref<Union> operator_assign(movable<Union> other) {
+            members::swap(*this, other);
+            return *this;
+        }
 
         Union copy() const {
             var ret = Union();
-            ret.data_ = this->data_;
+            ret.data_ = (*this).data_;
             return ret;
         }
 
@@ -1502,9 +1585,15 @@ namespace tier0 {
         }
 
         template<Native<Size> i>
+        constexpr void set(ref<typename types::template get<i>> value) {
+            using T = typename types::template get<i>;
+            emplace<T>(&get<i>(), value);
+        }
+
+        template<Native<Size> i>
         constexpr void set(movable<typename types::template get<i>> value) {
             using T = typename types::template get<i>;
-            new(&get<i>()) T(move(value));
+            emplace<T>(&get<i>(), move(value));
         }
     };
 }
@@ -1515,27 +1604,36 @@ namespace tier0 {
     struct Unmanaged {
     private:
         Union<T> data_;
+        using members = Members<&Unmanaged::data_>;
     public:
         ~Unmanaged() {}
 
         void destroy() { get().~T(); }
 
-        explicit Unmanaged() {}
+        explicit Unmanaged() : data_() {}
 
         explicit Unmanaged(T value) {
-            new(&get()) T(move(value));
+            emplace<T>(&get(), move(value));
         }
 
-        implicit Unmanaged(movable<Unmanaged> other) {
-            new(&get()) T(move(other.get()));
+        implicit constexpr Unmanaged(movable<Unmanaged> other) : Unmanaged() {
+            members::swap(*this, other);
+        }
+
+        constexpr mut_ref<Unmanaged> operator_assign(movable<Unmanaged> other) {
+            members::swap(*this, other);
+            return *this;
         }
 
         ref<T> get() const { return data_.template get<Size(0)>(); }
 
-        mut_ref<T> get() { return data_.template get<Size(0)>(); }
+        mut_ref <T> get() { return data_.template get<Size(0)>(); }
 
-        void set(movable<T> value) { return data_.template set<Size(0)>(move(value)); }
+        void set(T value) { return data_.template set<Size(0)>(move(value)); }
     };
+
+    template<typename T>
+    Unmanaged(T) -> Unmanaged<T>;
 }
 
 // optional
@@ -1546,6 +1644,7 @@ namespace tier0 {
         Union<T> data_;
         Boolean valueBit_;
         PAD(4 + 3)
+        using members = Members<&Optional::data_, &Optional::valueBit_>;
     public:
         constexpr ~Optional() {
             if (valueBit_) {
@@ -1558,8 +1657,14 @@ namespace tier0 {
         implicit constexpr Optional() : valueBit_(false) {}
 
     public:
-        implicit constexpr Optional(movable<Optional> other) : data_(move(other.data_)),
-                                                               valueBit_(exchange(other.valueBit_, false)) {}
+        implicit constexpr Optional(movable<Optional> other) : Optional() {
+            members::swap(*this, other);
+        }
+
+        constexpr mut_ref<Optional> operator_assign(movable<Optional> other) {
+            members::swap(*this, other);
+            return *this;
+        }
 
         explicit constexpr Optional(ref<Optional> other) : valueBit_(other.valueBit_) {
             if (other.hasValue()) {
@@ -1589,13 +1694,13 @@ namespace tier0 {
 
         ATTR_TYPESTATE_PRECONDITION(unconsumed)
 
-        mut_ref<T> value() {
+        mut_ref <T> value() {
             assert(hasValue());
             return data_.template get<Size(0)>();
         }
 
         // ATTR_TYPESTATE_CTOR(consumed)
-        static Optional empty() {
+        static constexpr Optional empty() {
             var ret = Optional();
             ret.valueBit_ = false;
             return ret;
@@ -1611,6 +1716,7 @@ namespace tier0 {
         Union<T, E> data_;
         Boolean errorBit_;
         PAD(3)
+        using members = Members<&Result::data_, &Result::errorBit_>;
     public:
         ~Result() {
             if (!errorBit_) {
@@ -1623,10 +1729,12 @@ namespace tier0 {
     private:
         ATTR_TYPESTATE_CTOR(unknown)
 
-        explicit Result() {}
+        explicit constexpr Result() {}
 
     public:
-        implicit Result(movable<Result> other) : data_(move(other.data_)), errorBit_(move(other.errorBit_)) {}
+        implicit constexpr Result(movable<Result> other) : Result() {
+            members::swap(*this, other);
+        }
 
         // ATTR_TYPESTATE_CTOR(unconsumed)
         static Result value(T value) {
@@ -1673,6 +1781,7 @@ namespace tier0 {
         Union<Ts...> data_;
         Byte active_;
         PAD(7)
+        using members = Members<&Variant::data_, &Variant::active_>;
         using types = TypeList<Ts...>;
 
         template<typename... Us>
@@ -1699,17 +1808,29 @@ namespace tier0 {
         ~Variant() { destroy(); }
 
     private:
-        explicit Variant() : active_(0) {}
+        explicit constexpr Variant() : active_(0) {}
 
     public:
-        implicit Variant(movable<Variant> other) : data_(move(other.data_)), active_(other.active_) {}
+        implicit constexpr Variant(movable<Variant> other) : Variant() {
+            members::swap(*this, other);
+        }
+
+        constexpr mut_ref<Variant> operator_assign(movable<Variant> other) {
+            members::swap(*this, other);
+            return *this;
+        }
 
         explicit Variant(ref<Variant> other) : active_(other.active_) {
             construct(other);
         }
 
+        static constexpr Variant empty() {
+            var ret = Variant();
+            return ret;
+        }
+
         template<E i>
-        static Variant of(typename types::template get<Native<Size>(i) - 1> value) {
+        static constexpr Variant of(typename types::template get<Native<Size>(i) - 1> value) {
             var ret = Variant();
             ret.template set<i>(move(value));
             return ret;
@@ -1717,8 +1838,8 @@ namespace tier0 {
 
         Variant copy() const {
             var ret = Variant();
-            ret.active_ = this->active_;
-            new(&ret.data_) Union<Ts...>(move(this->data_.copy()));
+            ret.active_ = (*this).active_;
+            ret.data_ = (*this).data_.copy();
             return ret;
         }
 
@@ -1737,19 +1858,19 @@ namespace tier0 {
         }
 
         template<E i>
-        void set(movable<typename types::template get<Native<Size>(i) - 1>> value) {
+        constexpr void set(ref<typename types::template get<Native<Size>(i) - 1>> value) {
             using T = typename types::template get<Native<Size>(i) - 1>;
             destroy();
             active_ = Byte(Native<Size>(i));
-            new(&get<i>()) T(move(value));
+            emplace<T>(&get<i>(), value);
         }
 
         template<E i>
-        void set(ref<typename types::template get<Native<Size>(i) - 1>> value) {
+        constexpr void set(movable<typename types::template get<Native<Size>(i) - 1>> value) {
             using T = typename types::template get<Native<Size>(i) - 1>;
             destroy();
             active_ = Byte(Native<Size>(i));
-            new(&get<i>()) T(value);
+            emplace<T>(&get<i>(), move(value));
         }
 
     private:
@@ -1757,14 +1878,15 @@ namespace tier0 {
         struct constructors {
             using U = decltype(data_);
 
-            static constexpr ptr<void(mut_ref<Variant> self, ref<Variant> other)> funcs[] = {
-                    (+[](mut_ref<Variant> self, ref<Variant> other) {
+            using F = ptr<void(mut_ref < Variant > , ref<Variant>)>;
+            static constexpr F funcs[] = {
+                    (+[](mut_ref <Variant> self, ref<Variant> other) {
                         constexpr var index = E(1 + Us::first::value);
                         self.set<index>(other.template get<index>());
                     })...
             };
 
-            static constexpr void invoke(mut_ref<Variant> self, ref<Variant> other) {
+            static constexpr void invoke(mut_ref <Variant> self, ref<Variant> other) {
                 (*funcs[self.active_ - 1])(self, other);
             }
         };
@@ -1773,13 +1895,14 @@ namespace tier0 {
         struct destructors {
             using U = decltype(data_);
 
-            static constexpr ptr<void(mut_ref<U>)> funcs[] = {
-                    (+[](mut_ref<U> self) {
+            using F = ptr<void(mut_ref < U > )>;
+            static constexpr F funcs[] = {
+                    (+[](mut_ref <U> self) {
                         self.template destroy<Us::first::value>();
                     })...
             };
 
-            static constexpr void invoke(mut_ref<Variant> self) {
+            static constexpr void invoke(mut_ref <Variant> self) {
                 (*funcs[self.active_ - 1])(self.data_);
             }
         };
