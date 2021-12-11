@@ -47,11 +47,11 @@ namespace scriptengine::jvm {
 
         explicit ConstantInfo(Storage v) : variant_(move(v)) {}
 
-        implicit constexpr ConstantInfo(movable<ConstantInfo> other) : ConstantInfo() {
+        implicit constexpr ConstantInfo(movable<ConstantInfo> other) noexcept: ConstantInfo() {
             members::swap(*this, other);
         }
 
-        constexpr mut_ref<ConstantInfo> operator_assign(movable<ConstantInfo> other) {
+        constexpr mut_ref<ConstantInfo> operator_assign(movable<ConstantInfo> other) noexcept {
             members::swap(*this, other);
             return *this;
         }

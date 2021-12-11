@@ -26,7 +26,7 @@ add_compile_options("$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-g3>")
 add_compile_options("$<$<AND:$<CONFIG:DEBUG>,$<CXX_COMPILER_ID:AppleClang,Clang,GNU>>:-Og>")
 
 add_compile_options("$<$<CONFIG:RELEASE>:-Os>")
-# set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
 set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)

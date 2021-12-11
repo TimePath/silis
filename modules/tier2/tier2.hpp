@@ -32,11 +32,11 @@ namespace tier2 {
 
         implicit constexpr List() : size_(0), data_() {}
 
-        implicit constexpr List(movable<List> other) : List() {
+        implicit constexpr List(movable<List> other) noexcept: List() {
             members::swap(*this, other);
         }
 
-        constexpr mut_ref<List> operator_assign(movable<List> other) {
+        constexpr mut_ref<List> operator_assign(movable<List> other) noexcept {
             members::swap(*this, other);
             return *this;
         }

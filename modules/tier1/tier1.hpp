@@ -39,11 +39,11 @@ namespace tier1 {
             return DynArray(size_, [this](Int i) { return get(i); });
         }
 
-        implicit constexpr DynArray(movable<DynArray> other) : DynArray() {
+        implicit constexpr DynArray(movable<DynArray> other) noexcept: DynArray() {
             members::swap(*this, other);
         }
 
-        constexpr mut_ref<DynArray> operator_assign(movable<DynArray> other) {
+        constexpr mut_ref<DynArray> operator_assign(movable<DynArray> other) noexcept {
             members::swap(*this, other);
             return *this;
         }
@@ -58,7 +58,7 @@ namespace tier1 {
             acquire();
         }
 
-        implicit constexpr DynArray(movable<DynArray<Unmanaged<T>>> other) :
+        implicit constexpr DynArray(movable<DynArray<Unmanaged<T>>> other) noexcept:
                 DisableCopyConstructible(Unit()),
                 size_(exchange(other.size_, 0)),
                 data_(Native<ptr<T>>(Native<ptr<void>>(exchange(other.data_, nullptr)))) {

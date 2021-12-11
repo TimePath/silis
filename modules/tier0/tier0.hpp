@@ -194,6 +194,7 @@ namespace tier0 {
     using movable = T &&;
 
     template<typename T>
+    [[gnu::always_inline]]
     constexpr movable<remove_reference<T>> move(movable<T> value) {
         return movable<remove_reference<T>>(value);
     }
@@ -227,13 +228,17 @@ namespace tier0 {
         using native = R T::*;
         native data_;
 
+        [[gnu::always_inline]]
         implicit constexpr mptr(native data) : data_(data) {}
 
+        [[gnu::always_inline]]
         constexpr ref<R> get(ref<T> obj) const { return obj.*data_; }
 
+        [[gnu::always_inline]]
         constexpr mut_ref<R> get(mut_ref<T> obj) const { return obj.*data_; }
 
         template<typename... Ts>
+        [[gnu::always_inline]]
         constexpr auto call(mut_ref<T> obj, Ts... args) const { return (obj.*data_)(args...); }
     };
 }
@@ -271,13 +276,18 @@ namespace tier0 {
 
         template<typename T, auto... members>
         struct Members {
+            [[gnu::always_inline]]
             static constexpr void swap(mut_ref<T> a, mut_ref<T> b) {
-                ([&]() {
-                    var member = mptr(members);
-                    var tmp = move(member.get(a));
-                    member.get(a) = move(member.get(b));
-                    member.get(b) = move(tmp);
-                }(), ...);
+                (swap_<members>(a, b), ...);
+            }
+
+            template<auto member>
+            [[gnu::always_inline]]
+            static constexpr void swap_(mut_ref<T> a, mut_ref<T> b) {
+                var field = mptr(member);
+                var tmp = move(field.get(a));
+                field.get(a) = move(field.get(b));
+                field.get(b) = move(tmp);
             }
         };
     }
@@ -373,7 +383,7 @@ namespace tier0 {
             /** Copy */
             implicit constexpr Word(ref<Word> other) : data_(other.data_) {}
 
-            constexpr mut_ref<Word> operator_assign(Word other) {
+            constexpr mut_ref<Word> operator_assign(Word other) noexcept {
                 (*this).data_ = other.data_;
                 return *this;
             }
@@ -1350,7 +1360,7 @@ namespace tier0 {
 
         implicit constexpr Span(ref<Span> other) : data_(other.data_), size_(other.size_) {}
 
-        constexpr mut_ref<Span> operator_assign(Span other) {
+        constexpr mut_ref<Span> operator_assign(Span other) noexcept {
             members::swap(*this, other);
             return *this;
         }
@@ -1573,11 +1583,11 @@ namespace tier0 {
 
         explicit constexpr Union() {}
 
-        implicit constexpr Union(movable<Union> other) : Union() {
+        implicit constexpr Union(movable<Union> other) noexcept: Union() {
             members::swap(*this, other);
         }
 
-        constexpr mut_ref<Union> operator_assign(movable<Union> other) {
+        constexpr mut_ref<Union> operator_assign(movable<Union> other) noexcept {
             members::swap(*this, other);
             return *this;
         }
@@ -1632,11 +1642,11 @@ namespace tier0 {
             emplace<T>(&get(), move(value));
         }
 
-        implicit constexpr Unmanaged(movable<Unmanaged> other) : Unmanaged() {
+        implicit constexpr Unmanaged(movable<Unmanaged> other) noexcept: Unmanaged() {
             members::swap(*this, other);
         }
 
-        constexpr mut_ref<Unmanaged> operator_assign(movable<Unmanaged> other) {
+        constexpr mut_ref<Unmanaged> operator_assign(movable<Unmanaged> other) noexcept {
             members::swap(*this, other);
             return *this;
         }
@@ -1673,11 +1683,11 @@ namespace tier0 {
         implicit constexpr Optional() : valueBit_(false) {}
 
     public:
-        implicit constexpr Optional(movable<Optional> other) : Optional() {
+        implicit constexpr Optional(movable<Optional> other) noexcept: Optional() {
             members::swap(*this, other);
         }
 
-        constexpr mut_ref<Optional> operator_assign(movable<Optional> other) {
+        constexpr mut_ref<Optional> operator_assign(movable<Optional> other) noexcept {
             members::swap(*this, other);
             return *this;
         }
@@ -1748,7 +1758,7 @@ namespace tier0 {
         explicit constexpr Result() {}
 
     public:
-        implicit constexpr Result(movable<Result> other) : Result() {
+        implicit constexpr Result(movable<Result> other) noexcept: Result() {
             members::swap(*this, other);
         }
 
@@ -1827,11 +1837,11 @@ namespace tier0 {
         explicit constexpr Variant() : active_(0) {}
 
     public:
-        implicit constexpr Variant(movable<Variant> other) : Variant() {
+        implicit constexpr Variant(movable<Variant> other) noexcept: Variant() {
             members::swap(*this, other);
         }
 
-        constexpr mut_ref<Variant> operator_assign(movable<Variant> other) {
+        constexpr mut_ref<Variant> operator_assign(movable<Variant> other) noexcept {
             members::swap(*this, other);
             return *this;
         }

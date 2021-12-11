@@ -39,7 +39,7 @@ namespace scriptengine::jvm {
 
         explicit InstructionInfo(Storage v) : variant_(move(v)) {}
 
-        implicit constexpr InstructionInfo(movable<InstructionInfo> other) : InstructionInfo() {
+        implicit constexpr InstructionInfo(movable<InstructionInfo> other) noexcept: InstructionInfo() {
             members::swap(*this, other);
         }
     };

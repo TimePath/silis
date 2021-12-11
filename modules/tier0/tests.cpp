@@ -185,7 +185,7 @@ public:
         printf("%s: ctor(%s)\n", TypeName<Traced>(), TypeName<T>());
     }
 
-    implicit constexpr Traced(movable<Traced> other) : Traced() {
+    implicit constexpr Traced(movable<Traced> other) noexcept: Traced() {
         printf("%s: ctor(%s &&)\n", TypeName<Traced>(), TypeName<T>());
         members::swap(*this, other);
     }

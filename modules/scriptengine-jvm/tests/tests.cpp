@@ -136,7 +136,7 @@ struct UniqueAnyPtr {
             ref_(Optional<ptr<void>>::of(self)),
             delete_(+[](ptr<void> ref) { delete ptr<T>(ref); }) {}
 
-    implicit constexpr UniqueAnyPtr(movable<UniqueAnyPtr> other) : UniqueAnyPtr() {
+    implicit constexpr UniqueAnyPtr(movable<UniqueAnyPtr> other) noexcept: UniqueAnyPtr() {
         members::swap(*this, other);
     }
 
