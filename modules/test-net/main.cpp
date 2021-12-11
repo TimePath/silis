@@ -8,6 +8,7 @@
 using namespace tier2;
 using namespace kernel;
 
+extern "C"
 Native<Int> main(Native<Int> argc, Array<cstring, Size(1)>::array_type argv) {
     (void) argc;
     let handle = interface_open(argv[1]);

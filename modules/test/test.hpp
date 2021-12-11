@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef LIBTEST_EXPORTS
+#define LIBTEST_EXPORT EXPORT_DLLEXPORT
+#else
+#define LIBTEST_EXPORT EXPORT_DLLIMPORT
+#endif
+
 #include "../tier0/tier0.hpp"
 
 namespace test {
@@ -34,16 +40,19 @@ namespace test {
     struct CompileTest : Test {
         cstring_t code_;
 
+        LIBTEST_EXPORT
         explicit CompileTest(cstring_t file, int_t id, cstring_t name, cstring_t code) noexcept;
     };
 
     struct RunTest : Test {
         runnable_t run_;
 
+        LIBTEST_EXPORT
         explicit RunTest(cstring_t file, int_t id, cstring_t name, runnable_t run) noexcept;
     };
 
     [[gnu::format(printf, 1, 2)]]
+    LIBTEST_EXPORT
     void printf(cstring_t format, ...);
 
     [[noreturn]]

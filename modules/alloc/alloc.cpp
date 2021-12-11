@@ -1,17 +1,33 @@
+#define DEBUG 0
+
+#if DEBUG
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 
-#include "../tier0/tier0.hpp"
+#endif
 
 #include "alloc.hpp"
 
 using namespace tier0;
 
+#if !DEBUG
+
+Native<ptr<void>> operator_new(Native<Size> count, AllocInfo) {
+    return ::operator_new(count);
+}
+
+Native<ptr<void>> operator_new[](Native<Size> count, AllocInfo) {
+    return ::operator_new[](count);
+}
+
+#else
+
 namespace {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wglobal-constructors"
-    let DEBUG = Boolean([]() {
+    let DEBUG_PRINT = Boolean([]() {
         let p = getenv("DEBUG_ALLOC");
         if (!p) {
             return false;
@@ -45,7 +61,7 @@ namespace {
         let payload = ptr<Byte>::reinterpret(allocation + 1);
         info.size_ = size;
         var &block = *new(header) MemoryBlock(info);
-        if (DEBUG) {
+        if (DEBUG_PRINT) {
             fprintf(stderr, "alloc_ctor %p = %" PRIuZ " %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
                     info.name_);
         }
@@ -57,7 +73,7 @@ namespace {
         let header = payload - 1;
         let allocation = ptr<Byte>::reinterpret(header);
         var &block = *header;
-        if (DEBUG) {
+        if (DEBUG_PRINT) {
             let info = block.info_;
             fprintf(stderr, "alloc_dtor %p = %" PRIuZ " %s\n", Native<ptr<void>>(&block), Native<Size>(info.size_),
                     info.name_);
@@ -104,8 +120,6 @@ void operator_delete[](Native<ptr<void>> obj) noexcept {
     ::free(alloc_dtor(memory));
 }
 
-void operator_delete(Native<ptr<void>> obj, Native<Size> sz) noexcept;
-
 void operator_delete(Native<ptr<void>> obj, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator_delete(obj, sz);
@@ -114,8 +128,6 @@ void operator_delete(Native<ptr<void>> obj, Native<Size> sz) noexcept {
     ::free(alloc_dtor(memory));
 }
 
-void operator_delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept;
-
 void operator_delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept {
     if (RUNNING_ON_VALGRIND) {
         return ::operator_delete[](obj, sz);
@@ -123,3 +135,5 @@ void operator_delete[](Native<ptr<void>> obj, Native<Size> sz) noexcept {
     let memory = ptr<MemoryBlock>(obj);
     ::free(alloc_dtor(memory));
 }
+
+#endif

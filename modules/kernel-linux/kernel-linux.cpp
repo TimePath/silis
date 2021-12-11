@@ -10,6 +10,8 @@
 #include <cstdio>
 #include <cstring>
 
+#define LIBKERNEL_EXPORTS
+
 #include "../kernel/kernel.hpp"
 
 namespace kernel {

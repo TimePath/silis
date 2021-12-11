@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef SCRIPTENGINE_JVM_EXPORTS
+#define SCRIPTENGINE_JVM_EXPORT EXPORT_DLLEXPORT
+#else
+#define SCRIPTENGINE_JVM_EXPORT EXPORT_DLLIMPORT
+#endif
+
 #include "../tier2/tier2.hpp"
 
 #include "instructions.hpp"
@@ -26,7 +32,7 @@ namespace scriptengine::jvm {
                 : handle_(handle), index_(index) {}
     };
 
-    struct ClassLoader {
+    struct SCRIPTENGINE_JVM_EXPORT ClassLoader {
         virtual ~ClassLoader();
 
         virtual Optional<scriptengine::jvm::ClassHandle> get(StringSpan name) = 0;
@@ -36,12 +42,16 @@ namespace scriptengine::jvm {
         virtual void init(mut_ref<VM> vm, scriptengine::jvm::ClassHandle ch) = 0;
     };
 
+    SCRIPTENGINE_JVM_EXPORT
     Optional<ClassHandle> load_class(mut_ref<VM> vm, StringSpan name);
 
+    SCRIPTENGINE_JVM_EXPORT
     ClassHandle define_class(mut_ref<VM> vm, DynArray<Byte> data);
 
+    SCRIPTENGINE_JVM_EXPORT
     void unload_class(ClassHandle ch);
 
+    SCRIPTENGINE_JVM_EXPORT
     Optional<MethodHandle> find_method(mut_ref<VM> vm, ClassHandle ch, StringSpan name);
 
     struct CodeAttribute {
@@ -60,6 +70,7 @@ namespace scriptengine::jvm {
                 code_(move(code)) {}
     };
 
+    SCRIPTENGINE_JVM_EXPORT
     Optional<CodeAttribute> load_code(mut_ref<VM> vm, MethodHandle handle);
 
     struct Stack {
@@ -110,7 +121,7 @@ namespace scriptengine::jvm {
         List<Stack::Value> locals;
     };
 
-    struct Evaluator {
+    struct SCRIPTENGINE_JVM_EXPORT Evaluator {
         virtual ~Evaluator();
 
         virtual void putstatic(mut_ref<VM> vm, StringSpan className, StringSpan name, Stack::Value) = 0;
@@ -144,6 +155,7 @@ namespace scriptengine::jvm {
         virtual Stack::Value arrayget(mut_ref<VM> vm, ptr<void> self, Int index) = 0;
     };
 
+    SCRIPTENGINE_JVM_EXPORT
     void eval(mut_ref<VM> vm, MethodHandle handle, Frame frame);
 
     struct VM {

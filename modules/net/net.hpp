@@ -1,8 +1,17 @@
 #pragma once
 
+#ifdef LIBNET_EXPORTS
+#define LIBNET_EXPORT EXPORT_DLLEXPORT
+#else
+#define LIBNET_EXPORT EXPORT_DLLIMPORT
+#endif
+
+#include <cstdio>
 #include "../tier0/tier0.hpp"
 
 namespace net::ethernet {
+    LIBNET_EXPORT void dummy();
+
     using namespace tier0;
 }
 

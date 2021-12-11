@@ -7,6 +7,8 @@
 
 using namespace tier0;
 
+extern "C"
+LIBTEST_EXPORT
 Native<Int> main(Native<Int> argc, Native<ptr<cstring>> argv) {
     setbuf(stdout, nullptr);
     test::main(argc - 1, argv + 1);

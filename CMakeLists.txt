@@ -19,7 +19,8 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/Zc:preprocessor>")
 
-set(BUILD_SHARED_LIBS ON)
+# OBJECT | STATIC | SHARED
+set(BUILD_LIBS_MODE SHARED)
 
 add_compile_options("$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-g3>")
 add_compile_options("$<$<AND:$<CONFIG:DEBUG>,$<CXX_COMPILER_ID:AppleClang,Clang,GNU>>:-Og>")
@@ -28,6 +29,7 @@ add_compile_options("$<$<CONFIG:RELEASE>:-Os>")
 # set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 
 set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
+set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 
 message(STATUS "PROJECT_SOURCE_DIR: ${PROJECT_SOURCE_DIR}")
 add_compile_definitions(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
@@ -144,116 +146,172 @@ if (LINT)
     endif ()
 endif ()
 
-# main
+set(targets "")
+macro(hook_target target)
+    list(APPEND targets "${target}")
+endmacro()
 
-add_executable(silis-dummy
-        modules/main/src/main.cpp
-        )
-target_link_libraries(silis-dummy PRIVATE libtier2)
+macro(add_library target)
+    _add_library(${target} ${BUILD_LIBS_MODE} ${ARGN})
+    hook_target(${target})
+endmacro()
+
+macro(add_executable target)
+    _add_executable(${target} ${ARGN})
+    hook_target(${target})
+endmacro()
+
+macro(add_custom_target target)
+    _add_custom_target(${target} ${ARGN})
+    hook_target(${target})
+endmacro()
+
+cmake_language(DEFER CALL hook_targets_complete)
+function(hook_targets_complete)
+    foreach (target ${targets})
+        configure_target(${target})
+    endforeach ()
+endfunction()
+
+function(configure_target target)
+    get_target_property(target_type ${target} TYPE)
+    message(STATUS "defined target ${target_type}: ${target}")
+    if (target_type STREQUAL "UTILITY")
+        return()
+    endif ()
+
+    set_target_properties(${target} PROPERTIES LINKER_LANGUAGE CXX)
+
+    get_property(x_host TARGET ${target} PROPERTY X_HOST)
+    if (NOT x_host)
+        target_compile_options(${target} PRIVATE
+                "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-ffreestanding>"
+                "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-nostdlib>"
+                "$<$<CXX_COMPILER_ID:AppleClang,Clang,GNU>:-nostdinc>"
+                )
+    endif ()
+
+    set(BUILD_MACRO "${target}_exports")
+    string(REGEX REPLACE "[^0-9A-Z_a-z]" "_" BUILD_MACRO "${BUILD_MACRO}")
+    string(TOUPPER "${BUILD_MACRO}" BUILD_MACRO)
+    set_target_properties(${target}
+            PROPERTIES
+            DEFINE_SYMBOL "${BUILD_MACRO}"
+            )
+    # target_compile_definitions(${target} PRIVATE "${BUILD_MACRO}")
+
+    if (BUILD_LIBS_MODE STREQUAL "OBJECT")
+        target_sources(${target} INTERFACE $<TARGET_OBJECTS:${target}>)
+    endif ()
+
+    if (target MATCHES "-tests$")
+        target_link_libraries(${target} PRIVATE libtest)
+    endif ()
+endfunction()
 
 # libtest
 
-add_library(libtest OBJECT
-        modules/test/test.cpp
+add_library(libtest)
+set_target_properties(libtest PROPERTIES X_HOST ON)
+target_sources(libtest PRIVATE
+        modules/test/test.hpp modules/test/test.cpp
         )
 
 # liballoc
 
-add_library(liballoc OBJECT
+add_library(liballoc)
+set_target_properties(liballoc PROPERTIES X_HOST ON)
+target_link_libraries(liballoc PUBLIC libtier0)
+target_sources(liballoc PRIVATE
         modules/alloc/alloc.hpp modules/alloc/alloc.cpp
         )
-target_link_libraries(liballoc PUBLIC libtier0)
 
 # libtier0
 
-add_library(libtier0 OBJECT
-        modules/tier0/tier0.hpp
+add_library(libtier0)
+target_sources(libtier0 PRIVATE
+        modules/tier0/tier0.hpp modules/tier0/tier0.cpp
         )
-set_target_properties(libtier0 PROPERTIES LINKER_LANGUAGE CXX)
 
 add_executable(libtier0-tests)
-target_link_libraries(libtier0-tests PRIVATE libtest)
-target_link_libraries(libtier0-tests PRIVATE libtier0)
+target_link_libraries(libtier0-tests PUBLIC libtier0)
 target_discover_tests(libtier0-tests TEST_SOURCE_DIR modules/tier0)
-target_sources(libtier0-tests
-        PRIVATE
+target_sources(libtier0-tests PRIVATE
         modules/tier0/tests.cpp
         )
 
 # libtier1
 
-add_library(libtier1 OBJECT
-        modules/tier1/tier1.hpp
-        )
-set_target_properties(libtier1 PROPERTIES LINKER_LANGUAGE CXX)
+add_library(libtier1)
 target_link_libraries(libtier1 PUBLIC libtier0)
 target_link_libraries(libtier1 PUBLIC liballoc)
+target_sources(libtier1 PRIVATE
+        modules/tier1/tier1.hpp modules/tier1/tier1.cpp
+        )
 
 add_executable(libtier1-tests)
-target_link_libraries(libtier1-tests PRIVATE libtest)
-target_link_libraries(libtier1-tests PRIVATE libtier1)
-target_link_libraries(libtier1-tests PRIVATE liballoc)
+target_link_libraries(libtier1-tests PUBLIC libtier1)
 target_discover_tests(libtier1-tests TEST_SOURCE_DIR modules/tier1)
-target_sources(libtier1-tests
-        PRIVATE
+target_sources(libtier1-tests PRIVATE
         modules/tier1/tests.cpp
         )
 
 # libtier2
 
-add_library(libtier2 OBJECT
-        modules/tier2/tier2.hpp
-        )
-set_target_properties(libtier2 PROPERTIES LINKER_LANGUAGE CXX)
+add_library(libtier2)
 target_link_libraries(libtier2 PUBLIC libtier1)
+target_sources(libtier2 PRIVATE
+        modules/tier2/tier2.hpp modules/tier2/tier2.cpp
+        )
 
 add_executable(libtier2-tests)
-target_link_libraries(libtier2-tests PRIVATE libtest)
-target_link_libraries(libtier2-tests PRIVATE libtier2)
-target_link_libraries(libtier2-tests PRIVATE liballoc)
+target_link_libraries(libtier2-tests PUBLIC libtier2)
 target_discover_tests(libtier2-tests TEST_SOURCE_DIR modules/tier2)
-target_sources(libtier2-tests
-        PRIVATE
+target_sources(libtier2-tests PRIVATE
         modules/tier2/tests.cpp
         )
 
 # kernel
 
-add_library(libkernel OBJECT
-        modules/kernel/kernel.hpp
-        )
-set_target_properties(libkernel PROPERTIES LINKER_LANGUAGE CXX)
+add_library(libkernel)
 target_link_libraries(libkernel PUBLIC libtier1)
+target_sources(libkernel PRIVATE
+        modules/kernel/kernel.hpp modules/kernel/kernel.cpp
+        )
 
 # kernel linux impl
 
-add_library(libkernel-linux OBJECT
+add_library(libkernel-linux)
+set_target_properties(libkernel-linux PROPERTIES X_HOST ON)
+target_link_libraries(libkernel-linux PUBLIC libtier1)
+target_sources(libkernel-linux PRIVATE
         modules/kernel-linux/kernel-linux.cpp
         )
-target_link_libraries(libkernel-linux PUBLIC libtier2)
 
 # libnet
 
-add_library(libnet OBJECT
-        modules/net/net.hpp
-        )
-set_target_properties(libnet PROPERTIES LINKER_LANGUAGE CXX)
+add_library(libnet)
+set_target_properties(libnet PROPERTIES X_HOST ON)
 target_link_libraries(libnet PUBLIC libtier0)
+target_sources(libnet PRIVATE
+        modules/net/net.hpp modules/net/net.cpp
+        )
 
 # test-libnet
 
 add_executable(test-libnet)
-target_link_libraries(test-libnet PRIVATE libtier2)
-target_link_libraries(test-libnet PRIVATE liballoc)
-target_link_libraries(test-libnet PRIVATE libkernel-linux)
-target_sources(test-libnet
-        PRIVATE
+set_target_properties(test-libnet PROPERTIES X_HOST ON)
+target_link_libraries(test-libnet PUBLIC libnet)
+target_link_libraries(test-libnet PUBLIC libkernel-linux)
+target_sources(test-libnet PRIVATE
         modules/test-net/main.cpp
         )
 
 # scriptengine-jvm
 
-add_library(scriptengine-jvm OBJECT
+add_library(scriptengine-jvm)
+target_link_libraries(scriptengine-jvm PUBLIC libtier2)
+target_sources(scriptengine-jvm PRIVATE
         modules/scriptengine-jvm/classfile.hpp
         modules/scriptengine-jvm/classfile-constants.inc
         modules/scriptengine-jvm/decode.hpp
@@ -264,17 +322,13 @@ add_library(scriptengine-jvm OBJECT
         modules/scriptengine-jvm/loadcode.cpp
         modules/scriptengine-jvm/scriptengine.hpp modules/scriptengine-jvm/scriptengine.cpp
         )
-target_link_libraries(scriptengine-jvm PRIVATE libtier2)
 
 add_executable(scriptengine-jvm-tests)
 install(TARGETS scriptengine-jvm-tests DESTINATION .)
-target_link_libraries(scriptengine-jvm-tests PRIVATE libtest)
-target_link_libraries(scriptengine-jvm-tests PRIVATE scriptengine-jvm)
-target_link_libraries(scriptengine-jvm-tests PRIVATE liballoc)
-target_link_libraries(scriptengine-jvm-tests PRIVATE libkernel-linux)
+target_link_libraries(scriptengine-jvm-tests PUBLIC scriptengine-jvm)
+target_link_libraries(scriptengine-jvm-tests PUBLIC libkernel-linux)
 target_discover_tests(scriptengine-jvm-tests TEST_SOURCE_DIR modules/scriptengine-jvm/tests)
-target_sources(scriptengine-jvm-tests
-        PRIVATE
+target_sources(scriptengine-jvm-tests PRIVATE
         modules/scriptengine-jvm/tests/tests.cpp
         )
 
@@ -287,10 +341,9 @@ function(target_java_source target srcfile)
     get_filename_component(dstdir "${dstfile}" DIRECTORY)
     set(srcfile "${CMAKE_CURRENT_SOURCE_DIR}/${srcfile}")
     get_filename_component(srcdir "${srcfile}" DIRECTORY)
-    add_custom_target(
-            "${classtarget}"
+    add_custom_target(${classtarget}
             DEPENDS "${dstfile}"
-    )
+            )
     add_custom_command(
             VERBATIM
             OUTPUT "${dstfile}"
@@ -304,10 +357,9 @@ target_java_source(scriptengine-jvm-tests modules/scriptengine-jvm/scripts/Extra
 set(extractJRTDir "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm/scripts")
 set(extractJRTClass "ExtractJRT")
 set(JRT "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm/rt")
-add_custom_target(
-        "rt"
+add_custom_target(rt
         DEPENDS "${JRT}"
-)
+        )
 add_custom_command(
         VERBATIM
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm"
@@ -323,6 +375,6 @@ add_custom_command(
         DEPENDS "${JRT}.jar"
         COMMAND "${CMAKE_COMMAND}" -E tar xf "${JRT}.jar"
 )
-add_dependencies("scriptengine-jvm-tests" "rt")
+add_dependencies(scriptengine-jvm-tests rt)
 
 target_java_source(scriptengine-jvm-tests modules/scriptengine-jvm/tests/Hello.java)

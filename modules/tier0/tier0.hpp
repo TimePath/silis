@@ -1,5 +1,11 @@
 #pragma once
 
+#ifdef LIBTIER0_EXPORTS
+#define LIBTIER0_EXPORT EXPORT_DLLEXPORT
+#else
+#define LIBTIER0_EXPORT EXPORT_DLLIMPORT
+#endif
+
 #define func auto
 #define let const auto &
 #define var auto
@@ -31,6 +37,14 @@
 #define COMPILER_IS_MSVC 1
 #else
 #error "Unknown compiler"
+#endif
+
+#if COMPILER_IS_MSVC
+#define EXPORT_DLLEXPORT __declspec(dllexport)
+#define EXPORT_DLLIMPORT __declspec(dllimport)
+#else
+#define EXPORT_DLLEXPORT __attribute__((visibility("default")))
+#define EXPORT_DLLIMPORT
 #endif
 
 #ifndef USE_PRIMITIVE_WRAPPERS
@@ -70,7 +84,9 @@
     _Pragma("warning(pop)") \
     /**/
 
-namespace tier0 {}
+namespace tier0 {
+    LIBTIER0_EXPORT void dummy();
+}
 
 // meta
 namespace tier0 {

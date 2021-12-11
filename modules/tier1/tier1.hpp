@@ -1,9 +1,17 @@
 #pragma once
 
+#ifdef LIBTIER1_EXPORTS
+#define LIBTIER1_EXPORT EXPORT_DLLEXPORT
+#else
+#define LIBTIER1_EXPORT EXPORT_DLLIMPORT
+#endif
+
 #include "../tier0/tier0.hpp"
 #include "../alloc/alloc.hpp"
 
 namespace tier1 {
+    LIBTIER1_EXPORT void dummy();
+
     using namespace tier0;
 }
 
