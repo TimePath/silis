@@ -17,6 +17,11 @@ jobs:
   build:
     name: ${{ matrix.config.name }}
     runs-on: ${{ matrix.config.os }}
+    env:
+      SONAR_SCANNER_VERSION: 4.6.1.2450  # Find the latest version in the "Linux" link on this page:
+      # https://sonarcloud.io/documentation/analysis/scan/sonarscanner/
+      SONAR_SERVER_URL: "https://sonarcloud.io"
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory
     defaults:
       run:
         shell: cmake -P {0}
@@ -64,6 +69,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # everything
 
       - name: Download Ninja
         run: |
@@ -83,7 +90,33 @@ jobs:
             execute_process(COMMAND chmod +x ninja)
           endif ()
           execute_process(COMMAND ./ninja --version)
-          file(APPEND "$ENV{GITHUB_PATH}" "$ENV{GITHUB_WORKSPACE}")
+          file(APPEND "$ENV{GITHUB_PATH}" "$ENV{GITHUB_WORKSPACE}" "\n")
+
+      - name: Cache SonarCloud packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+      - name: Download and set up sonar-scanner & build-wrapper
+        run: |
+          file(MAKE_DIRECTORY "$ENV{HOME}/.sonar")
+
+          set(SONAR_SCANNER_DOWNLOAD_URL "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${{ env.SONAR_SCANNER_VERSION }}-linux.zip")
+          file(DOWNLOAD "${SONAR_SCANNER_DOWNLOAD_URL}" "$ENV{HOME}/.sonar/sonar-scanner.zip" SHOW_PROGRESS)
+          execute_process(
+            COMMAND unzip "$ENV{HOME}/.sonar/sonar-scanner.zip"
+            WORKING_DIRECTORY "$ENV{HOME}/.sonar/"
+          )
+          file(APPEND "$ENV{GITHUB_PATH}" "$ENV{HOME}/.sonar/sonar-scanner-${{ env.SONAR_SCANNER_VERSION }}-linux/bin" "\n")
+
+          set(BUILD_WRAPPER_DOWNLOAD_URL "${{ env.SONAR_SERVER_URL }}/static/cpp/build-wrapper-linux-x86.zip")
+          file(DOWNLOAD "${BUILD_WRAPPER_DOWNLOAD_URL}" "$ENV{HOME}/.sonar/build-wrapper-linux-x86.zip" SHOW_PROGRESS)
+          execute_process(
+            COMMAND unzip "$ENV{HOME}/.sonar/build-wrapper-linux-x86.zip"
+            WORKING_DIRECTORY "$ENV{HOME}/.sonar/"
+          )
+          file(APPEND "$ENV{GITHUB_PATH}" "$ENV{HOME}/.sonar/build-wrapper-linux-x86" "\n")
 
       - name: Configure
         run: |
@@ -132,8 +165,10 @@ jobs:
           set(ENV{CXX} "${{ matrix.config.cxx }}")
           set(ENV{JAVA_HOME} "$ENV{JAVA_HOME_11_X64}")
 
+          message(STATUS "Path is $ENV{PATH}")
+
           execute_process(
-            COMMAND cmake --build build
+            COMMAND build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
             RESULT_VARIABLE result
             OUTPUT_VARIABLE output
             ERROR_VARIABLE output
@@ -143,8 +178,19 @@ jobs:
             string(REGEX MATCH "FAILED:.*$" error_message "${output}")
             string(REPLACE "\n" "%0A" error_message "${error_message}")
             message("::error::${error_message}")
-            message(FATAL_ERROR "Build failed")
+            message(FATAL_ERROR "Build failed with exit code: ${result}.")
           endif ()
+
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          execute_process(
+            COMMAND sonar-scanner
+              --define "sonar.host.url=$ENV{SONAR_SERVER_URL}"
+              --define "sonar.cfamily.build-wrapper-output=$ENV{BUILD_WRAPPER_OUT_DIR}"
+          )
 
       - name: Check
         run: |
