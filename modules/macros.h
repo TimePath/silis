@@ -1,3 +1,6 @@
+#pragma once
+// SPDX-License-Identifier: AFL-3.0
+
 #define IF_COND(cond, t, f) IF_COND_1(cond, t, f)
 #define IF_COND_1(cond, t, f) IF_COND_DISPATCH_##cond(t, f)
 #define IF_COND_DISPATCH_0(t, f) f

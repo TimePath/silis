@@ -1,4 +1,5 @@
 #pragma once
+// SPDX-License-Identifier: AFL-3.0
 
 #ifdef LIBALLOC_EXPORTS
 #define LIBALLOC_EXPORT EXPORT_DLLEXPORT

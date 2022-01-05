@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AFL-3.0
 #define DEBUG 0
 
 #if DEBUG

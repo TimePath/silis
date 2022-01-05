@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AFL-3.0
 class Hello {
     static boolean boolZero = false;
     static boolean boolOne = true;

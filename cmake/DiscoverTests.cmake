@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AFL-3.0
+
 set(DISCOVER_TESTS_SCRIPT "${CMAKE_CURRENT_LIST_FILE}")
 
 function(target_discover_tests target)

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AFL-3.0
+
 from typing import Any, List
 
 import os

@@ -1,4 +1,5 @@
 #pragma once
+// SPDX-License-Identifier: AFL-3.0
 
 #include "../tier2/tier2.hpp"
 

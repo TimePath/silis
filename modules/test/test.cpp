@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AFL-3.0
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>

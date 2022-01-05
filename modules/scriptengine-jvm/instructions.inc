@@ -1,4 +1,5 @@
 #pragma once
+// SPDX-License-Identifier: AFL-3.0
 
 // https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-6.html
 

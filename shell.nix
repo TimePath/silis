@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: AFL-3.0
 { pkgs ? import <nixpkgs> {} }:
 pkgs.mkShell {
   buildInputs = with pkgs; [

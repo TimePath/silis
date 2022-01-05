@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AFL-3.0
 import java.net.URI;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;

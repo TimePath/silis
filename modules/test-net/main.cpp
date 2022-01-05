@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AFL-3.0
 #include <cstdio>
 #include "../tier0/tier0.hpp"
 #include "../tier1/tier1.hpp"

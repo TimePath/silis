@@ -1,4 +1,6 @@
 #!/bin/sh
+# SPDX-License-Identifier: AFL-3.0
+
 bindir=$PWD
 srcdir=$1
 shift

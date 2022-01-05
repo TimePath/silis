@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: AFL-3.0
+
 def parse_template_args(typename):
     if "<" not in typename:
         return

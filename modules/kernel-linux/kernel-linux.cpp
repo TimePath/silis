@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AFL-3.0
 #define ENABLE_EXTRAS 0
 
 #if ENABLE_EXTRAS

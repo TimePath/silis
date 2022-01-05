@@ -1,4 +1,5 @@
 #pragma once
+// SPDX-License-Identifier: AFL-3.0
 
 #ifdef LIBTIER1_EXPORTS
 #define LIBTIER1_EXPORT EXPORT_DLLEXPORT

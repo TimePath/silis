@@ -1,4 +1,5 @@
 #pragma once
+// SPDX-License-Identifier: AFL-3.0
 
 #ifdef SCRIPTENGINE_JVM_EXPORTS
 #define SCRIPTENGINE_JVM_EXPORT EXPORT_DLLEXPORT
