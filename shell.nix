@@ -12,6 +12,6 @@ pkgs.mkShell {
     cpplint
     include-what-you-use
 
-    openjdk16
+    openjdk17
   ];
 }
