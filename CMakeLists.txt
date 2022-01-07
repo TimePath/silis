@@ -370,14 +370,15 @@ add_custom_command(
         OUTPUT "${JRT}.jar"
         DEPENDS "${extractJRTDir}/${extractJRTClass}.class"
         COMMAND "${Java_JAVA_EXECUTABLE}" -cp "${extractJRTDir}" "${extractJRTClass}"
-        COMMAND "mkdir" "rt"
 )
 add_custom_command(
         VERBATIM
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm/rt"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/modules/scriptengine-jvm"
         OUTPUT "${JRT}"
         DEPENDS "${JRT}.jar"
-        COMMAND "${CMAKE_COMMAND}" -E tar xf "${JRT}.jar"
+        COMMAND "${CMAKE_COMMAND}" -E rm -rf rt
+        COMMAND "${CMAKE_COMMAND}" -E make_directory rt
+        COMMAND "${CMAKE_COMMAND}" -E chdir rt "${CMAKE_COMMAND}" -E tar xf "${JRT}.jar"
 )
 add_dependencies(scriptengine-jvm-tests rt)
 
